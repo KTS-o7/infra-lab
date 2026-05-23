@@ -31,9 +31,9 @@ def get_profile_with_progress(session) -> dict:
     completed_ids = [p.mission_id for p in results if p.status == "completed"]
     return {
         "id": profile.id,
-        "display_name": profile.display_name,
-        "total_xp": profile.total_xp,
-        "completed_mission_ids": completed_ids,
+        "displayName": profile.display_name,
+        "totalXp": profile.total_xp,
+        "completedMissionIds": completed_ids,
         "badges": [],
     }
 

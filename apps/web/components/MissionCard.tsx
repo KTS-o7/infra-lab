@@ -55,8 +55,8 @@ export default function MissionCard({ mission }: Props) {
         </div>
       </div>
 
-      {mission.status === "locked" && mission.prerequisites.length > 0 && (
-        <p className="text-xs text-slate-500 mt-3">Requires: {mission.prerequisites.join(", ")}</p>
+      {mission.status === "locked" && (mission.prerequisites ?? []).length > 0 && (
+        <p className="text-xs text-slate-500 mt-3">Requires: {(mission.prerequisites ?? []).join(", ")}</p>
       )}
     </div>
   );

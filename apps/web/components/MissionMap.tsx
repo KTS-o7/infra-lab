@@ -14,7 +14,7 @@ export default function MissionMap() {
     setLoading(true);
     setError(null);
     getMissions()
-      .then((data) => setMissions(data.missions))
+      .then((data) => setMissions(data.missions ?? []))
       .catch(() => setError("Failed to load missions"))
       .finally(() => setLoading(false));
   };

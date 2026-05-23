@@ -27,11 +27,11 @@ export default function XpSummary() {
         </div>
       </div>
 
-      {profile.completedMissionIds.length > 0 && (
+      {(profile.completedMissionIds ?? []).length > 0 && (
         <div className="space-y-2">
           <p className="text-sm text-slate-400">Completed:</p>
           <div className="flex flex-wrap gap-2">
-            {profile.completedMissionIds.map((id) => (
+            {(profile.completedMissionIds ?? []).map((id) => (
               <span key={id} className="px-2 py-1 rounded bg-emerald-900 text-emerald-300 text-xs border border-emerald-700">
                 {id}
               </span>

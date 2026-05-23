@@ -15,7 +15,7 @@ export interface Mission {
   services: string[];
   xp: number;
   status: string;
-  prerequisites: string[];
+  prerequisites?: string[];
   estimatedMinutes: number;
 }
 
@@ -33,7 +33,7 @@ export interface MissionDetail {
     story: string;
     learningObjectives: string[];
     commands: { id: string; label: string; command: string }[];
-    hints: { id: string; title: string; text?: string; isUsed: boolean; penaltyXp: number }[];
+    hints?: { id: string; title: string; text?: string; isUsed: boolean; penaltyXp: number }[];
     progress: {
       status: string;
       attempts: number;
@@ -59,8 +59,8 @@ export interface Profile {
   id: string;
   displayName: string;
   totalXp: number;
-  completedMissionIds: string[];
-  badges: { id: string; title: string; awardedAt: string }[];
+  completedMissionIds?: string[];
+  badges?: { id: string; title: string; awardedAt: string }[];
 }
 
 export async function getRuntimeStatus(): Promise<RuntimeStatus> {

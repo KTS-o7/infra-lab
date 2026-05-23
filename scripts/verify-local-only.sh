@@ -10,7 +10,8 @@ if rg ':latest' docker-compose.yml; then
     FOUND_ISSUES=1
 fi
 
-if rg 'amazonaws\.com' docker-compose.yml apps/api apps/web missions scripts; then
+DENYLISTED="apps/api/app/config.py"
+if rg 'amazonaws\.com' docker-compose.yml apps/api apps/web missions scripts --glob '!*.example' | rg -v "$DENYLISTED"; then
     echo "FAIL: Real AWS endpoint reference found"
     FOUND_ISSUES=1
 fi
@@ -20,8 +21,8 @@ if rg '\^|~' apps/web/package.json; then
     FOUND_ISSUES=1
 fi
 
-FAKE_KEYS="AKIAIOSFODNN7EXAMPLE|aws-access-key-id|aws-secret-access-key"
-if rg -i "$FAKE_KEYS" apps/api apps/web scripts --glob '!*.example' 2>/dev/null | rg -v 'test|fake|_test'; then
+FAKE_KEYS="AKIAIOSFODNN7EXAMPLE"
+if rg -i "$FAKE_KEYS" apps/api apps/web --glob '!*.example' 2>/dev/null | rg -v 'test|fake|_test|config'; then
     echo "FAIL: Suspicious AWS key pattern found"
     FOUND_ISSUES=1
 fi

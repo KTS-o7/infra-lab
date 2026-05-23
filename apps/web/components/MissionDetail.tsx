@@ -168,9 +168,9 @@ export default function MissionDetail({ missionId }: Props) {
             </div>
           </div>
 
-          {mission.hints.length > 0 && (
+          {(mission.hints ?? []).length > 0 && (
             <HintPanel
-              hints={mission.hints}
+              hints={mission.hints ?? []}
               onUseHint={handleUseHint}
               missionStarted={mission.status === "started" || mission.status === "completed"}
             />
