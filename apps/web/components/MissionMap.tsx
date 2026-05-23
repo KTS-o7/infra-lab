@@ -66,11 +66,17 @@ export default function MissionMap() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {missions.map((mission) => (
-          <Link key={mission.id} href={`/missions/${mission.id}`} className="block">
-            <MissionCard mission={mission} />
-          </Link>
-        ))}
+        {missions.map((mission) =>
+          mission.status === "locked" ? (
+            <div key={mission.id} className="block">
+              <MissionCard mission={mission} />
+            </div>
+          ) : (
+            <Link key={mission.id} href={`/missions/${mission.id}`} className="block">
+              <MissionCard mission={mission} />
+            </Link>
+          )
+        )}
       </div>
     </div>
   );
