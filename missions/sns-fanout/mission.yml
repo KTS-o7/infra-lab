@@ -1,0 +1,59 @@
+id: sns-fanout
+order: 4
+title: Publish and Subscribe
+summary: Create an SNS topic and fan out messages to SQS queues.
+difficulty: beginner
+services:
+  - sns
+  - sqs
+xp: 150
+estimated_minutes: 15
+prerequisites:
+  - sqs-first-message
+story: |
+  You want to publish one message and have it delivered to multiple systems.
+  In AWS, this is done with SNS (Simple Notification Service) for pub/sub.
+  A topic receives messages and fans them out to subscribed endpoints.
+commands:
+  - id: create-topic
+    label: Create SNS topic
+    command: aws --endpoint-url http://localhost:4566 sns create-topic --name starter-topic
+  - id: create-queue
+    label: Create SQS queue
+    command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-fanout-queue --attributes VisibilityTimeout=0
+  - id: subscribe
+    label: Subscribe queue to topic
+    command: TOPIC_ARN=$(aws --endpoint-url http://localhost:4566 sns list-topics --query 'Topics[?contains(TopicArn,`starter-topic`)].TopicArn' --output text) && QUEUE_ARN=$(aws --endpoint-url http://localhost:4566 sqs get-queue-arn --queue-name starter-fanout-queue --query QueueArn --output text) && aws --endpoint-url http://localhost:4566 sns subscribe --topic-arn "$TOPIC_ARN" --protocol sqs --notification-endpoint "$QUEUE_ARN"
+  - id: publish
+    label: Publish message
+    command: TOPIC_ARN=$(aws --endpoint-url http://localhost:4566 sns list-topics --query 'Topics[?contains(TopicArn,`starter-topic`)].TopicArn' --output text) && aws --endpoint-url http://localhost:4566 sns publish --topic-arn "$TOPIC_ARN" --message "local fanout works"
+hints:
+  - id: topic-name
+    title: Topic naming
+    text: The topic name is starter-topic. SNS topics work differently than S3 buckets.
+    penalty_xp: 5
+  - id: endpoint
+    title: Local endpoint
+    text: Use --endpoint-url http://localhost:4566 for all AWS CLI commands in this lab.
+    penalty_xp: 5
+checks:
+  - id: topic-exists
+    type: sns_topic_exists
+    topic_name: starter-topic
+  - id: queue-exists
+    type: sqs_queue_exists
+    queue_name: starter-fanout-queue
+  - id: subscription-exists
+    type: sns_subscription_exists
+    topic_name: starter-topic
+    queue_name: starter-fanout-queue
+  - id: fanout-message
+    type: sns_to_sqs_delivery
+    topic_name: starter-topic
+    queue_name: starter-fanout-queue
+    body: local fanout works
+owned_resources:
+  - type: sns_topic
+    topic_name: starter-topic
+  - type: sqs_queue
+    queue_name: starter-fanout-queue

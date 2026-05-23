@@ -1,0 +1,45 @@
+id: lambda-tiny-function
+order: 6
+title: Tiny Function
+summary: Deploy and invoke a local Lambda function.
+difficulty: beginner
+services:
+  - lambda
+xp: 175
+estimated_minutes: 20
+prerequisites:
+  - dynamodb-first-table
+story: |
+  You want to run code without managing servers.
+  In AWS, this is done with Lambda, a serverless compute service.
+  Lambda functions are triggered by events and return responses.
+commands:
+  - id: create-function
+    label: Create Lambda function
+    command: cd missions/lambda-tiny-function/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+  - id: invoke-function
+    label: Invoke function
+    command: aws --endpoint-url http://localhost:4566 lambda invoke --function-name starter-function --payload '{"name":"Local Learner"}' /tmp/response.json && cat /tmp/response.json
+hints:
+  - id: handler-syntax
+    title: Handler syntax
+    text: The handler is "index.handler" meaning the exported handler function in index.mjs.
+    penalty_xp: 5
+  - id: endpoint
+    title: Local endpoint
+    text: Use --endpoint-url http://localhost:4566 for all Lambda CLI commands in this lab.
+    penalty_xp: 5
+checks:
+  - id: function-exists
+    type: lambda_function_exists
+    function_name: starter-function
+  - id: invoke-result
+    type: lambda_invoke_returns
+    function_name: starter-function
+    payload:
+      name: Local Learner
+    expected:
+      message: Hello, Local Learner
+owned_resources:
+  - type: lambda_function
+    function_name: starter-function

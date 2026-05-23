@@ -1,0 +1,61 @@
+id: apigateway-http-trigger
+order: 7
+title: HTTP Trigger
+summary: Expose a Lambda function through an HTTP endpoint with API Gateway.
+difficulty: beginner
+services:
+  - apigateway
+  - lambda
+xp: 200
+estimated_minutes: 25
+prerequisites:
+  - lambda-tiny-function
+story: |
+  You want to trigger your Lambda function via an HTTP request.
+  In AWS, this is done with API Gateway, which exposes REST/HTTP APIs.
+  When someone calls your HTTP endpoint, API Gateway invokes your Lambda.
+commands:
+  - id: create-function
+    label: Create Lambda function
+    command: cd missions/apigateway-http-trigger/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-api-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+  - id: create-api
+    label: Create API Gateway API
+    command: aws --endpoint-url http://localhost:4566 apigatewayv2 create-api --name starter-api --protocol-type HTTP
+  - id: add-route
+    label: Add route
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello"
+  - id: integrate
+    label: Integrate Lambda
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:starter-api-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello" --target "$INTEGRATION_ID"
+  - id: invoke
+    label: Call HTTP endpoint
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://localhost:4566/$API_ID/hello"
+hints:
+  - id: route-key
+    title: Route key
+    text: The route key is "GET /hello". API Gateway routes requests based on the path and method.
+    penalty_xp: 5
+  - id: endpoint
+    title: Local endpoint
+    text: Use --endpoint-url http://localhost:4566 for all CLI commands in this lab.
+    penalty_xp: 5
+checks:
+  - id: function-exists
+    type: lambda_function_exists
+    function_name: starter-api-function
+  - id: route-exists
+    type: apigateway_route_exists
+    api_name: starter-api
+    route: GET /hello
+  - id: http-response
+    type: apigateway_http_returns
+    api_name: starter-api
+    route: GET /hello
+    expected_status: 200
+    expected_json:
+      message: Hello from local API
+owned_resources:
+  - type: apigateway_api
+    api_name: starter-api
+  - type: lambda_function
+    function_name: starter-api-function

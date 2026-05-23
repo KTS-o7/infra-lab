@@ -1,0 +1,48 @@
+id: sqs-first-message
+order: 3
+title: Queue the Message
+summary: Create an SQS queue and send a message that can be received later.
+difficulty: beginner
+services:
+  - sqs
+xp: 100
+estimated_minutes: 10
+prerequisites:
+  - s3-first-bucket
+story: |
+  You need to send a message that a worker process will pick up later.
+  In AWS, this is done with SQS (Simple Queue Service).
+  Messages go into a queue, and workers retrieve them asynchronously.
+commands:
+  - id: create-queue
+    label: Create queue
+    command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-queue --attributes VisibilityTimeout=0
+  - id: get-queue-url
+    label: Get queue URL
+    command: aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue
+  - id: send-message
+    label: Send message
+    command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs send-message --queue-url "$QUEUE_URL" --message-body "first local queue message"
+  - id: receive-message
+    label: Receive message
+    command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs receive-message --queue-url "$QUEUE_URL" --visibility-timeout 0 --max-number-of-messages 10 --wait-time-seconds 1
+hints:
+  - id: queue-name
+    title: Queue name
+    text: The queue name is starter-queue. Queue names are local in this lab.
+    penalty_xp: 5
+  - id: endpoint
+    title: Local endpoint
+    text: Use --endpoint-url http://localhost:4566 for all AWS CLI commands.
+    penalty_xp: 5
+checks:
+  - id: queue-exists
+    type: sqs_queue_exists
+    queue_name: starter-queue
+  - id: message-available
+    type: sqs_message_available
+    queue_name: starter-queue
+    body: first local queue message
+owned_resources:
+  - type: sqs_queue
+    queue_name: starter-queue
