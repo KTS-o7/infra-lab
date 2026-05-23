@@ -14,6 +14,10 @@ story: |
   You want to publish one message and have it delivered to multiple systems.
   In AWS, this is done with SNS (Simple Notification Service) for pub/sub.
   A topic receives messages and fans them out to subscribed endpoints.
+learning_objectives:
+  - Understand SNS topic and subscription model
+  - Create topics and queues
+  - Configure fanout delivery
 commands:
   - id: create-topic
     label: Create SNS topic

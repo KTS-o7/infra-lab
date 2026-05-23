@@ -13,6 +13,10 @@ story: |
   You need to send a message that a worker process will pick up later.
   In AWS, this is done with SQS (Simple Queue Service).
   Messages go into a queue, and workers retrieve them asynchronously.
+learning_objectives:
+  - Understand SQS queue semantics
+  - Create and configure queues
+  - Send and receive messages
 commands:
   - id: create-queue
     label: Create queue

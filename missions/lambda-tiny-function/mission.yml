@@ -13,6 +13,10 @@ story: |
   You want to run code without managing servers.
   In AWS, this is done with Lambda, a serverless compute service.
   Lambda functions are triggered by events and return responses.
+learning_objectives:
+  - Understand Lambda function basics
+  - Deploy functions locally
+  - Invoke and test functions
 commands:
   - id: create-function
     label: Create Lambda function

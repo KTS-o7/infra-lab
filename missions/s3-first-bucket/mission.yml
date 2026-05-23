@@ -13,6 +13,10 @@ story: |
   You are setting up storage for a small app that needs to save a welcome file.
   In AWS, this is done with S3 (Simple Storage Service).
   Buckets hold objects (files), and every object lives in a bucket.
+learning_objectives:
+  - Understand what an S3 bucket is
+  - Create a bucket locally
+  - Upload and inspect an object
 commands:
   - id: create-bucket
     label: Create bucket

@@ -17,6 +17,10 @@ story: |
   An HTTP POST to your API creates an order.
   Your Lambda function writes the order to DynamoDB and sends a message to SQS.
   This combines everything you've learned: API Gateway, Lambda, DynamoDB, and SQS.
+learning_objectives:
+  - Build complete serverless workflows
+  - Integrate multiple AWS services
+  - Process orders and send notifications
 commands:
   - id: create-dynamodb-table
     label: Create DynamoDB table

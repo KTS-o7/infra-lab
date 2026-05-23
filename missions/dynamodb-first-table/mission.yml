@@ -13,6 +13,10 @@ story: |
   You need to store key-value data that can be retrieved quickly.
   In AWS, this is done with DynamoDB, a managed NoSQL database.
   Tables have partition keys that uniquely identify each item.
+learning_objectives:
+  - Understand DynamoDB table structure
+  - Create tables with partition keys
+  - Put and get items
 commands:
   - id: create-table
     label: Create DynamoDB table
