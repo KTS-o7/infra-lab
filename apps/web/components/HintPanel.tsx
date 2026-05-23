@@ -16,32 +16,32 @@ interface Props {
 
 export default function HintPanel({ hints, onUseHint, missionStarted }: Props) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900 p-6">
-      <h2 className="text-lg font-semibold text-slate-100 mb-4">Hints</h2>
+    <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-6 shadow-xl shadow-black/10 backdrop-blur">
+      <h2 className="mb-4 text-lg font-semibold text-emerald-50">Hints</h2>
       <div className="space-y-3">
         {hints.map((hint) => (
-          <div key={hint.id} className="rounded-lg border border-slate-700 bg-slate-950 p-4">
-            <div className="flex items-center justify-between mb-2">
+          <div key={hint.id} className="rounded-md border border-white/10 bg-black/25 p-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-slate-200">{hint.title}</span>
+                <span className="text-sm font-medium text-emerald-50">{hint.title}</span>
                 {hint.penaltyXp > 0 && (
-                  <span className="text-xs text-amber-500">-{hint.penaltyXp} XP</span>
+                  <span className="text-xs text-amber-300">-{hint.penaltyXp} XP</span>
                 )}
               </div>
               {!hint.isUsed && hint.text && missionStarted && (
                 <button
                   onClick={() => onUseHint(hint.id)}
-                  className="text-xs px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                  className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-emerald-100/65 hover:bg-white/[0.075] hover:text-emerald-50"
                 >
                   Reveal Hint
                 </button>
               )}
             </div>
             {hint.isUsed && hint.text && (
-              <p className="text-sm text-slate-400">{hint.text}</p>
+              <p className="text-sm leading-6 text-emerald-100/62">{hint.text}</p>
             )}
             {!hint.text && !hint.isUsed && (
-              <p className="text-sm text-slate-500 italic">Use hint to reveal guidance.</p>
+              <p className="text-sm italic text-emerald-100/42">Use hint to reveal guidance.</p>
             )}
           </div>
         ))}

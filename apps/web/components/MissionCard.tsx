@@ -1,62 +1,73 @@
 import { Mission } from "@/lib/api";
 import { clsx } from "clsx";
+import { CheckCircle2, Clock3, Lock, PlayCircle, Star, Timer } from "lucide-react";
 
 interface Props {
   mission: Mission;
 }
 
 const difficultyColor = {
-  beginner: "text-emerald-400",
-  intermediate: "text-amber-400",
-  boss: "text-rose-400",
+  beginner: "text-lime-200 bg-lime-300/10 border-lime-300/20",
+  intermediate: "text-amber-200 bg-amber-300/10 border-amber-300/20",
+  boss: "text-rose-200 bg-rose-300/10 border-rose-300/20",
 };
 
 const statusBadge = {
-  locked: "bg-slate-800 text-slate-500",
-  available: "bg-blue-900 text-blue-300 border border-blue-700",
-  started: "bg-amber-900 text-amber-300 border border-amber-700",
-  completed: "bg-emerald-900 text-emerald-300 border border-emerald-700",
+  locked: "bg-white/[0.04] text-emerald-100/40 border-white/10",
+  available: "bg-teal-300/10 text-teal-100 border-teal-300/20",
+  started: "bg-amber-300/10 text-amber-100 border-amber-300/20",
+  completed: "bg-lime-300/10 text-lime-100 border-lime-300/20",
 };
 
 export default function MissionCard({ mission }: Props) {
+  const StatusIcon =
+    mission.status === "completed" ? CheckCircle2 :
+      mission.status === "started" ? Clock3 :
+        mission.status === "locked" ? Lock :
+          PlayCircle;
+
   return (
     <div className={clsx(
-      "rounded-xl border p-5 transition-all hover:scale-[1.02] duration-200",
+      "group relative h-full overflow-hidden rounded-lg border p-5 transition duration-200",
       mission.status === "locked"
-        ? "bg-slate-900 border-slate-800 opacity-60"
-        : "bg-slate-900 border-slate-700 hover:border-slate-600"
+        ? "border-white/10 bg-white/[0.025] opacity-65"
+        : "border-white/10 bg-white/[0.055] shadow-xl shadow-black/10 hover:-translate-y-0.5 hover:border-lime-300/35 hover:bg-white/[0.075]"
     )}>
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className={clsx("text-xs font-medium uppercase tracking-wide", difficultyColor[mission.difficulty as keyof typeof difficultyColor] || "text-slate-400")}>
+      {mission.status !== "locked" && (
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-lime-300/60 to-transparent opacity-0 transition group-hover:opacity-100" />
+      )}
+
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className={clsx("rounded-md border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]", difficultyColor[mission.difficulty as keyof typeof difficultyColor] || "border-white/10 bg-white/[0.04] text-emerald-100/50")}>
             {mission.difficulty}
           </span>
-          <span className="text-slate-600">•</span>
-          <span className="text-xs text-slate-400">{mission.services.join(", ")}</span>
+          <span className="truncate rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-emerald-100/46">
+            {mission.services.join(" / ")}
+          </span>
         </div>
-        <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium", statusBadge[mission.status as keyof typeof statusBadge] || statusBadge.available)}>
+        <span className={clsx("inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium", statusBadge[mission.status as keyof typeof statusBadge] || statusBadge.available)}>
+          <StatusIcon className="h-3.5 w-3.5" />
           {mission.status}
         </span>
       </div>
 
-      <h3 className="text-lg font-semibold text-slate-100 mb-1">{mission.title}</h3>
-      <p className="text-sm text-slate-400 mb-4 line-clamp-2">{mission.summary}</p>
+      <h3 className="mb-2 text-lg font-semibold text-emerald-50">{mission.title}</h3>
+      <p className="mb-5 min-h-[44px] text-sm leading-6 text-emerald-100/58">{mission.summary}</p>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-amber-400">⭐</span>
-          <span className="text-sm font-medium text-amber-400">{mission.xp} XP</span>
+      <div className="flex items-center justify-between border-t border-white/10 pt-4">
+        <div className="flex items-center gap-2">
+          <Star className="h-4 w-4 fill-lime-300 text-lime-300" />
+          <span className="text-sm font-semibold text-lime-100">{mission.xp} XP</span>
         </div>
-        <div className="flex items-center gap-1 text-slate-500">
-          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-          </svg>
-          <span className="text-xs">{mission.estimatedMinutes}m</span>
+        <div className="flex items-center gap-1.5 text-emerald-100/45">
+          <Timer className="h-4 w-4" />
+          <span className="text-xs font-medium">{mission.estimatedMinutes}m</span>
         </div>
       </div>
 
       {mission.status === "locked" && (mission.prerequisites ?? []).length > 0 && (
-        <p className="text-xs text-slate-500 mt-3">Requires: {(mission.prerequisites ?? []).join(", ")}</p>
+        <p className="mt-3 text-xs text-emerald-100/38">Requires: {(mission.prerequisites ?? []).join(", ")}</p>
       )}
     </div>
   );

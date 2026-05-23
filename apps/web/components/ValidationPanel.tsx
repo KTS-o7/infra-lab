@@ -1,6 +1,7 @@
 "use client";
 
 import { ValidationResult } from "@/lib/api";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 interface Props {
   result: ValidationResult;
@@ -8,17 +9,17 @@ interface Props {
 
 export default function ValidationPanel({ result }: Props) {
   return (
-    <div className="rounded-xl border bg-slate-900 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-slate-100">Validation Results</h2>
-        <span className={`text-sm font-medium px-3 py-1 rounded-full ${result.passed ? "bg-emerald-900 text-emerald-300 border border-emerald-700" : "bg-amber-900 text-amber-300 border border-amber-700"}`}>
+    <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-6 shadow-xl shadow-black/10 backdrop-blur">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-emerald-50">Validation results</h2>
+        <span className={`rounded-md border px-3 py-1 text-sm font-medium ${result.passed ? "border-lime-300/20 bg-lime-300/10 text-lime-100" : "border-amber-300/20 bg-amber-300/10 text-amber-100"}`}>
           {result.passed ? "Passed" : "Partial"}
         </span>
       </div>
 
       {result.xpAwarded > 0 && (
-        <div className="mb-4 p-3 rounded-lg bg-emerald-950 border border-emerald-800 text-center">
-          <p className="text-lg font-bold text-emerald-300">+{result.xpAwarded} XP Awarded!</p>
+        <div className="mb-4 rounded-md border border-lime-300/20 bg-lime-300/10 p-3 text-center">
+          <p className="text-lg font-semibold text-lime-100">+{result.xpAwarded} XP awarded</p>
         </div>
       )}
 
@@ -28,25 +29,27 @@ export default function ValidationPanel({ result }: Props) {
             key={check.id}
             className={`flex items-start gap-2 p-3 rounded-lg border ${
               check.passed
-                ? "bg-emerald-950 border-emerald-800"
-                : "bg-amber-950 border-amber-800"
+                ? "border-lime-300/20 bg-lime-300/10"
+                : "border-amber-300/20 bg-amber-300/10"
             }`}
           >
-            <span className={`mt-0.5 ${check.passed ? "text-emerald-400" : "text-amber-400"}`}>
-              {check.passed ? "✓" : "✗"}
-            </span>
+            {check.passed ? (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime-300" />
+            ) : (
+              <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+            )}
             <div className="flex-1">
-              <p className={`text-sm ${check.passed ? "text-emerald-300" : "text-amber-300"}`}>
+              <p className={`text-sm ${check.passed ? "text-lime-100" : "text-amber-100"}`}>
                 {check.message}
               </p>
-              <p className="text-xs text-slate-500 mt-1">{check.type}</p>
+              <p className="mt-1 text-xs text-emerald-100/42">{check.type}</p>
             </div>
           </div>
         ))}
       </div>
 
       {!result.passed && (
-        <p className="text-sm text-slate-400 mt-4">
+        <p className="mt-4 text-sm text-emerald-100/55">
           Attempt #{result.attemptNumber} — Fix the failed checks and try again.
         </p>
       )}

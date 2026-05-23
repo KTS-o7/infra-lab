@@ -7,8 +7,8 @@ import ValidationPanel from "./ValidationPanel";
 import HintPanel from "./HintPanel";
 import ResetControl from "./ResetControl";
 import RuntimeBanner from "./RuntimeBanner";
-import { clsx } from "clsx";
 import Link from "next/link";
+import { ArrowLeft, CheckCircle2, Clock3, Loader2, Server, Sparkles, Star, Target } from "lucide-react";
 
 interface Props {
   missionId: string;
@@ -82,17 +82,18 @@ export default function MissionDetail({ missionId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="animate-spin w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full" />
+      <div className="flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-lime-300" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="text-center py-24">
-        <p className="text-red-400 mb-4">{error || "Mission not found"}</p>
-        <Link href="/" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm">
+      <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
+        <p className="mb-4 text-red-200">{error || "Mission not found"}</p>
+        <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
+          <ArrowLeft className="h-4 w-4" />
           Back to missions
         </Link>
       </div>
@@ -109,32 +110,39 @@ export default function MissionDetail({ missionId }: Props) {
       <RuntimeBanner />
 
       <div className="mb-6">
-        <Link href="/" className="text-sm text-slate-400 hover:text-slate-200 flex items-center gap-1 mb-4">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-          </svg>
+        <Link href="/" className="mb-4 inline-flex items-center gap-2 text-sm text-emerald-100/55 hover:text-lime-200">
+          <ArrowLeft className="h-4 w-4" />
           Back to mission map
         </Link>
 
-        <div className="flex items-start justify-between">
+        <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/20 backdrop-blur sm:p-6">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-slate-100">{mission.title}</h1>
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-semibold leading-tight text-emerald-50">{mission.title}</h1>
               {isCompleted && (
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-900 text-emerald-300 border border-emerald-700">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-lime-300/20 bg-lime-300/10 px-3 py-1 text-xs font-medium text-lime-100">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                   Completed
                 </span>
               )}
             </div>
-            <p className="text-slate-400 mb-4">{mission.summary}</p>
-            <div className="flex items-center gap-4 text-sm text-slate-400">
-              <span className="flex items-center gap-1">
-                <span className="text-amber-400">⭐</span>
+            <p className="mb-5 max-w-3xl text-sm leading-6 text-emerald-100/62 sm:text-base">{mission.summary}</p>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-lime-300/20 bg-lime-300/10 px-2.5 py-1 text-lime-100">
+                <Star className="h-4 w-4 fill-lime-300 text-lime-300" />
                 {mission.xp} XP
               </span>
-              <span>⏱ {mission.estimatedMinutes}m</span>
-              <span>{mission.services.join(", ")}</span>
-              <span className="capitalize">{mission.difficulty}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-black/20 px-2.5 py-1 text-emerald-100/60">
+                <Clock3 className="h-4 w-4" />
+                {mission.estimatedMinutes}m
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-black/20 px-2.5 py-1 text-emerald-100/60">
+                <Server className="h-4 w-4" />
+                {mission.services.join(" / ")}
+              </span>
+              <span className="rounded-md border border-white/10 bg-black/20 px-2.5 py-1 text-emerald-100/60 capitalize">
+                {mission.difficulty}
+              </span>
             </div>
           </div>
         </div>
@@ -142,25 +150,31 @@ export default function MissionDetail({ missionId }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6">
-            <h2 className="text-lg font-semibold text-slate-100 mb-3">Scenario</h2>
-            <p className="text-slate-300 whitespace-pre-line">{mission.story}</p>
+          <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-6 shadow-xl shadow-black/10 backdrop-blur">
+            <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-emerald-50">
+              <Sparkles className="h-5 w-5 text-lime-300" />
+              Scenario
+            </h2>
+            <p className="whitespace-pre-line leading-7 text-emerald-100/68">{mission.story}</p>
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6">
-            <h2 className="text-lg font-semibold text-slate-100 mb-3">Learning Objectives</h2>
+          <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-6 shadow-xl shadow-black/10 backdrop-blur">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-emerald-50">
+              <Target className="h-5 w-5 text-lime-300" />
+              Learning objectives
+            </h2>
             <ul className="space-y-2">
               {mission.learningObjectives.map((obj, i) => (
-                <li key={i} className="flex items-start gap-2 text-slate-300">
-                  <span className="text-blue-400 mt-1">✓</span>
+                <li key={i} className="flex items-start gap-3 rounded-md border border-white/10 bg-white/[0.035] p-3 text-sm leading-6 text-emerald-100/68">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime-300" />
                   {obj}
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6">
-            <h2 className="text-lg font-semibold text-slate-100 mb-4">Commands</h2>
+          <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-6 shadow-xl shadow-black/10 backdrop-blur">
+            <h2 className="mb-4 text-lg font-semibold text-emerald-50">Commands</h2>
             <div className="space-y-3">
               {mission.commands.map((cmd) => (
                 <CommandBlock key={cmd.id} id={cmd.id} label={cmd.label} command={cmd.command} />
@@ -178,14 +192,14 @@ export default function MissionDetail({ missionId }: Props) {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6">
-            <h2 className="text-lg font-semibold text-slate-100 mb-4">Actions</h2>
+          <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-6 shadow-2xl shadow-black/20 backdrop-blur lg:sticky lg:top-24">
+            <h2 className="mb-4 text-lg font-semibold text-emerald-50">Actions</h2>
             <div className="space-y-3">
               {canStart && (
                 <button
                   onClick={handleStart}
                   disabled={actionLoading}
-                  className="w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium transition-colors"
+                  className="w-full rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
                 >
                   {actionLoading ? "Starting..." : "Start Mission"}
                 </button>
@@ -195,7 +209,7 @@ export default function MissionDetail({ missionId }: Props) {
                 <button
                   onClick={handleValidate}
                   disabled={actionLoading}
-                  className="w-full py-3 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-medium transition-colors"
+                  className="w-full rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
                 >
                   {actionLoading ? "Validating..." : "Validate"}
                 </button>
@@ -209,13 +223,13 @@ export default function MissionDetail({ missionId }: Props) {
             </div>
 
             {mission.progress.attempts > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-400">
-                  Attempts: <span className="text-slate-200">{mission.progress.attempts}</span>
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <p className="text-sm text-emerald-100/55">
+                  Attempts: <span className="text-emerald-50">{mission.progress.attempts}</span>
                 </p>
                 {mission.progress.xpAwarded > 0 && (
-                  <p className="text-sm text-slate-400 mt-1">
-                    XP Earned: <span className="text-amber-400">{mission.progress.xpAwarded}</span>
+                  <p className="mt-1 text-sm text-emerald-100/55">
+                    XP earned: <span className="text-lime-200">{mission.progress.xpAwarded}</span>
                   </p>
                 )}
               </div>

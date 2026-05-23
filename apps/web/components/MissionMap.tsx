@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getMissions, Mission } from "@/lib/api";
 import MissionCard from "./MissionCard";
 import Link from "next/link";
+import { Loader2, Route } from "lucide-react";
 
 export default function MissionMap() {
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -23,9 +24,9 @@ export default function MissionMap() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <div className="animate-spin w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full" />
-        <p className="text-slate-400">Loading missions...</p>
+      <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-white/10 bg-white/[0.035] py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-lime-300" />
+        <p className="text-sm text-emerald-100/55">Loading missions...</p>
       </div>
     );
   }
@@ -51,12 +52,20 @@ export default function MissionMap() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-100 mb-2">Mission Map</h2>
-        <p className="text-slate-400">Complete missions to earn XP and unlock the next challenge.</p>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-lime-200">
+            <Route className="h-4 w-4" />
+            Mission map
+          </div>
+          <h2 className="text-2xl font-semibold text-emerald-50">Build the stack one service at a time.</h2>
+        </div>
+        <p className="max-w-md text-sm leading-6 text-emerald-100/55">
+          Each card is a live lab checkpoint. Locked missions open after prerequisite resources validate.
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {missions.map((mission) => (
           <Link key={mission.id} href={`/missions/${mission.id}`} className="block">
             <MissionCard mission={mission} />
