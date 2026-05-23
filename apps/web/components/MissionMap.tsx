@@ -10,6 +10,7 @@ export default function MissionMap() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lockedMsg, setLockedMsg] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -21,6 +22,12 @@ export default function MissionMap() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleLockedClick = (mission: Mission) => {
+    const prereqs = (mission.prerequisites ?? []).join(", ");
+    setLockedMsg(`"${mission.title}" is locked. Complete: ${prereqs}`);
+    setTimeout(() => setLockedMsg(null), 3500);
+  };
 
   if (loading) {
     return (
@@ -68,7 +75,7 @@ export default function MissionMap() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {missions.map((mission) =>
           mission.status === "locked" ? (
-            <div key={mission.id} className="block">
+            <div key={mission.id} className="block cursor-not-allowed" onClick={() => handleLockedClick(mission)}>
               <MissionCard mission={mission} />
             </div>
           ) : (
@@ -78,6 +85,12 @@ export default function MissionMap() {
           )
         )}
       </div>
+
+      {lockedMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg border border-amber-400/30 bg-amber-950/80 px-5 py-3 text-sm text-amber-200 shadow-xl backdrop-blur">
+          {lockedMsg}
+        </div>
+      )}
     </div>
   );
 }
