@@ -42,7 +42,7 @@ commands:
     command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:orders-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "POST /orders" --target "$INTEGRATION_ID"
   - id: test-endpoint
     label: Test the endpoint
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && curl -X POST "http://localhost:4566/$API_ID/orders" -H "Content-Type: application/json" -d '{"orderId":"order-001","item":"notebook"}'
+    command: "API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==orders-api].ApiId' --output text) && curl -X POST http://localhost:4566/$API_ID/orders -H Content-Type:application/json -d orderId=order-001 -d item=notebook"
 hints:
   - id: workflow-order
     title: Workflow order
