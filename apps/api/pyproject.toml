@@ -13,8 +13,8 @@ dependencies = [
     "pytest==9.0.3",
     "ruff==0.15.14",
     "httpx==0.28.1",
+    "requests==2.32.3",
 ]
-
 [project.optional-dependencies]
 dev = [
     "pytest==9.0.3",

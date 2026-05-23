@@ -37,7 +37,7 @@ def run_check(check_spec: dict) -> dict:
             "message": f"Unknown check type: {check_type}",
         }
     try:
-        params = {k: v for k, v in check_spec.items() if k not in ("id", "type")}
+        params = {k: v for k, v in check_spec.items() if k not in ("id", "type") and v is not None}
         return validator(**params)
     except Exception as e:
         return {
