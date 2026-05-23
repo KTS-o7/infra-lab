@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getMission, startMission, validateMission, resetMission, useHint as useHintApi, MissionDetail, ValidationResult } from "@/lib/api";
+import { getMission, startMission, validateMission, resetMission, useHint as useHintApi, type MissionDetail, type ValidationResult } from "@/lib/api";
 import CommandBlock from "./CommandBlock";
 import ValidationPanel from "./ValidationPanel";
 import HintPanel from "./HintPanel";
