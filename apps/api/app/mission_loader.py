@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, model_validator
 from typing import List, Optional, Dict, Any
 import yaml
 from pathlib import Path
@@ -31,6 +31,22 @@ class CommandSpec(BaseModel):
     label: str
     command: str
 
+class TargetStateItem(BaseModel):
+    label: str
+    value: str
+
+class StepSpec(BaseModel):
+    id: str
+    title: str
+    goal: str
+    why: Optional[str] = None
+    target_state: List[TargetStateItem] = []
+    action: str
+    command_id: str
+    check_ids: List[str] = []
+    success: Optional[str] = None
+    notes: Optional[str] = None
+
 class HintSpec(BaseModel):
     id: str
     title: str
@@ -61,8 +77,29 @@ class MissionDefinition(BaseModel):
     learning_objectives: List[str]
     commands: List[CommandSpec]
     checks: List[CheckSpec]
+    steps: List[StepSpec] = []
     hints: List[HintSpec]
     owned_resources: List[OwnedResource]
+
+    @model_validator(mode="after")
+    def validate_steps(self):
+        step_ids = set()
+        command_ids = {command.id for command in self.commands}
+        check_ids = {check.id for check in self.checks}
+
+        for step in self.steps:
+            if step.id in step_ids:
+                raise ValueError(f"Duplicate step ID in mission {self.id}: {step.id}")
+            step_ids.add(step.id)
+
+            if step.command_id not in command_ids:
+                raise ValueError(f"Step {step.id} references unknown command_id: {step.command_id}")
+
+            for check_id in step.check_ids:
+                if check_id not in check_ids:
+                    raise ValueError(f"Step {step.id} references unknown check_id: {check_id}")
+
+        return self
 
 class MissionLoader:
     _instances: Dict[str, MissionDefinition] = {}

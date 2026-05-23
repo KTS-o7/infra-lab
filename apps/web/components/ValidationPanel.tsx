@@ -5,13 +5,16 @@ import { CheckCircle2, XCircle } from "lucide-react";
 
 interface Props {
   result: ValidationResult;
+  compact?: boolean;
 }
 
-export default function ValidationPanel({ result }: Props) {
+export default function ValidationPanel({ result, compact = false }: Props) {
   return (
-    <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-6 shadow-xl shadow-black/10 backdrop-blur">
+    <div className={`rounded-lg border border-white/10 bg-[#0b1512]/80 shadow-xl shadow-black/10 backdrop-blur ${compact ? "p-4" : "p-6"}`}>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-emerald-50">Validation results</h2>
+        <h2 className={`${compact ? "text-base" : "text-lg"} font-semibold text-emerald-50`}>
+          {result.scope === "step" ? "Step check" : "Validation results"}
+        </h2>
         <span className={`rounded-md border px-3 py-1 text-sm font-medium ${result.passed ? "border-lime-300/20 bg-lime-300/10 text-lime-100" : "border-amber-300/20 bg-amber-300/10 text-amber-100"}`}>
           {result.passed ? "Passed" : "Partial"}
         </span>

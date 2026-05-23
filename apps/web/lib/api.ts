@@ -33,6 +33,7 @@ export interface MissionDetail {
     story: string;
     learningObjectives: string[];
     commands: { id: string; label: string; command: string }[];
+    steps: MissionStep[];
     hints?: { id: string; title: string; text?: string; isUsed: boolean; penaltyXp: number }[];
     progress: {
       status: string;
@@ -45,6 +46,19 @@ export interface MissionDetail {
   };
 }
 
+export interface MissionStep {
+  id: string;
+  title: string;
+  goal: string;
+  why?: string | null;
+  targetState: { label: string; value: string }[];
+  action: string;
+  commandId: string;
+  checkIds: string[];
+  success?: string | null;
+  notes?: string | null;
+}
+
 export interface ValidationResult {
   missionId: string;
   passed: boolean;
@@ -53,6 +67,8 @@ export interface ValidationResult {
   attemptNumber: number;
   checks: { id: string; type: string; passed: boolean; message: string }[];
   unlockedMissionIds: string[];
+  scope?: "mission" | "step";
+  stepId?: string | null;
 }
 
 export interface Profile {
@@ -87,8 +103,12 @@ export async function startMission(id: string): Promise<{ missionId: string; sta
   return res.json();
 }
 
-export async function validateMission(id: string): Promise<ValidationResult> {
-  const res = await fetch(`${API_BASE}/missions/${id}/validate`, { method: "POST" });
+export async function validateMission(id: string, stepId?: string): Promise<ValidationResult> {
+  const res = await fetch(`${API_BASE}/missions/${id}/validate`, {
+    method: "POST",
+    headers: stepId ? { "Content-Type": "application/json" } : undefined,
+    body: stepId ? JSON.stringify({ stepId }) : undefined,
+  });
   if (!res.ok) throw new Error("Failed to validate mission");
   return res.json();
 }

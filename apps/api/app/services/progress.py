@@ -56,7 +56,7 @@ def start_mission(session, mission_id: str, mission_xp: int, prerequisites: list
     session.commit()
     return {"missionId": mission_id, "status": "started", "startedAt": str(progress.started_at)}
 
-def validate_mission(session, mission_id: str, mission_xp: int, checks: list) -> dict:
+def validate_mission(session, mission_id: str, mission_xp: int, checks: list, scope: str = "mission", step_id: str = None) -> dict:
     profile = ensure_local_profile(session)
     progress = session.get(MissionProgress, ("local", mission_id))
 
@@ -79,7 +79,7 @@ def validate_mission(session, mission_id: str, mission_xp: int, checks: list) ->
     xp_awarded = 0
     unlocked = []
 
-    if all_passed and progress.status != "completed":
+    if scope == "mission" and all_passed and progress.status != "completed":
         progress.status = "completed"
         progress.completed_at = datetime.utcnow()
         xp_awarded = mission_xp
@@ -96,6 +96,8 @@ def validate_mission(session, mission_id: str, mission_xp: int, checks: list) ->
         "attemptNumber": attempt_number,
         "checks": check_results,
         "unlockedMissionIds": unlocked,
+        "scope": scope,
+        "stepId": step_id,
     }
 
 def reset_mission(session, mission_id: str, mode: str, prerequisites: list) -> dict:
