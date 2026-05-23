@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
@@ -26,6 +26,6 @@
     "@tailwindcss/postcss": "4.1.13",
     "eslint": "9.35.0",
     "prettier": "3.6.2",
-    "@types/node": "24.16.0"
+    "@types/node": "22.0.0"
   }
 }
