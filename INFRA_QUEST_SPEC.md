@@ -85,6 +85,37 @@ Version basis checked on May 23, 2026.
 
 Supporting dependencies must also be pinned exactly in lockfiles.
 
+Required frontend package pins:
+
+| Package | Version |
+| --- | --- |
+| `next` | `16.2.6` |
+| `react` | `19.2.1` |
+| `react-dom` | `19.2.1` |
+| `typescript` | `6.0.3` |
+| `tailwindcss` | `4.2.1` |
+| `@tailwindcss/postcss` | `4.1.13` |
+| `lucide-react` | `1.16.0` |
+| `zod` | `4.1.5` |
+| `clsx` | `2.1.1` |
+| `tailwind-merge` | `3.3.1` |
+| `eslint` | `9.35.0` |
+| `prettier` | `3.6.2` |
+
+Required backend package pins:
+
+| Package | Version |
+| --- | --- |
+| `fastapi` | `0.136.1` |
+| `uvicorn[standard]` | `0.47.0` |
+| `boto3` | `1.43.12` |
+| `botocore` | `1.43.12` |
+| `sqlmodel` | `0.0.38` |
+| `pydantic` | `2.13.4` |
+| `pyyaml` | `6.0.3` |
+| `pytest` | `9.0.3` |
+| `ruff` | `0.15.14` |
+
 ## Bun Usage Decision
 
 Use Bun for:
@@ -326,6 +357,652 @@ routes/
 ```
 
 The backend validates learner work by inspecting Floci state directly. It must not trust user-submitted text, screenshots, or claims.
+
+## Agent Execution Contract
+
+This section is binding for implementation. An agent must not invent alternate schemas, endpoint shapes, state transitions, or validation semantics unless a later change explicitly updates this file.
+
+### API Response Envelope
+
+Successful responses return the resource body directly. Error responses always return:
+
+```json
+{
+  "error": {
+    "code": "MISSION_NOT_FOUND",
+    "message": "Mission s3-missing was not found.",
+    "details": {
+      "missionId": "s3-missing"
+    }
+  }
+}
+```
+
+Rules:
+
+- `error.code` is stable and machine-readable.
+- `error.message` is concise and safe to show in the UI.
+- `error.details` is always an object, even when empty.
+- Error messages must never tell users to configure real AWS.
+
+### API Contracts
+
+#### `GET /health`
+
+Purpose: confirm API process is alive.
+
+Response `200`:
+
+```json
+{
+  "status": "ok",
+  "service": "infra-quest-api"
+}
+```
+
+No external dependency checks are performed here.
+
+#### `GET /runtime/status`
+
+Purpose: report whether local dependencies are ready.
+
+Response `200`:
+
+```json
+{
+  "api": {
+    "status": "online"
+  },
+  "floci": {
+    "status": "online",
+    "endpoint": "http://floci:4566",
+    "checkedAt": "2026-05-23T13:55:00Z"
+  },
+  "database": {
+    "status": "online"
+  },
+  "localOnly": {
+    "status": "enforced",
+    "endpoint": "http://floci:4566"
+  }
+}
+```
+
+If Floci is unavailable, return `200` with `floci.status = "offline"` so the frontend can render a degraded state. Use `503` only if the API cannot evaluate runtime status at all.
+
+#### `GET /missions`
+
+Purpose: list missions in curriculum order.
+
+Response `200`:
+
+```json
+{
+  "missions": [
+    {
+      "id": "s3-first-bucket",
+      "title": "First Bucket",
+      "summary": "Create your first object storage bucket.",
+      "difficulty": "beginner",
+      "services": ["s3"],
+      "xp": 100,
+      "status": "available",
+      "prerequisites": [],
+      "estimatedMinutes": 10
+    }
+  ]
+}
+```
+
+Sorting rules:
+
+1. `order` field from mission YAML, ascending.
+2. `id` ascending as deterministic tie-breaker.
+
+#### `GET /missions/{mission_id}`
+
+Purpose: return full mission content and learner progress.
+
+Response `200`:
+
+```json
+{
+  "mission": {
+    "id": "s3-first-bucket",
+    "order": 2,
+    "title": "First Bucket",
+    "summary": "Create your first object storage bucket.",
+    "difficulty": "beginner",
+    "services": ["s3"],
+    "xp": 100,
+    "estimatedMinutes": 10,
+    "status": "started",
+    "story": "You are setting up storage for a small app.",
+    "learningObjectives": [
+      "Understand what an S3 bucket is",
+      "Upload and inspect an object"
+    ],
+    "commands": [
+      {
+        "id": "create-bucket",
+        "label": "Create bucket",
+        "command": "aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket"
+      }
+    ],
+    "hints": [
+      {
+        "id": "endpoint-url",
+        "title": "Check the endpoint",
+        "isUsed": false,
+        "penaltyXp": 5
+      }
+    ],
+    "progress": {
+      "status": "started",
+      "attempts": 1,
+      "hintsUsed": [],
+      "xpAwarded": 0,
+      "startedAt": "2026-05-23T13:55:00Z",
+      "completedAt": null
+    }
+  }
+}
+```
+
+Hint text is omitted until the hint is used. After use, include `text`.
+
+#### `POST /missions/{mission_id}/start`
+
+Purpose: mark a mission as started.
+
+Request body: empty object.
+
+Response `200`:
+
+```json
+{
+  "missionId": "s3-first-bucket",
+  "status": "started",
+  "startedAt": "2026-05-23T13:55:00Z"
+}
+```
+
+Behavior:
+
+- If mission is `available`, transition to `started`.
+- If mission is already `started`, return current state.
+- If mission is `completed`, keep it completed and return `status = "completed"`.
+- If mission is `locked`, return `409 MISSION_LOCKED`.
+
+#### `POST /missions/{mission_id}/hints/{hint_id}/use`
+
+Purpose: reveal and persist a hint.
+
+Request body: empty object.
+
+Response `200`:
+
+```json
+{
+  "missionId": "s3-first-bucket",
+  "hint": {
+    "id": "endpoint-url",
+    "title": "Check the endpoint",
+    "text": "Every AWS CLI command in this lab needs --endpoint-url.",
+    "penaltyXp": 5,
+    "isUsed": true
+  },
+  "possibleXp": 95
+}
+```
+
+Behavior:
+
+- Using the same hint twice is idempotent.
+- Hint penalty is applied once.
+- Hints cannot reduce possible XP below `0`.
+- Using a hint after mission completion reveals the hint but does not change awarded XP.
+
+#### `POST /missions/{mission_id}/validate`
+
+Purpose: inspect Floci state and record a validation attempt.
+
+Request body: empty object.
+
+Response `200`, partial failure:
+
+```json
+{
+  "missionId": "s3-first-bucket",
+  "passed": false,
+  "status": "started",
+  "xpAwarded": 0,
+  "attemptNumber": 2,
+  "checks": [
+    {
+      "id": "bucket-exists",
+      "type": "s3_bucket_exists",
+      "passed": true,
+      "message": "Bucket starter-bucket exists."
+    },
+    {
+      "id": "object-exists",
+      "type": "s3_object_exists",
+      "passed": false,
+      "message": "Object hello.txt was not found in bucket starter-bucket."
+    }
+  ]
+}
+```
+
+Response `200`, success:
+
+```json
+{
+  "missionId": "s3-first-bucket",
+  "passed": true,
+  "status": "completed",
+  "xpAwarded": 100,
+  "attemptNumber": 3,
+  "checks": [
+    {
+      "id": "bucket-exists",
+      "type": "s3_bucket_exists",
+      "passed": true,
+      "message": "Bucket starter-bucket exists."
+    }
+  ],
+  "unlockedMissionIds": ["sqs-first-message"]
+}
+```
+
+Behavior:
+
+- If mission is not started or completed, return `409 MISSION_NOT_STARTED`.
+- If Floci is offline, return `503 FLOCI_UNAVAILABLE`.
+- Record every validation attempt.
+- Preserve check order from mission YAML.
+- Award XP only on the first successful completion.
+- Revalidating a completed mission returns `passed = true` if checks still pass, but `xpAwarded = 0`.
+
+#### `POST /missions/{mission_id}/reset`
+
+Purpose: remove mission-owned resources and reset practice state.
+
+Request body:
+
+```json
+{
+  "mode": "practice"
+}
+```
+
+Allowed `mode` values:
+
+- `practice`: remove resources but keep completion and XP.
+- `restart`: remove resources and set progress to `available` unless already locked by prerequisites.
+
+Response `200`:
+
+```json
+{
+  "missionId": "s3-first-bucket",
+  "status": "available",
+  "resourcesRemoved": [
+    "s3://starter-bucket/hello.txt",
+    "s3://starter-bucket"
+  ]
+}
+```
+
+Behavior:
+
+- Reset is idempotent.
+- Missing resources do not cause failure.
+- Reset must only target resources listed in the mission's `ownedResources`.
+- Completed missions keep historical XP in `practice` mode.
+
+#### `GET /profile`
+
+Purpose: return local learner profile.
+
+Response `200`:
+
+```json
+{
+  "profile": {
+    "id": "local",
+    "displayName": "Local Learner",
+    "totalXp": 100,
+    "badges": [
+      {
+        "id": "s3-starter",
+        "title": "S3 Starter",
+        "awardedAt": "2026-05-23T13:55:00Z"
+      }
+    ],
+    "completedMissionIds": ["s3-first-bucket"]
+  }
+}
+```
+
+The MVP supports exactly one local profile with `id = "local"`.
+
+### Status Codes
+
+| Condition | Status |
+| --- | --- |
+| Successful request | `200` |
+| Invalid request body | `422` |
+| Mission not found | `404` |
+| Mission locked | `409` |
+| Mission not started | `409` |
+| Floci unavailable | `503` |
+| Local-only violation | process startup failure or `500` if detected at runtime |
+
+### Database Schema
+
+Use SQLite through SQLModel. Timestamps are UTC ISO-8601 strings in API responses and timezone-aware datetimes in Python.
+
+#### `profiles`
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `id` | text | primary key, value `local` |
+| `display_name` | text | not null, default `Local Learner` |
+| `total_xp` | integer | not null, default `0` |
+| `created_at` | datetime | not null |
+| `updated_at` | datetime | not null |
+
+#### `mission_progress`
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `profile_id` | text | primary key part, foreign key `profiles.id` |
+| `mission_id` | text | primary key part |
+| `status` | text | enum: `locked`, `available`, `started`, `completed` |
+| `attempts` | integer | not null, default `0` |
+| `xp_awarded` | integer | not null, default `0` |
+| `started_at` | datetime nullable | |
+| `completed_at` | datetime nullable | |
+| `created_at` | datetime | not null |
+| `updated_at` | datetime | not null |
+
+Indexes:
+
+- `idx_mission_progress_status`
+- `idx_mission_progress_profile_status`
+
+#### `validation_attempts`
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `id` | text | primary key, UUID |
+| `profile_id` | text | not null |
+| `mission_id` | text | not null |
+| `attempt_number` | integer | not null |
+| `passed` | boolean | not null |
+| `checks_json` | text | not null JSON string |
+| `created_at` | datetime | not null |
+
+Unique constraint:
+
+- `(profile_id, mission_id, attempt_number)`
+
+#### `hint_usages`
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `profile_id` | text | primary key part |
+| `mission_id` | text | primary key part |
+| `hint_id` | text | primary key part |
+| `penalty_xp` | integer | not null |
+| `used_at` | datetime | not null |
+
+#### `badges`
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `profile_id` | text | primary key part |
+| `badge_id` | text | primary key part |
+| `title` | text | not null |
+| `awarded_at` | datetime | not null |
+
+### Mission YAML Schema
+
+Every `mission.yml` must conform to this shape:
+
+```yaml
+id: s3-first-bucket
+order: 2
+title: First Bucket
+summary: Create your first object storage bucket.
+difficulty: beginner
+services:
+  - s3
+xp: 100
+estimated_minutes: 10
+prerequisites:
+  - cloud-explorer
+story: You are setting up storage for a small app.
+learning_objectives:
+  - Understand what an S3 bucket is
+commands:
+  - id: create-bucket
+    label: Create bucket
+    command: aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket
+checks:
+  - id: bucket-exists
+    type: s3_bucket_exists
+    bucket: starter-bucket
+hints:
+  - id: endpoint-url
+    title: Check the endpoint
+    text: Every AWS CLI command in this lab needs --endpoint-url.
+    penalty_xp: 5
+owned_resources:
+  - type: s3_bucket
+    bucket: starter-bucket
+```
+
+Required fields:
+
+- `id`
+- `order`
+- `title`
+- `summary`
+- `difficulty`
+- `services`
+- `xp`
+- `estimated_minutes`
+- `prerequisites`
+- `story`
+- `learning_objectives`
+- `commands`
+- `checks`
+- `hints`
+- `owned_resources`
+
+Field rules:
+
+- `id` must match `^[a-z0-9]+(-[a-z0-9]+)*$`.
+- `order` must be a positive integer and unique.
+- `difficulty` must be `beginner`, `intermediate`, or `boss`.
+- `services` values must be lowercase AWS service identifiers.
+- `xp` must be an integer from `0` to `1000`.
+- `estimated_minutes` must be an integer from `1` to `120`.
+- `commands[].command` must include `--endpoint-url http://localhost:4566` when it starts with `aws `.
+- `checks[].id` must be unique within a mission.
+- `hints[].id` must be unique within a mission.
+- `owned_resources` must include every resource reset logic may delete.
+
+### Validation Primitive Specifications
+
+Each primitive returns:
+
+```json
+{
+  "id": "bucket-exists",
+  "type": "s3_bucket_exists",
+  "passed": true,
+  "message": "Bucket starter-bucket exists."
+}
+```
+
+#### `s3_bucket_exists`
+
+Input:
+
+```yaml
+id: bucket-exists
+type: s3_bucket_exists
+bucket: starter-bucket
+```
+
+Pass condition: `head_bucket(Bucket=bucket)` succeeds.
+
+Fail condition: bucket does not exist or Floci returns not found.
+
+Fail message:
+
+```text
+Bucket starter-bucket was not found.
+```
+
+#### `s3_object_exists`
+
+Input:
+
+```yaml
+id: object-exists
+type: s3_object_exists
+bucket: starter-bucket
+key: hello.txt
+```
+
+Pass condition: `head_object(Bucket=bucket, Key=key)` succeeds.
+
+Fail message:
+
+```text
+Object hello.txt was not found in bucket starter-bucket.
+```
+
+#### `s3_object_body_equals`
+
+Input:
+
+```yaml
+id: object-body
+type: s3_object_body_equals
+bucket: starter-bucket
+key: hello.txt
+value: Hello from local AWS
+```
+
+Pass condition: object body decoded as UTF-8 equals `value`.
+
+Comparison rules:
+
+- Trim one trailing newline from the actual body.
+- Do not trim leading spaces.
+- Do not perform case-insensitive comparison.
+
+Fail message:
+
+```text
+Object hello.txt exists, but its content does not match the expected value.
+```
+
+#### `sqs_queue_exists`
+
+Input:
+
+```yaml
+id: queue-exists
+type: sqs_queue_exists
+queue_name: starter-queue
+```
+
+Pass condition: `get_queue_url(QueueName=queue_name)` succeeds.
+
+Fail message:
+
+```text
+Queue starter-queue was not found.
+```
+
+#### `sqs_message_available`
+
+Input:
+
+```yaml
+id: message-available
+type: sqs_message_available
+queue_name: starter-queue
+body: first local queue message
+```
+
+Pass condition: a received message body equals `body`.
+
+Implementation rule: use `receive_message` with short wait time and do not delete the message during validation.
+
+Fail message:
+
+```text
+Queue starter-queue does not contain the expected message.
+```
+
+### Reset Primitive Specifications
+
+Reset must only delete resources declared in `owned_resources`.
+
+Supported MVP resources:
+
+```yaml
+- type: s3_object
+  bucket: starter-bucket
+  key: hello.txt
+- type: s3_bucket
+  bucket: starter-bucket
+- type: sqs_queue
+  queue_name: starter-queue
+```
+
+Deletion order:
+
+1. S3 objects
+2. S3 buckets
+3. SQS queues
+
+Missing resources are treated as already reset.
+
+### UI Component Contract
+
+Required components:
+
+| Component | Required States |
+| --- | --- |
+| `AppShell` | runtime healthy, runtime degraded, runtime offline |
+| `RuntimeBanner` | hidden, warning, error |
+| `MissionMap` | loading, loaded, empty, error |
+| `MissionCard` | locked, available, started, completed |
+| `MissionDetail` | loading, available, started, completed, error |
+| `CommandBlock` | idle, copied |
+| `HintPanel` | hidden, available, revealed |
+| `ValidationPanel` | idle, validating, partial failure, success, runtime error |
+| `ResetControl` | idle, confirming, resetting, reset success, reset failure |
+| `XpSummary` | zero state, earned state |
+
+UI behavior rules:
+
+- Disable Start, Validate, Reset, and Hint actions when API is offline.
+- Disable Validate while a validation request is in flight.
+- Keep command blocks fixed-width enough that copy state does not resize them.
+- Show check results in backend-provided order.
+- A locked mission card must show its prerequisite mission title.
+- A completed mission card must remain completed even after practice reset.
+- No page should contain instructions to create an AWS account.
 
 ## Mission Definition Specification
 

@@ -666,3 +666,141 @@ When implementing from this PRD:
 - Do not introduce external services.
 - Do not add telemetry.
 - Do not add auth unless explicitly requested later.
+
+## Handoff Requirements for Coding Agents
+
+The three markdown files are the implementation source of truth:
+
+```text
+INFRA_QUEST_PRD.md   product behavior, flows, edge cases, acceptance criteria
+INFRA_QUEST_SPEC.md  architecture, API contracts, DB schema, mission DSL, validators
+INFRA_QUEST_PLAN.md  implementation order, story tickets, test obligations
+```
+
+Agent rules:
+
+1. If PRD behavior conflicts with the spec contract, stop and ask for clarification before coding.
+2. If a story in the plan lacks enough detail, use the PRD and spec to resolve it.
+3. Do not invent alternate API response shapes.
+4. Do not invent alternate mission states.
+5. Do not add external cloud dependencies.
+6. Do not use real AWS endpoints, profiles, credentials, or account IDs.
+7. Do not remove local-only guardrails to make tests pass.
+8. Do not award XP in frontend code; XP is backend-owned.
+9. Do not mark missions completed in frontend code; completion is backend-owned.
+10. Do not delete resources that are not listed in mission `owned_resources`.
+
+## Required MVP User Journeys
+
+The MVP must pass these end-to-end journeys exactly.
+
+### Journey A: Fresh Local Start
+
+Steps:
+
+1. User runs `docker compose up --build`.
+2. User opens `http://localhost:3000`.
+3. App shows mission map.
+4. Runtime status shows API online, Floci online, DB online.
+5. `cloud-explorer` is available.
+6. `s3-first-bucket` is locked or available depending on whether `cloud-explorer` is complete.
+
+Pass condition:
+
+- No error banner is shown.
+- No real AWS setup is requested.
+
+### Journey B: S3 Partial Failure
+
+Steps:
+
+1. User starts `s3-first-bucket`.
+2. User creates only the bucket.
+3. User clicks Validate.
+
+Expected:
+
+- Bucket check passes.
+- Object exists check fails.
+- Object body check fails or is skipped with a clear dependency message.
+- Mission remains started.
+- XP remains unchanged.
+
+### Journey C: S3 Success
+
+Steps:
+
+1. User starts `s3-first-bucket`.
+2. User creates bucket.
+3. User uploads `hello.txt` with exact expected body.
+4. User clicks Validate.
+
+Expected:
+
+- All checks pass.
+- Mission status becomes completed.
+- XP is awarded once.
+- Next mission is unlocked.
+
+### Journey D: Revalidate Completed S3 Mission
+
+Steps:
+
+1. User completes `s3-first-bucket`.
+2. User clicks Validate again.
+
+Expected:
+
+- Validation can run.
+- XP awarded in response is `0`.
+- Total XP is unchanged.
+- Mission remains completed.
+
+### Journey E: Practice Reset Completed Mission
+
+Steps:
+
+1. User completes `s3-first-bucket`.
+2. User clicks Reset.
+3. User selects practice reset.
+
+Expected:
+
+- S3 resources are deleted.
+- Mission completion history remains.
+- Total XP remains unchanged.
+- User can run commands again.
+
+### Journey F: Floci Offline
+
+Steps:
+
+1. API is running.
+2. Floci is stopped.
+3. User opens app or clicks Validate.
+
+Expected:
+
+- Runtime banner identifies Floci as offline.
+- Validate is disabled in UI when status is known.
+- Backend returns `FLOCI_UNAVAILABLE` if called directly.
+- Error copy does not mention real AWS.
+
+## Non-Negotiable Build Gate
+
+The project is not handoff-complete unless this command exists:
+
+```bash
+make verify
+```
+
+`make verify` must run, in order:
+
+1. local-only safety scan
+2. backend unit tests
+3. backend integration tests that can run locally
+4. frontend typecheck
+5. frontend build
+6. full-stack smoke test against Floci
+
+The command must exit non-zero if any step fails.

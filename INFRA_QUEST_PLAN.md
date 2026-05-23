@@ -54,7 +54,7 @@ No real AWS account, credentials, or cloud resources should be involved.
 2. Add Docker Compose services for `floci`, `api`, and `web`.
 3. Add `data/` folders to `.gitignore`.
 4. Add FastAPI `/health` endpoint.
-5. Add Next.js placeholder mission map page.
+5. Add a minimal Next.js mission map page that calls `GET /missions` when the API is available and renders loading, error, empty, and loaded states.
 6. Add startup environment variables for fake AWS credentials.
 7. Add backend startup guard for `AWS_ENDPOINT_URL`.
 
@@ -96,13 +96,14 @@ Use exact versions:
 Also pin exact versions for:
 
 ```text
-tailwindcss
-lucide-react
-zod
-clsx
-tailwind-merge
-eslint
-prettier
+tailwindcss==4.2.1
+@tailwindcss/postcss==4.1.13
+lucide-react==1.16.0
+zod==4.1.5
+clsx==2.1.1
+tailwind-merge==3.3.1
+eslint==9.35.0
+prettier==3.6.2
 ```
 
 ### Backend Versions
@@ -117,14 +118,14 @@ fastapi==0.136.1
 Also pin exact versions for:
 
 ```text
-uvicorn[standard]
-boto3
-botocore
-sqlmodel
-pydantic
-pyyaml
-pytest
-ruff
+uvicorn[standard]==0.47.0
+boto3==1.43.12
+botocore==1.43.12
+sqlmodel==0.0.38
+pydantic==2.13.4
+pyyaml==6.0.3
+pytest==9.0.3
+ruff==0.15.14
 ```
 
 ### Acceptance Checks
@@ -346,7 +347,7 @@ Learner can complete the mission from the browser and get XP.
 4. Apply hint XP penalties.
 5. Add service badges.
 6. Unlock missions sequentially.
-7. Add boss mission placeholder.
+7. Add a disabled boss mission card that clearly states the required prerequisite missions and does not expose a detail route until the boss mission YAML exists.
 
 ### Acceptance Checks
 
@@ -564,3 +565,664 @@ Then manually complete:
 4. complete S3 mission again
 
 The final result should be a beginner-friendly local lab that teaches real AWS concepts without real AWS cost.
+
+## Agent Story Catalog
+
+This section breaks the build into small, independently verifiable implementation stories. An agent should complete stories in order unless a story explicitly says it can run in parallel.
+
+### Story RUNTIME-001: Initialize Repository Skeleton
+
+Objective: create the monorepo directories and baseline files.
+
+Files:
+
+```text
+.gitignore
+README.md
+Makefile
+docker-compose.yml
+apps/web/
+apps/api/
+missions/
+scripts/
+```
+
+Acceptance criteria:
+
+- `data/`, `.venv/`, `.next/`, `node_modules/`, `.pytest_cache/`, and `.ruff_cache/` are gitignored.
+- `README.md` starts with `docker compose up --build`.
+- `docker-compose.yml` defines `floci`, `api`, and `web` services.
+- No Docker image uses `latest`.
+
+Tests:
+
+- `git status --short` shows only intended files.
+- `rg ':latest|amazonaws.com'` does not find unsafe runtime config except denylist documentation.
+
+### Story RUNTIME-002: Add Docker Compose Runtime
+
+Objective: make all services start locally.
+
+Files:
+
+```text
+docker-compose.yml
+apps/api/Dockerfile
+apps/web/Dockerfile
+```
+
+Acceptance criteria:
+
+- Floci uses `floci/floci:1.5.13`.
+- API exposes port `8000`.
+- Web exposes port `3000`.
+- Floci exposes port `4566`.
+- API gets `AWS_ENDPOINT_URL=http://floci:4566`.
+- API gets fake credentials only.
+
+Tests:
+
+```bash
+docker compose config
+docker compose up --build
+```
+
+Expected:
+
+- Compose config succeeds.
+- All services reach running or healthy state.
+
+### Story API-001: Add FastAPI App Shell
+
+Objective: create a minimal API service.
+
+Files:
+
+```text
+apps/api/pyproject.toml
+apps/api/app/main.py
+apps/api/app/routes/health.py
+```
+
+Acceptance criteria:
+
+- Python version is pinned to `3.14.5`.
+- Dependencies match the pinned backend package list.
+- `GET /health` returns the exact contract from `INFRA_QUEST_SPEC.md`.
+
+Tests:
+
+```bash
+cd apps/api && uv run pytest
+curl http://localhost:8000/health
+```
+
+### Story API-002: Enforce Local-Only Configuration
+
+Objective: prevent real AWS access.
+
+Files:
+
+```text
+apps/api/app/config.py
+apps/api/tests/test_config.py
+```
+
+Acceptance criteria:
+
+- Missing `AWS_ENDPOINT_URL` fails app startup.
+- Endpoints containing `amazonaws.com` fail app startup.
+- Endpoints starting with `https://aws` fail app startup.
+- Real-looking access keys fail validation.
+- Fake credentials `test/test` pass.
+
+Tests:
+
+- unit tests for every allowed and rejected config.
+- process startup test with unsafe endpoint.
+
+### Story API-003: Add Database Models
+
+Objective: create SQLite schema for learner progress.
+
+Files:
+
+```text
+apps/api/app/db.py
+apps/api/app/models.py
+apps/api/tests/test_db.py
+```
+
+Acceptance criteria:
+
+- Tables match the schema in `INFRA_QUEST_SPEC.md`.
+- API creates the local profile automatically with `id=local`.
+- Missing DB file is created automatically.
+- Progress persists across API restart.
+
+Tests:
+
+- table creation test
+- default profile test
+- persistence test using a temp SQLite file
+
+### Story API-004: Add Mission Loader
+
+Objective: read and validate mission YAML files.
+
+Files:
+
+```text
+apps/api/app/mission_loader.py
+apps/api/tests/test_mission_loader.py
+missions/cloud-explorer/mission.yml
+```
+
+Acceptance criteria:
+
+- Loader validates required fields.
+- Duplicate mission IDs fail load.
+- Duplicate order values fail load.
+- Invalid command missing endpoint fails load.
+- Invalid check type fails load.
+- Missions sort by `order`.
+
+Tests:
+
+- valid fixture loads
+- missing required field fails
+- duplicate ID fails
+- command without endpoint fails
+
+### Story API-005: Add Mission List and Detail Routes
+
+Objective: expose mission content to the frontend.
+
+Files:
+
+```text
+apps/api/app/routes/missions.py
+apps/api/tests/test_mission_routes.py
+```
+
+Acceptance criteria:
+
+- `GET /missions` returns exact response shape.
+- `GET /missions/{id}` returns exact response shape.
+- Unknown mission returns `404 MISSION_NOT_FOUND`.
+- Hint text is hidden until used.
+
+Tests:
+
+- snapshot-style JSON shape tests
+- unknown mission test
+- hint text hidden test
+
+### Story API-006: Add Mission State Transitions
+
+Objective: implement start, unlock, and progress rules.
+
+Files:
+
+```text
+apps/api/app/services/progress.py
+apps/api/app/routes/missions.py
+apps/api/tests/test_progress.py
+```
+
+Acceptance criteria:
+
+- First mission is available by default.
+- Missions with unmet prerequisites are locked.
+- `POST /start` transitions available to started.
+- Starting started mission is idempotent.
+- Starting locked mission returns `409 MISSION_LOCKED`.
+- Starting completed mission keeps completed status.
+
+Tests:
+
+- state transition tests for each allowed and rejected path.
+
+### Story API-007: Add AWS Client Factory
+
+Objective: create boto3 clients that can only talk to Floci.
+
+Files:
+
+```text
+apps/api/app/aws_client.py
+apps/api/tests/test_aws_client.py
+```
+
+Acceptance criteria:
+
+- Client factory always receives `endpoint_url`.
+- Region defaults to `us-east-1`.
+- Credentials are fake.
+- No code path creates a default boto3 client without endpoint.
+
+Tests:
+
+- mock boto3 client creation and assert endpoint.
+- scan test for unsafe `boto3.client(` usage outside factory.
+
+### Story API-008: Add Runtime Status Route
+
+Objective: report API, DB, Floci, and local-only health.
+
+Files:
+
+```text
+apps/api/app/routes/runtime.py
+apps/api/tests/test_runtime.py
+```
+
+Acceptance criteria:
+
+- `GET /runtime/status` returns exact response shape.
+- Floci offline returns `200` with `floci.status=offline`.
+- DB unavailable reports `database.status=offline`.
+- Local-only status is always included.
+
+Tests:
+
+- healthy status test
+- mocked Floci failure test
+- mocked DB failure test
+
+### Story API-009: Add S3 Validation Primitives
+
+Objective: validate S3 bucket and object checks.
+
+Files:
+
+```text
+apps/api/app/validators/s3.py
+apps/api/tests/test_validators_s3.py
+```
+
+Acceptance criteria:
+
+- `s3_bucket_exists` uses `head_bucket`.
+- `s3_object_exists` uses `head_object`.
+- `s3_object_body_equals` compares UTF-8 body with one trailing newline trimmed.
+- Fail messages match the spec.
+
+Tests:
+
+- pass/fail tests for each primitive using botocore stubs or local Floci integration.
+
+### Story API-010: Add SQS Validation Primitives
+
+Objective: validate SQS queue and message checks.
+
+Files:
+
+```text
+apps/api/app/validators/sqs.py
+apps/api/tests/test_validators_sqs.py
+```
+
+Acceptance criteria:
+
+- `sqs_queue_exists` uses `get_queue_url`.
+- `sqs_message_available` receives but does not delete messages.
+- Fail messages match the spec.
+
+Tests:
+
+- queue exists pass/fail
+- expected message pass/fail
+- validation does not delete received message
+
+### Story API-011: Add Validation Endpoint
+
+Objective: run mission checks and persist attempts.
+
+Files:
+
+```text
+apps/api/app/services/validation.py
+apps/api/app/routes/missions.py
+apps/api/tests/test_validation_endpoint.py
+```
+
+Acceptance criteria:
+
+- Validating available mission returns `409 MISSION_NOT_STARTED`.
+- Partial failure records attempt and awards no XP.
+- Success completes mission and awards XP once.
+- Revalidation does not duplicate XP.
+- Check order matches YAML order.
+- Floci unavailable returns `503 FLOCI_UNAVAILABLE`.
+
+Tests:
+
+- exact JSON response tests for partial and success cases.
+- XP idempotency test.
+
+### Story API-012: Add Reset Endpoint
+
+Objective: remove mission-owned resources safely.
+
+Files:
+
+```text
+apps/api/app/services/reset.py
+apps/api/app/routes/missions.py
+apps/api/tests/test_reset.py
+```
+
+Acceptance criteria:
+
+- Reset deletes only `owned_resources`.
+- Reset is idempotent.
+- Missing resources do not fail reset.
+- `practice` mode preserves XP and completion.
+- `restart` mode sets status to available when prerequisites are met.
+
+Tests:
+
+- missing resource reset succeeds.
+- completed mission practice reset keeps XP.
+- reset never deletes undeclared resource fixture.
+
+### Story API-013: Add Hint Endpoint
+
+Objective: reveal hints and apply penalties once.
+
+Files:
+
+```text
+apps/api/app/services/hints.py
+apps/api/app/routes/missions.py
+apps/api/tests/test_hints.py
+```
+
+Acceptance criteria:
+
+- Unused hint can be revealed.
+- Reusing hint is idempotent.
+- Penalty applies once.
+- Possible XP cannot go below zero.
+- Hint after completion does not change awarded XP.
+
+Tests:
+
+- first use
+- repeated use
+- completed mission use
+
+### Story MISSION-001: Author Cloud Explorer Mission
+
+Objective: create the first non-destructive orientation mission.
+
+Files:
+
+```text
+missions/cloud-explorer/mission.yml
+```
+
+Acceptance criteria:
+
+- Mission teaches endpoint, region, fake credentials, and local-only model.
+- Mission uses no destructive resources.
+- Mission is order `1`.
+- Mission is available by default.
+
+Tests:
+
+- mission loader accepts file.
+- mission appears first in `GET /missions`.
+
+### Story MISSION-002: Author S3 First Bucket Mission
+
+Objective: create the first real resource mission.
+
+Files:
+
+```text
+missions/s3-first-bucket/mission.yml
+```
+
+Acceptance criteria:
+
+- Mission checks bucket, object, and object body.
+- Commands are copyable and endpoint-safe.
+- `owned_resources` includes object and bucket.
+- Prerequisite is `cloud-explorer`.
+
+Tests:
+
+- loader accepts mission.
+- validation passes after documented commands.
+- reset removes object and bucket.
+
+### Story MISSION-003: Author SQS First Message Mission
+
+Objective: create the second real resource mission.
+
+Files:
+
+```text
+missions/sqs-first-message/mission.yml
+```
+
+Acceptance criteria:
+
+- Mission checks queue and expected message.
+- Commands are endpoint-safe.
+- `owned_resources` includes queue.
+- Prerequisite is `s3-first-bucket`.
+
+Tests:
+
+- loader accepts mission.
+- validation passes after documented commands.
+- reset removes queue.
+
+### Story WEB-001: Add Next.js App Shell
+
+Objective: create usable app frame.
+
+Files:
+
+```text
+apps/web/app/layout.tsx
+apps/web/app/page.tsx
+apps/web/components/AppShell.tsx
+apps/web/lib/api.ts
+```
+
+Acceptance criteria:
+
+- App renders at `/`.
+- App shell includes local-only banner.
+- API client reads `NEXT_PUBLIC_API_URL`.
+- Runtime status is fetched on load.
+
+Tests:
+
+- component render test.
+- API client URL test.
+
+### Story WEB-002: Add Mission Map
+
+Objective: show curriculum state.
+
+Files:
+
+```text
+apps/web/app/page.tsx
+apps/web/components/MissionMap.tsx
+apps/web/components/MissionCard.tsx
+```
+
+Acceptance criteria:
+
+- Loading state renders.
+- Empty state renders.
+- Error state renders with retry.
+- Locked, available, started, and completed cards render distinctly.
+- Available cards link to detail page.
+
+Tests:
+
+- render each state.
+- locked mission is not primary CTA.
+
+### Story WEB-003: Add Mission Detail Page
+
+Objective: render mission content and actions.
+
+Files:
+
+```text
+apps/web/app/missions/[id]/page.tsx
+apps/web/components/MissionDetail.tsx
+apps/web/components/CommandBlock.tsx
+```
+
+Acceptance criteria:
+
+- Shows story, objectives, commands, hints, status, and XP.
+- Copy button copies exact command.
+- Start button calls API.
+- Validate and Reset disabled until mission is started.
+
+Tests:
+
+- render mission content.
+- copy command behavior.
+- disabled action states.
+
+### Story WEB-004: Add Validation UI
+
+Objective: show check-level feedback.
+
+Files:
+
+```text
+apps/web/components/ValidationPanel.tsx
+apps/web/lib/api.ts
+```
+
+Acceptance criteria:
+
+- Validate button shows in-flight state.
+- Partial failure shows passed and failed checks.
+- Success shows XP awarded and next mission CTA.
+- Runtime errors show actionable message.
+
+Tests:
+
+- partial failure render.
+- success render.
+- request in-flight disables button.
+
+### Story WEB-005: Add Reset and Hint UI
+
+Objective: support retry and guided help.
+
+Files:
+
+```text
+apps/web/components/ResetControl.tsx
+apps/web/components/HintPanel.tsx
+```
+
+Acceptance criteria:
+
+- Reset asks for confirmation.
+- Reset success refreshes mission detail.
+- Reset failure shows API error.
+- Hint reveal persists after refresh.
+- Possible XP updates after hint use.
+
+Tests:
+
+- reset confirm flow.
+- hint reveal flow.
+
+### Story VERIFY-001: Add Local-Only Verification Script
+
+Objective: make safety machine-checkable.
+
+Files:
+
+```text
+scripts/verify-local-only.sh
+```
+
+Acceptance criteria:
+
+- Fails on Docker `latest` tags.
+- Fails on AWS CLI examples missing endpoint.
+- Fails on dependency ranges using `^` or `~`.
+- Fails on suspicious AWS keys.
+- Allows documentation references to `amazonaws.com` only in explicit denylist sections.
+
+Tests:
+
+- script exits non-zero for fixture violations.
+- script exits zero for clean repo.
+
+### Story VERIFY-002: Add Smoke Test
+
+Objective: prove the whole stack works.
+
+Files:
+
+```text
+scripts/smoke-test.sh
+Makefile
+```
+
+Acceptance criteria:
+
+- `make verify` runs local-only scan, API tests, web build, and smoke test.
+- Smoke test confirms web, API, and Floci respond.
+- Smoke test creates and deletes temporary S3 bucket through API/Floci path.
+
+Tests:
+
+```bash
+make verify
+```
+
+### Story DOCS-001: Add Complete README
+
+Objective: make setup clear for beginners.
+
+Files:
+
+```text
+README.md
+```
+
+Acceptance criteria:
+
+- Quickstart is first.
+- Explains no real AWS is used.
+- Shows fake credential exports.
+- Shows endpoint requirement.
+- Includes troubleshooting for ports, Docker, API down, and Floci down.
+- Links to spec, PRD, and plan.
+
+Tests:
+
+- all commands in README are endpoint-safe.
+- local-only verification passes.
+
+## Agent Completion Protocol
+
+For each story, the agent must:
+
+1. Read relevant sections of `INFRA_QUEST_PRD.md` and `INFRA_QUEST_SPEC.md`.
+2. Implement only the story scope.
+3. Add or update tests listed in the story.
+4. Run the narrow test command.
+5. Run broader verification if the story touches shared behavior.
+6. Commit with message format `<story-id>: <summary>` if asked to commit.
+
+Do not skip tests because the implementation appears simple. If a test cannot run locally, document the exact command attempted and the failure reason.
