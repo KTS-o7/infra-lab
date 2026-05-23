@@ -945,12 +945,59 @@ Acceptance criteria:
 - Missing resources do not fail reset.
 - `practice` mode preserves XP and completion.
 - `restart` mode sets status to available when prerequisites are met.
+- MVP reset supports `none`, `s3_object`, `s3_bucket`, and `sqs_queue`.
 
 Tests:
 
 - missing resource reset succeeds.
 - completed mission practice reset keeps XP.
 - reset never deletes undeclared resource fixture.
+
+### Story API-012A: Add Advanced Reset Resources
+
+Objective: support reset for all advanced mission resources.
+
+Files:
+
+```text
+apps/api/app/services/reset.py
+apps/api/tests/test_reset_advanced.py
+```
+
+Required owned resource types:
+
+```text
+sns_topic
+dynamodb_table
+lambda_function
+apigateway_api
+```
+
+Deletion order:
+
+1. API Gateway APIs
+2. Lambda functions
+3. SNS topics
+4. SQS queues
+5. DynamoDB tables
+6. S3 objects
+7. S3 buckets
+
+Acceptance criteria:
+
+- `sns_topic` reset deletes topic by exact topic name.
+- `dynamodb_table` reset deletes table by exact table name and treats missing table as success.
+- `lambda_function` reset deletes function by exact function name.
+- `apigateway_api` reset deletes API by exact API name.
+- Reset logs or returns every deleted resource identifier.
+- Reset never deletes resources that are not declared in `owned_resources`.
+
+Tests:
+
+- each advanced resource reset succeeds when resource exists.
+- each advanced resource reset succeeds when resource is missing.
+- reset ordering prevents dependency failures for API Gateway and Lambda.
+- undeclared resource fixture survives reset.
 
 ### Story API-013: Add Hint Endpoint
 
@@ -977,6 +1024,285 @@ Tests:
 - first use
 - repeated use
 - completed mission use
+
+### Story API-014: Add SNS Validation Primitives
+
+Objective: validate SNS topics and SQS subscriptions for fanout missions.
+
+Files:
+
+```text
+apps/api/app/validators/sns.py
+apps/api/tests/test_validators_sns.py
+```
+
+Required check types:
+
+```text
+sns_topic_exists
+sns_subscription_exists
+sns_to_sqs_delivery
+```
+
+Acceptance criteria:
+
+- `sns_topic_exists` resolves topics by exact `topic_name`.
+- `sns_subscription_exists` verifies a subscription from topic to queue endpoint.
+- `sns_to_sqs_delivery` publishes a deterministic message to the topic and verifies the message appears in the target SQS queue.
+- Validation uses only the shared AWS client factory.
+- Message verification uses `VisibilityTimeout=0` and does not delete messages.
+- Fail messages name the missing topic, subscription, or delivered message.
+
+Test fixtures:
+
+```yaml
+checks:
+  - id: topic-exists
+    type: sns_topic_exists
+    topic_name: starter-topic
+  - id: subscription-exists
+    type: sns_subscription_exists
+    topic_name: starter-topic
+    queue_name: starter-fanout-queue
+  - id: fanout-message
+    type: sns_to_sqs_delivery
+    topic_name: starter-topic
+    queue_name: starter-fanout-queue
+    body: local fanout works
+```
+
+Tests:
+
+- topic exists pass/fail.
+- subscription exists pass/fail.
+- publish-to-SQS delivery pass/fail.
+- repeated validation can observe or republish deterministic test message without destructive side effects.
+
+### Story API-015: Add DynamoDB Validation Primitives
+
+Objective: validate DynamoDB table schema and item content.
+
+Files:
+
+```text
+apps/api/app/validators/dynamodb.py
+apps/api/tests/test_validators_dynamodb.py
+```
+
+Required check types:
+
+```text
+dynamodb_table_exists
+dynamodb_key_schema_equals
+dynamodb_item_exists
+dynamodb_item_attribute_equals
+```
+
+Acceptance criteria:
+
+- `dynamodb_table_exists` uses `describe_table`.
+- `dynamodb_key_schema_equals` compares partition key and optional sort key exactly.
+- `dynamodb_item_exists` uses `get_item` with the configured key.
+- `dynamodb_item_attribute_equals` compares expected scalar string/number/bool attributes.
+- Validation uses only the shared AWS client factory.
+- Fail messages name the missing table, key mismatch, missing item, or mismatched attribute.
+
+Test fixtures:
+
+```yaml
+checks:
+  - id: table-exists
+    type: dynamodb_table_exists
+    table_name: starter-table
+  - id: key-schema
+    type: dynamodb_key_schema_equals
+    table_name: starter-table
+    partition_key:
+      name: pk
+      type: S
+  - id: item-exists
+    type: dynamodb_item_exists
+    table_name: starter-table
+    key:
+      pk:
+        S: learner#1
+  - id: item-name
+    type: dynamodb_item_attribute_equals
+    table_name: starter-table
+    key:
+      pk:
+        S: learner#1
+    attribute: name
+    expected:
+      S: Local Learner
+```
+
+Tests:
+
+- table exists pass/fail.
+- key schema pass/fail.
+- item exists pass/fail.
+- item attribute pass/fail.
+- numeric and boolean attribute comparison tests if supported by mission fixtures.
+
+### Story API-016: Add Lambda Validation Primitives
+
+Objective: validate local Lambda function creation and invocation.
+
+Files:
+
+```text
+apps/api/app/validators/lambda.py
+apps/api/tests/test_validators_lambda.py
+```
+
+Required check types:
+
+```text
+lambda_function_exists
+lambda_invoke_returns
+```
+
+Acceptance criteria:
+
+- `lambda_function_exists` uses `get_function`.
+- `lambda_invoke_returns` invokes the function with a deterministic JSON payload and compares response JSON.
+- Validation uses only the shared AWS client factory.
+- Payload and expected response are defined in mission YAML.
+- Response comparison ignores JSON object key order.
+- Fail messages distinguish missing function, invocation failure, invalid JSON, and response mismatch.
+
+Test fixtures:
+
+```yaml
+checks:
+  - id: function-exists
+    type: lambda_function_exists
+    function_name: starter-function
+  - id: invoke-result
+    type: lambda_invoke_returns
+    function_name: starter-function
+    payload:
+      name: Local Learner
+    expected:
+      message: Hello, Local Learner
+```
+
+Tests:
+
+- function exists pass/fail.
+- invoke response pass/fail.
+- invalid JSON response returns clear failed check.
+- validation does not require real AWS IAM credentials.
+
+### Story API-017: Add API Gateway Validation Primitives
+
+Objective: validate HTTP route wiring to a local Lambda-backed endpoint.
+
+Files:
+
+```text
+apps/api/app/validators/apigateway.py
+apps/api/tests/test_validators_apigateway.py
+```
+
+Required check types:
+
+```text
+apigateway_route_exists
+apigateway_http_returns
+```
+
+Acceptance criteria:
+
+- `apigateway_route_exists` verifies an HTTP API route or REST route by configured API name and route key/path.
+- `apigateway_http_returns` sends an HTTP request to the local API Gateway endpoint and compares status code and JSON response.
+- Validation must use local Floci endpoint discovery or a mission-provided local URL.
+- Validation must not call real AWS API Gateway URLs.
+- Fail messages distinguish missing API, missing route, HTTP failure, status mismatch, and body mismatch.
+
+Test fixtures:
+
+```yaml
+checks:
+  - id: route-exists
+    type: apigateway_route_exists
+    api_name: starter-api
+    route: GET /hello
+  - id: http-response
+    type: apigateway_http_returns
+    api_name: starter-api
+    route: GET /hello
+    expected_status: 200
+    expected_json:
+      message: Hello from local API
+```
+
+Tests:
+
+- route exists pass/fail.
+- HTTP response pass/fail.
+- response body comparison ignores JSON object key order.
+- validator rejects non-local URLs.
+
+### Story API-018: Add Boss Mission Multi-Service Checks
+
+Objective: validate a full local serverless workflow.
+
+Files:
+
+```text
+apps/api/app/validators/workflow.py
+apps/api/tests/test_validators_workflow.py
+```
+
+Required check types:
+
+```text
+workflow_http_writes_dynamodb
+workflow_http_sends_sqs
+```
+
+Acceptance criteria:
+
+- `workflow_http_writes_dynamodb` sends a deterministic HTTP request and verifies a DynamoDB item exists afterward.
+- `workflow_http_sends_sqs` sends a deterministic HTTP request and verifies an SQS message exists afterward.
+- Validators reuse existing API Gateway, DynamoDB, and SQS helpers where possible.
+- Repeated validation uses deterministic IDs so duplicate requests do not create ambiguous results.
+- Fail messages identify which workflow step failed.
+
+Test fixtures:
+
+```yaml
+checks:
+  - id: http-writes-item
+    type: workflow_http_writes_dynamodb
+    api_name: starter-api
+    route: POST /orders
+    request_json:
+      orderId: order-001
+      item: notebook
+    table_name: orders-table
+    key:
+      pk:
+        S: order#order-001
+  - id: http-sends-message
+    type: workflow_http_sends_sqs
+    api_name: starter-api
+    route: POST /orders
+    request_json:
+      orderId: order-001
+      item: notebook
+    queue_name: orders-queue
+    expected_body_contains: order-001
+```
+
+Tests:
+
+- workflow DynamoDB write pass/fail.
+- workflow SQS message pass/fail.
+- repeated validation is deterministic.
+- partial workflow failure returns check-level failure without awarding XP.
 
 ### Story MISSION-001: Author Cloud Explorer Mission
 
@@ -1047,6 +1373,460 @@ Tests:
 - loader accepts mission.
 - validation passes after documented commands.
 - reset removes queue.
+
+### Story MISSION-004: Author SNS Fanout Mission
+
+Objective: teach topic-to-queue publish/subscribe flow.
+
+Files:
+
+```text
+missions/sns-fanout/mission.yml
+```
+
+Mission metadata:
+
+```yaml
+id: sns-fanout
+order: 4
+title: Publish and Subscribe
+difficulty: beginner
+services: [sns, sqs]
+xp: 150
+estimated_minutes: 15
+prerequisites: [sqs-first-message]
+```
+
+Required learner commands:
+
+```bash
+aws --endpoint-url http://localhost:4566 sns create-topic --name starter-topic
+aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-fanout-queue
+aws --endpoint-url http://localhost:4566 sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:starter-topic --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:000000000000:starter-fanout-queue
+aws --endpoint-url http://localhost:4566 sns publish --topic-arn arn:aws:sns:us-east-1:000000000000:starter-topic --message "local fanout works"
+```
+
+Required checks:
+
+```yaml
+checks:
+  - id: topic-exists
+    type: sns_topic_exists
+    topic_name: starter-topic
+  - id: queue-exists
+    type: sqs_queue_exists
+    queue_name: starter-fanout-queue
+  - id: subscription-exists
+    type: sns_subscription_exists
+    topic_name: starter-topic
+    queue_name: starter-fanout-queue
+  - id: fanout-message
+    type: sns_to_sqs_delivery
+    topic_name: starter-topic
+    queue_name: starter-fanout-queue
+    body: local fanout works
+```
+
+Required `owned_resources`:
+
+```yaml
+owned_resources:
+  - type: sns_topic
+    topic_name: starter-topic
+  - type: sqs_queue
+    queue_name: starter-fanout-queue
+```
+
+Acceptance criteria:
+
+- Mission explains topic, subscription, and fanout.
+- All commands include local endpoint.
+- Mission validates topic, queue, subscription, and message delivery.
+- Reset deletes topic and queue idempotently.
+
+Tests:
+
+- loader accepts mission.
+- validation passes after documented commands.
+- validation fails clearly when subscription is missing.
+- reset removes topic and queue.
+
+### Story MISSION-005: Author DynamoDB Table Mission
+
+Objective: teach local key-value table creation and item retrieval.
+
+Files:
+
+```text
+missions/dynamodb-first-table/mission.yml
+```
+
+Mission metadata:
+
+```yaml
+id: dynamodb-first-table
+order: 5
+title: Key-Value Store
+difficulty: beginner
+services: [dynamodb]
+xp: 150
+estimated_minutes: 15
+prerequisites: [sns-fanout]
+```
+
+Required learner commands:
+
+```bash
+aws --endpoint-url http://localhost:4566 dynamodb create-table --table-name starter-table --attribute-definitions AttributeName=pk,AttributeType=S --key-schema AttributeName=pk,KeyType=HASH --billing-mode PAY_PER_REQUEST
+aws --endpoint-url http://localhost:4566 dynamodb put-item --table-name starter-table --item '{"pk":{"S":"learner#1"},"name":{"S":"Local Learner"},"level":{"N":"1"}}'
+aws --endpoint-url http://localhost:4566 dynamodb get-item --table-name starter-table --key '{"pk":{"S":"learner#1"}}'
+```
+
+Required checks:
+
+```yaml
+checks:
+  - id: table-exists
+    type: dynamodb_table_exists
+    table_name: starter-table
+  - id: key-schema
+    type: dynamodb_key_schema_equals
+    table_name: starter-table
+    partition_key:
+      name: pk
+      type: S
+  - id: item-exists
+    type: dynamodb_item_exists
+    table_name: starter-table
+    key:
+      pk:
+        S: learner#1
+  - id: item-name
+    type: dynamodb_item_attribute_equals
+    table_name: starter-table
+    key:
+      pk:
+        S: learner#1
+    attribute: name
+    expected:
+      S: Local Learner
+```
+
+Required `owned_resources`:
+
+```yaml
+owned_resources:
+  - type: dynamodb_table
+    table_name: starter-table
+```
+
+Acceptance criteria:
+
+- Mission explains table, partition key, item, and attribute.
+- Validation catches wrong table name.
+- Validation catches wrong key schema.
+- Validation catches missing or wrong item attribute.
+- Reset deletes table idempotently.
+
+Tests:
+
+- loader accepts mission.
+- validation passes after documented commands.
+- validation fails for wrong attribute value.
+- reset removes table.
+
+### Story MISSION-006: Author Lambda Function Mission
+
+Objective: teach local function deployment and invocation.
+
+Files:
+
+```text
+missions/lambda-tiny-function/mission.yml
+missions/lambda-tiny-function/function/index.mjs
+```
+
+Mission metadata:
+
+```yaml
+id: lambda-tiny-function
+order: 6
+title: Tiny Function
+difficulty: beginner
+services: [lambda]
+xp: 175
+estimated_minutes: 20
+prerequisites: [dynamodb-first-table]
+```
+
+Required function code:
+
+```javascript
+export const handler = async (event) => {
+  return {
+    message: `Hello, ${event.name}`
+  };
+};
+```
+
+Required learner commands:
+
+```bash
+cd missions/lambda-tiny-function/function
+zip -r function.zip index.mjs
+aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+aws --endpoint-url http://localhost:4566 lambda invoke --function-name starter-function --payload '{"name":"Local Learner"}' response.json
+cat response.json
+```
+
+Required checks:
+
+```yaml
+checks:
+  - id: function-exists
+    type: lambda_function_exists
+    function_name: starter-function
+  - id: invoke-result
+    type: lambda_invoke_returns
+    function_name: starter-function
+    payload:
+      name: Local Learner
+    expected:
+      message: Hello, Local Learner
+```
+
+Required `owned_resources`:
+
+```yaml
+owned_resources:
+  - type: lambda_function
+    function_name: starter-function
+```
+
+Acceptance criteria:
+
+- Mission includes function source in repo.
+- Mission teaches runtime, handler, payload, and invocation.
+- Validation confirms function exists and response matches expected JSON.
+- Reset deletes Lambda function idempotently.
+
+Tests:
+
+- loader accepts mission.
+- validation passes after documented commands.
+- validation fails for wrong function response.
+- reset removes function.
+
+### Story MISSION-007: Author API Gateway HTTP Mission
+
+Objective: teach exposing a local Lambda through an HTTP endpoint.
+
+Files:
+
+```text
+missions/apigateway-http-trigger/mission.yml
+missions/apigateway-http-trigger/function/index.mjs
+```
+
+Mission metadata:
+
+```yaml
+id: apigateway-http-trigger
+order: 7
+title: HTTP Trigger
+difficulty: beginner
+services: [apigateway, lambda]
+xp: 200
+estimated_minutes: 25
+prerequisites: [lambda-tiny-function]
+```
+
+Required function behavior:
+
+```javascript
+export const handler = async () => {
+  return {
+    statusCode: 200,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ message: "Hello from local API" })
+  };
+};
+```
+
+Required learner flow:
+
+1. Create Lambda function `starter-api-function`.
+2. Create API Gateway API named `starter-api`.
+3. Add route `GET /hello`.
+4. Integrate route with Lambda.
+5. Call local API endpoint.
+
+The exact CLI commands must be verified against Floci during implementation and then committed into `mission.yml`. If Floci's API Gateway CLI compatibility differs from AWS CLI, use the Floci-supported command sequence and document the difference in mission copy.
+
+Required checks:
+
+```yaml
+checks:
+  - id: function-exists
+    type: lambda_function_exists
+    function_name: starter-api-function
+  - id: route-exists
+    type: apigateway_route_exists
+    api_name: starter-api
+    route: GET /hello
+  - id: http-response
+    type: apigateway_http_returns
+    api_name: starter-api
+    route: GET /hello
+    expected_status: 200
+    expected_json:
+      message: Hello from local API
+```
+
+Required `owned_resources`:
+
+```yaml
+owned_resources:
+  - type: apigateway_api
+    api_name: starter-api
+  - type: lambda_function
+    function_name: starter-api-function
+```
+
+Acceptance criteria:
+
+- Mission teaches route, integration, and HTTP response.
+- Commands are verified against Floci before marking story complete.
+- Validation confirms route exists and HTTP response matches.
+- Reset deletes API and function idempotently.
+
+Tests:
+
+- loader accepts mission.
+- validation passes after documented commands.
+- validation fails when route is missing.
+- reset removes API and Lambda function.
+
+### Story MISSION-008: Author Serverless Boss Mission
+
+Objective: combine API Gateway, Lambda, DynamoDB, and SQS into one local workflow.
+
+Files:
+
+```text
+missions/serverless-boss/mission.yml
+missions/serverless-boss/function/index.mjs
+```
+
+Mission metadata:
+
+```yaml
+id: serverless-boss
+order: 8
+title: Serverless Boss Mission
+difficulty: boss
+services: [apigateway, lambda, dynamodb, sqs]
+xp: 300
+estimated_minutes: 35
+prerequisites: [apigateway-http-trigger]
+```
+
+Required workflow:
+
+```text
+POST /orders
+  -> API Gateway
+  -> Lambda
+  -> DynamoDB item in orders-table
+  -> SQS message in orders-queue
+```
+
+Required deterministic request:
+
+```json
+{
+  "orderId": "order-001",
+  "item": "notebook"
+}
+```
+
+Required DynamoDB item:
+
+```json
+{
+  "pk": { "S": "order#order-001" },
+  "item": { "S": "notebook" }
+}
+```
+
+Required checks:
+
+```yaml
+checks:
+  - id: api-route
+    type: apigateway_route_exists
+    api_name: orders-api
+    route: POST /orders
+  - id: function-exists
+    type: lambda_function_exists
+    function_name: orders-function
+  - id: table-exists
+    type: dynamodb_table_exists
+    table_name: orders-table
+  - id: queue-exists
+    type: sqs_queue_exists
+    queue_name: orders-queue
+  - id: http-writes-item
+    type: workflow_http_writes_dynamodb
+    api_name: orders-api
+    route: POST /orders
+    request_json:
+      orderId: order-001
+      item: notebook
+    table_name: orders-table
+    key:
+      pk:
+        S: order#order-001
+  - id: http-sends-message
+    type: workflow_http_sends_sqs
+    api_name: orders-api
+    route: POST /orders
+    request_json:
+      orderId: order-001
+      item: notebook
+    queue_name: orders-queue
+    expected_body_contains: order-001
+```
+
+Required `owned_resources`:
+
+```yaml
+owned_resources:
+  - type: apigateway_api
+    api_name: orders-api
+  - type: lambda_function
+    function_name: orders-function
+  - type: dynamodb_table
+    table_name: orders-table
+  - type: sqs_queue
+    queue_name: orders-queue
+```
+
+Acceptance criteria:
+
+- Mission gives learners a complete local serverless architecture.
+- Commands are verified against Floci before marking story complete.
+- Validation checks all resources and full workflow behavior.
+- Reset deletes API, function, table, and queue idempotently.
+- Repeated validation does not create ambiguous duplicate records.
+
+Tests:
+
+- loader accepts mission.
+- validation passes after documented commands.
+- validation fails when DynamoDB write is missing.
+- validation fails when SQS message is missing.
+- reset removes all owned resources.
 
 ### Story WEB-001: Add Next.js App Shell
 
