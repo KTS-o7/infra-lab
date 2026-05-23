@@ -14,6 +14,11 @@ story: |
   You want to trigger your Lambda function via an HTTP request.
   In AWS, this is done with API Gateway, which exposes REST/HTTP APIs.
   When someone calls your HTTP endpoint, API Gateway invokes your Lambda.
+learning_objectives:
+  - Understand API Gateway HTTP APIs
+  - Create and configure routes
+  - Integrate Lambda with HTTP endpoints
+  - Test HTTP endpoints locally
 commands:
   - id: create-function
     label: Create Lambda function

@@ -8,8 +8,12 @@ def ensure_local_profile(session) -> Profile:
     if not profile:
         profile = Profile(id="local", display_name="Local Learner", total_xp=0)
         session.add(profile)
-        session.commit()
-        session.refresh(profile)
+        try:
+            session.commit()
+            session.refresh(profile)
+        except Exception:
+            session.rollback()
+            profile = session.get(Profile, "local")
     return profile
 
 def get_or_create_progress(session, mission_id: str) -> MissionProgress:
