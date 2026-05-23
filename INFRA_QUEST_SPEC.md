@@ -93,7 +93,7 @@ Required frontend package pins:
 | `react` | `19.2.1` |
 | `react-dom` | `19.2.1` |
 | `typescript` | `6.0.3` |
-| `tailwindcss` | `4.2.1` |
+| `tailwindcss` | `4.1.13` |
 | `@tailwindcss/postcss` | `4.1.13` |
 | `lucide-react` | `1.16.0` |
 | `zod` | `4.1.5` |
@@ -647,7 +647,7 @@ Response `200`:
 ```json
 {
   "missionId": "s3-first-bucket",
-  "status": "available",
+  "status": "completed",
   "resourcesRemoved": [
     "s3://starter-bucket/hello.txt",
     "s3://starter-bucket"
@@ -661,6 +661,8 @@ Behavior:
 - Missing resources do not cause failure.
 - Reset must only target resources listed in the mission's `ownedResources`.
 - Completed missions keep historical XP in `practice` mode.
+- `practice` mode keeps completed missions in `completed` status.
+- `restart` mode returns `available` for missions whose prerequisites are still met.
 
 #### `GET /profile`
 
@@ -945,12 +947,31 @@ body: first local queue message
 
 Pass condition: a received message body equals `body`.
 
-Implementation rule: use `receive_message` with short wait time and do not delete the message during validation.
+Implementation rule: use `receive_message` with `MaxNumberOfMessages=10`, `WaitTimeSeconds=1`, and `VisibilityTimeout=0`. Do not delete the message during validation. `VisibilityTimeout=0` is required so repeated validation attempts do not hide the message.
 
 Fail message:
 
 ```text
 Queue starter-queue does not contain the expected message.
+```
+
+#### `runtime_floci_available`
+
+Input:
+
+```yaml
+id: floci-available
+type: runtime_floci_available
+```
+
+Pass condition: backend can complete a lightweight runtime check against Floci using the configured local endpoint.
+
+Recommended implementation: call STS `get_caller_identity` through the shared AWS client factory. If Floci STS behavior differs during implementation, fall back to listing S3 buckets through the shared AWS client factory.
+
+Fail message:
+
+```text
+The local AWS emulator is not reachable at http://floci:4566.
 ```
 
 ### Reset Primitive Specifications
@@ -960,6 +981,8 @@ Reset must only delete resources declared in `owned_resources`.
 Supported MVP resources:
 
 ```yaml
+- type: none
+  reason: orientation mission has no owned resources
 - type: s3_object
   bucket: starter-bucket
   key: hello.txt
@@ -976,6 +999,8 @@ Deletion order:
 3. SQS queues
 
 Missing resources are treated as already reset.
+
+`type: none` is allowed only when a mission has no resources to delete. It is a declaration that reset is a no-op, not permission to skip `owned_resources`.
 
 ### UI Component Contract
 

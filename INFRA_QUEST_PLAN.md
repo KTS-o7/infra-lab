@@ -96,7 +96,7 @@ Use exact versions:
 Also pin exact versions for:
 
 ```text
-tailwindcss==4.2.1
+tailwindcss==4.1.13
 @tailwindcss/postcss==4.1.13
 lucide-react==1.16.0
 zod==4.1.5
@@ -866,7 +866,7 @@ apps/api/tests/test_validators_sqs.py
 Acceptance criteria:
 
 - `sqs_queue_exists` uses `get_queue_url`.
-- `sqs_message_available` receives but does not delete messages.
+- `sqs_message_available` receives with `VisibilityTimeout=0` and does not delete messages.
 - Fail messages match the spec.
 
 Tests:
@@ -874,6 +874,31 @@ Tests:
 - queue exists pass/fail
 - expected message pass/fail
 - validation does not delete received message
+- repeated validation can still observe the same message
+
+### Story API-010A: Add Runtime Validation Primitive
+
+Objective: support non-resource orientation missions.
+
+Files:
+
+```text
+apps/api/app/validators/runtime.py
+apps/api/tests/test_validators_runtime.py
+```
+
+Acceptance criteria:
+
+- `runtime_floci_available` uses the shared AWS client factory.
+- The primitive passes when Floci is reachable through `AWS_ENDPOINT_URL`.
+- The primitive fails with the exact message from the spec when Floci is unavailable.
+- The primitive never attempts real AWS endpoints.
+
+Tests:
+
+- reachable runtime pass case.
+- unreachable runtime fail case.
+- mocked AWS client verifies configured endpoint is used.
 
 ### Story API-011: Add Validation Endpoint
 
@@ -969,6 +994,8 @@ Acceptance criteria:
 - Mission uses no destructive resources.
 - Mission is order `1`.
 - Mission is available by default.
+- Mission uses `runtime_floci_available` as its validation check.
+- Mission declares `owned_resources` with `type: none`.
 
 Tests:
 

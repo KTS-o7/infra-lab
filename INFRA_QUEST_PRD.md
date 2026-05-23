@@ -380,7 +380,8 @@ Expected API result:
 {
   "error": {
     "code": "MISSION_NOT_STARTED",
-    "message": "Start this mission before validating it."
+    "message": "Start this mission before validating it.",
+    "details": {}
   }
 }
 ```
@@ -437,7 +438,7 @@ System behavior:
 1. Web app calls `POST /missions/{mission_id}/reset`.
 2. Backend runs mission reset logic.
 3. Backend removes mission-owned resources from Floci.
-4. Backend keeps mission available or started according to reset policy.
+4. Backend sets mission status according to reset mode.
 5. Web app refreshes mission state.
 
 Expected UI:
@@ -451,6 +452,8 @@ Acceptance criteria:
 - reset is idempotent
 - reset succeeds even if resources are already missing
 - reset never deletes resources outside the mission namespace
+- `practice` reset keeps completed missions completed
+- `restart` reset returns started missions to available when prerequisites are met
 
 ### Flow 11: Reset Completed Mission
 
@@ -538,7 +541,8 @@ Rules:
 - `started -> completed` happens only when all checks pass.
 - `started -> available` can happen on reset if reset policy chooses available.
 - `completed -> completed` happens on repeated validation.
-- `completed -> available` can happen on reset for practice mode.
+- `completed -> completed` happens on practice reset.
+- `completed -> available` can happen on restart reset.
 - No transition should duplicate XP.
 
 ## Error Handling
