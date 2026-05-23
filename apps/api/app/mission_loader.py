@@ -8,7 +8,7 @@ class CheckSpec(BaseModel):
     id: str
     type: str
     bucket: Optional[str] = None
-    key: Optional[str] = None
+    key: Optional[Dict[str, Any]] = None
     value: Optional[str] = None
     queue_name: Optional[str] = None
     body: Optional[str] = None
