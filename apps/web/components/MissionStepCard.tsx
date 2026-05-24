@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronDown, ClipboardCheck, Eye, Loader2, Lock, Target } from "lucide-react";
+import { useMemo } from "react";
+import { Target, Wrench } from "lucide-react";
 import type { MissionStep, ValidationResult } from "@/lib/api";
-import CommandBlock from "./CommandBlock";
 import ValidationPanel from "./ValidationPanel";
+import MissionTerminalPanel from "./MissionTerminalPanel";
 
 interface Props {
   step: MissionStep;
@@ -16,11 +16,11 @@ interface Props {
 }
 
 export default function MissionStepCard({ step, command, result, canCheck, checking, onCheck }: Props) {
-  const [showCommand, setShowCommand] = useState(false);
   const targetState = useMemo(() => step.targetState ?? [], [step.targetState]);
 
   return (
-    <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-xl shadow-black/10 backdrop-blur sm:p-6">
+    <div className="space-y-4">
+      <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-xl shadow-black/10 backdrop-blur sm:p-6">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Active step</p>
@@ -33,7 +33,7 @@ export default function MissionStepCard({ step, command, result, canCheck, check
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <section className="rounded-md border border-white/10 bg-black/20 p-4">
           <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-50">
             <Target className="h-4 w-4 text-lime-300" />
@@ -43,7 +43,10 @@ export default function MissionStepCard({ step, command, result, canCheck, check
         </section>
 
         <section className="rounded-md border border-white/10 bg-black/20 p-4">
-          <h3 className="mb-2 text-sm font-semibold text-emerald-50">Why this matters</h3>
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-50">
+            <Wrench className="h-4 w-4 text-lime-300" />
+            Why this matters
+          </h3>
           <p className="text-sm leading-6 text-emerald-100/68">{step.why || "This step creates part of the local infrastructure state required by the mission."}</p>
         </section>
       </div>
@@ -68,41 +71,16 @@ export default function MissionStepCard({ step, command, result, canCheck, check
         {step.notes && <p className="mt-2 text-sm leading-6 text-emerald-100/50">{step.notes}</p>}
       </section>
 
-      <div className="mt-4 space-y-3">
-        {command && (
-          <div>
-            <button
-              onClick={() => setShowCommand((value) => !value)}
-              className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-emerald-100/70 hover:bg-white/[0.075] hover:text-emerald-50"
-            >
-              {showCommand ? <ChevronDown className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              {showCommand ? "Hide CLI syntax" : "Show CLI syntax"}
-            </button>
-            {showCommand && (
-              <div className="mt-3">
-                <CommandBlock id={command.id} label={command.label} command={command.command} />
-              </div>
-            )}
-          </div>
-        )}
-
-        <button
-          onClick={() => onCheck(step.id)}
-          disabled={!canCheck || checking}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50 sm:w-auto"
-        >
-          {checking ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Checking step</>
-          ) : !canCheck ? (
-            <><Lock className="h-4 w-4" /> Start mission to check steps</>
-          ) : (
-            <><ClipboardCheck className="h-4 w-4" /> Check step</>
-          )}
-        </button>
       </div>
+      <MissionTerminalPanel
+        command={command}
+        canCheck={canCheck}
+        checking={checking}
+        onCheck={() => onCheck(step.id)}
+      />
 
       {result && (
-        <div className="mt-5">
+        <div>
           <ValidationPanel result={result} compact />
         </div>
       )}

@@ -123,43 +123,59 @@ export default function MissionWorkbench({
     <div className="space-y-6">
       <MissionBrief mission={mission} />
 
-      <div className="grid gap-6 xl:grid-cols-[18rem_minmax(0,1fr)_22rem]">
-        <MissionStepList
-          steps={steps}
-          activeStepId={activeStep?.id ?? null}
-          resultsByStep={resultsByStep}
-          onSelect={setActiveStepId}
-        />
-
-        <div className="space-y-5">
-          {activeStep && (
-            <MissionStepCard
-              step={activeStep}
-              command={commandsById.get(activeStep.commandId)}
-              result={resultsByStep[activeStep.id]}
-              canCheck={canValidate}
-              checking={checkingStepId === activeStep.id}
-              onCheck={handleCheckStep}
-            />
-          )}
-
-          {(mission.hints ?? []).length > 0 && (
-            <HintPanel
-              hints={mission.hints ?? []}
-              onUseHint={onUseHint}
-              missionStarted={canValidate}
-            />
-          )}
+      <div className="overflow-hidden rounded-lg border border-white/10 bg-[#07100d]/90 shadow-2xl shadow-black/30">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.03] px-5 py-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Lab console</p>
+            <h2 className="text-lg font-semibold text-emerald-50">Rebuild workspace</h2>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-emerald-100/45">
+            <span className="rounded-md border border-white/10 bg-black/20 px-2.5 py-1">Endpoint localhost:4566</span>
+            <span className="rounded-md border border-lime-300/20 bg-lime-300/10 px-2.5 py-1 text-lime-100">No real AWS</span>
+          </div>
         </div>
 
-        <div className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <ResourceProofBoard
-            steps={steps}
-            resultsByStep={resultsByStep}
-            latestMissionResult={validationResult}
-          />
+        <div className="grid gap-0 xl:grid-cols-[18rem_minmax(0,1fr)_22rem]">
+          <aside className="border-b border-white/10 p-4 xl:border-b-0 xl:border-r">
+            <MissionStepList
+              steps={steps}
+              activeStepId={activeStep?.id ?? null}
+              resultsByStep={resultsByStep}
+              onSelect={setActiveStepId}
+            />
+          </aside>
 
-          <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+          <main className="min-w-0 border-b border-white/10 p-4 sm:p-5 xl:border-b-0 xl:border-r">
+            {activeStep && (
+              <MissionStepCard
+                step={activeStep}
+                command={commandsById.get(activeStep.commandId)}
+                result={resultsByStep[activeStep.id]}
+                canCheck={canValidate}
+                checking={checkingStepId === activeStep.id}
+                onCheck={handleCheckStep}
+              />
+            )}
+
+            {(mission.hints ?? []).length > 0 && (
+              <div className="mt-5">
+                <HintPanel
+                  hints={mission.hints ?? []}
+                  onUseHint={onUseHint}
+                  missionStarted={canValidate}
+                />
+              </div>
+            )}
+          </main>
+
+          <aside className="space-y-4 p-4 xl:sticky xl:top-24 xl:self-start">
+            <ResourceProofBoard
+              steps={steps}
+              resultsByStep={resultsByStep}
+              latestMissionResult={validationResult}
+            />
+
+            <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-2xl shadow-black/20 backdrop-blur">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Coach</p>
             <h2 className="mt-1 text-lg font-semibold text-emerald-50">Mission control</h2>
             <div className="mt-4 space-y-3">
@@ -208,6 +224,7 @@ export default function MissionWorkbench({
               nextMissionId={validationResult.unlockedMissionIds?.[0]}
             />
           )}
+          </aside>
         </div>
       </div>
     </div>
