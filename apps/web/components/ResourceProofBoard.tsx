@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleDashed, Database, FileText, HelpCircle, MessageSquare, Package, XCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed, Database, FileText, Globe, HelpCircle, MessageSquare, Package, XCircle, Zap } from "lucide-react";
 import type { MissionStep, ValidationResult } from "@/lib/api";
 
 interface Props {
@@ -76,6 +76,8 @@ function stateFor(checkIds: string[], checks: Map<string, { passed: boolean }>):
 
 function kindFor(label: string, value: string) {
   const text = `${label} ${value}`.toLowerCase();
+  if (text.includes("function") && !text.includes("api")) return "compute";
+  if (text.includes("route") || text.includes("endpoint") || text.includes("api")) return "endpoint";
   if (text.includes("bucket") || text.includes("queue") || text.includes("topic")) return "resource";
   if (text.includes("object") || text.includes("body") || text.includes("message")) return "payload";
   if (text.includes("table")) return "database";
@@ -83,6 +85,8 @@ function kindFor(label: string, value: string) {
 }
 
 function iconFor(kind: string) {
+  if (kind === "compute") return Zap;
+  if (kind === "endpoint") return Globe;
   if (kind === "database") return Database;
   if (kind === "payload") return FileText;
   if (kind === "resource") return Package;

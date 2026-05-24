@@ -36,6 +36,78 @@ commands:
     label: Call HTTP endpoint
     command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://localhost:4566/$API_ID/hello"
 hints:
+steps:
+  - id: deploy-api-function
+    title: Deploy the function
+    goal: Deploy a Lambda function that will handle HTTP requests.
+    why: Lambda functions are the compute layer behind API Gateway. When an HTTP request arrives, API Gateway invokes your function to generate the response.
+    target_state:
+      - label: Function
+        value: starter-api-function
+      - label: Runtime
+        value: nodejs22.x
+    action: Package and deploy the function to the local Lambda runtime.
+    command_id: create-function
+    check_ids:
+      - function-exists
+    success: The starter-api-function is deployed.
+  - id: create-http-api
+    title: Create the HTTP API
+    goal: Create an API Gateway HTTP API named starter-api.
+    why: API Gateway is the public entrypoint for serverless workloads. It receives HTTP requests and routes them to your compute layer (Lambda).
+    target_state:
+      - label: API
+        value: starter-api
+      - label: Protocol
+        value: HTTP
+    action: Create the HTTP API in your local API Gateway.
+    command_id: create-api
+    check_ids: []
+    success: The starter-api HTTP API exists.
+  - id: add-hello-route
+    title: Add the route
+    goal: Add a GET /hello route to the API.
+    why: Routes define the URL paths and HTTP methods your API accepts. Each route is a separate entrypoint.
+    target_state:
+      - label: Route
+        value: GET /hello
+      - label: API
+        value: starter-api
+    action: Create the GET /hello route in API Gateway.
+    command_id: add-route
+    check_ids:
+      - route-exists
+    success: The GET /hello route exists.
+  - id: wire-lambda-integration
+    title: Wire the Lambda integration
+    goal: Connect the GET /hello route to the starter-api-function Lambda.
+    why: Integration is what makes the route actually invoke your function. Without it, the route exists but does nothing.
+    target_state:
+      - label: Integration
+        value: starter-api-function
+      - label: Route
+        value: GET /hello
+    action: Integrate the route with the Lambda function.
+    command_id: integrate
+    check_ids: []
+    success: The route is wired to the Lambda.
+  - id: call-and-verify
+    title: Call the HTTP endpoint
+    goal: Call the GET /hello endpoint and confirm it returns the expected response.
+    why: Testing the full HTTP path confirms the integration works end-to-end. API Gateway receives the request, invokes Lambda, and returns the function's response.
+    target_state:
+      - label: Endpoint
+        value: http://localhost:4566/{apiId}/hello
+      - label: Status
+        value: "200"
+      - label: Response
+        value: '{"message":"Hello from local API"}'
+    action: Send an HTTP GET to the /hello endpoint and verify the response.
+    command_id: invoke
+    check_ids:
+      - http-response
+    success: The endpoint returned the expected JSON response.
+hints:
   - id: route-key
     title: Route key
     text: The route key is "GET /hello". API Gateway routes requests based on the path and method.

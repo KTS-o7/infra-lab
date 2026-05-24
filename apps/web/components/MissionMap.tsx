@@ -4,7 +4,57 @@ import { useEffect, useState } from "react";
 import { getMissions, Mission } from "@/lib/api";
 import MissionCard from "./MissionCard";
 import Link from "next/link";
-import { Loader2, Route } from "lucide-react";
+import { Loader2, Route, HardDrive, Zap, Globe, Database, Bell, Cpu } from "lucide-react";
+
+const SERVICE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  s3: { label: "S3", icon: HardDrive, color: "text-orange-300" },
+  sqs: { label: "SQS", icon: Bell, color: "text-blue-300" },
+  sns: { label: "SNS", icon: Zap, color: "text-amber-300" },
+  lambda: { label: "Lambda", icon: Cpu, color: "text-purple-300" },
+  apigateway: { label: "API GW", icon: Globe, color: "text-teal-300" },
+  dynamodb: { label: "DynamoDB", icon: Database, color: "text-cyan-300" },
+};
+
+const ALL_SERVICES = ["s3", "sqs", "sns", "lambda", "apigateway", "dynamodb"];
+
+function PlatformStatus({ missions }: { missions: Mission[] }) {
+  const completedServices = Array.from(
+    new Set(
+      missions
+        .filter((m) => m.status === "completed" && m.services)
+        .flatMap((m) => m.services ?? [])
+    )
+  );
+
+  return (
+    <div className="mb-4 flex items-center gap-3 text-xs">
+      <span className="text-emerald-100/40">Platform:</span>
+      <div className="flex items-center gap-2">
+        {ALL_SERVICES.map((service) => {
+          const config = SERVICE_CONFIG[service];
+          const isActive = completedServices.includes(service);
+          const Icon = config.icon;
+          return (
+            <div
+              key={service}
+              className={`flex items-center gap-1 rounded-full px-2 py-1 transition-colors ${
+                isActive
+                  ? `bg-lime-300/10 border border-lime-300/30 ${config.color}`
+                  : "border border-white/10 text-white/20"
+              }`}
+            >
+              <Icon className="h-3 w-3" />
+              <span>{config.label}</span>
+            </div>
+          );
+        })}
+        {!completedServices.length && (
+          <span className="text-white/30">Starting fresh...</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function MissionMap() {
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -71,6 +121,8 @@ export default function MissionMap() {
           Each card is a live lab checkpoint. Locked missions open after prerequisite resources validate.
         </p>
       </div>
+
+      <PlatformStatus missions={missions} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {missions.map((mission) =>

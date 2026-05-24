@@ -306,3 +306,36 @@ def make_session():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
     SQLModel.metadata.create_all(engine)
     return Session(engine)
+
+
+def test_all_missions_with_commands_have_authored_steps():
+    """Every mission with commands must have authored steps, not fallback steps.
+
+    This ensures no mission relies on the derived fallback step generation,
+    which produces empty checkIds and generic actions that don't teach the
+    learner anything meaningful.
+    """
+    import pathlib
+    missions_dir = pathlib.Path("missions")
+    if not missions_dir.exists():
+        pytest.skip("missions directory not found")
+
+    loader = MissionLoader()
+    loader._loaded = False
+    loader._instances = {}
+
+    loaded = loader.load_missions(str(missions_dir))
+
+    failures = []
+    for mission_id, mission in loaded.items():
+        if mission.commands and not mission.steps:
+            failures.append(f"Mission {mission_id} has {len(mission.commands)} commands but no authored steps")
+        elif mission.commands and mission.steps:
+            fallback_steps = [
+                s for s in mission.steps
+                if s.check_ids == [] or s.action == "Run this command in your terminal against the local AWS sandbox."
+            ]
+            if fallback_steps:
+                failures.append(f"Mission {mission_id} has {len(fallback_steps)} steps that look like fallbacks (empty check_ids or generic action)")
+
+    assert failures == [], f"Missions with issues:\n" + "\n".join(failures)

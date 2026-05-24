@@ -27,6 +27,59 @@ commands:
   - id: get-item
     label: Get item
     command: aws --endpoint-url http://localhost:4566 dynamodb get-item --table-name starter-table --key '{"pk":{"S":"learner#1"}}'
+steps:
+  - id: create-table
+    title: Create the table
+    goal: Create a DynamoDB table named starter-table with a partition key named pk.
+    why: DynamoDB tables are the namespace for your data. The partition key determines how data is distributed across storage nodes, and how items are uniquely addressed.
+    target_state:
+      - label: Table
+        value: starter-table
+      - label: Partition key
+        value: pk (String)
+      - label: Billing
+        value: PAY_PER_REQUEST
+    action: Create the table in your local DynamoDB with pk as the partition key.
+    command_id: create-table
+    check_ids:
+      - table-exists
+      - key-schema
+    success: The starter-table exists with pk as its partition key.
+  - id: store-record
+    title: Store a record
+    goal: Put an item into starter-table with pk=learner#1, name=Local Learner, and level=1.
+    why: Items are the records in DynamoDB. Each item is uniquely identified by its partition key plus any sort key. Writing items is how applications persist state.
+    target_state:
+      - label: Table
+        value: starter-table
+      - label: Key
+        value: pk = learner#1
+      - label: Name
+        value: Local Learner
+      - label: Level
+        value: "1"
+    action: Put the item with pk learner#1, name Local Learner, and level 1 into the table.
+    command_id: put-item
+    check_ids:
+      - item-exists
+      - item-name
+    success: The item with pk learner#1 is stored and has the correct attributes.
+  - id: retrieve-record
+    title: Retrieve the record
+    goal: Get the item by its partition key and confirm it contains the expected data.
+    why: Reading items verifies your writes and confirms the data model is correct. DynamoDB's get is an efficient point read by primary key.
+    target_state:
+      - label: Table
+        value: starter-table
+      - label: Retrieved key
+        value: pk = learner#1
+      - label: Retrieved name
+        value: Local Learner
+    action: Get the item by pk learner#1 and inspect its attributes.
+    command_id: get-item
+    check_ids:
+      - item-exists
+    success: The item was retrieved and contains the expected data.
 hints:
   - id: partition-key
     title: Partition key

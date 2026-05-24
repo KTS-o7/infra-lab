@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import type { MissionDetail, ValidationResult } from "@/lib/api";
 import MissionBrief from "./MissionBrief";
 import MissionStepList from "./MissionStepList";
@@ -10,6 +10,62 @@ import ResourceProofBoard from "./ResourceProofBoard";
 import HintPanel from "./HintPanel";
 import ResetControl from "./ResetControl";
 import ValidationPanel from "./ValidationPanel";
+
+const SERVICE_DESCRIPTIONS: Record<string, string> = {
+  sns: "push-based messaging for pub/sub and mobile notifications",
+  sqs: "pull-based message queuing for decoupled processing",
+  lambda: "serverless functions for event-driven compute",
+  apigateway: "managed API endpoint service with routing and throttling",
+  dynamodb: "NoSQL database with on-demand scaling",
+  s3: "object storage for static assets and data lakes",
+  ecs: "container orchestration for Docker workloads",
+  eks: "managed Kubernetes for production container deployments",
+};
+
+interface MissionDebriefProps {
+  mission: MissionDetail["mission"];
+  nextMissionId?: string;
+}
+
+function MissionDebrief({ mission, nextMissionId }: MissionDebriefProps) {
+  const primaryService = mission.services?.[0] ?? "";
+  const serviceDesc = SERVICE_DESCRIPTIONS[primaryService.toLowerCase()] ?? "distributed system patterns";
+
+  return (
+    <div className="rounded-lg border border-lime-500/30 bg-[#0b1512]/95 p-5 shadow-2xl shadow-black/20 backdrop-blur">
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Mission complete</p>
+      <h2 className="mt-1 text-lg font-semibold text-lime-300">
+        Platform online: {primaryService.toUpperCase()}
+      </h2>
+
+      <div className="mt-4 space-y-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">What was built</p>
+          <p className="mt-1 text-sm text-emerald-50/80 leading-relaxed">
+            {mission.summary}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">Real systems</p>
+          <p className="mt-1 text-sm text-emerald-50/80 leading-relaxed">
+            In production AWS, <span className="text-lime-200">{primaryService.toUpperCase()}</span> provides {serviceDesc}.
+          </p>
+        </div>
+
+        {nextMissionId && (
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">What&apos;s next</p>
+            <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-white/5 p-3">
+              <ArrowRight className="h-4 w-4 flex-shrink-0 text-lime-300" />
+              <span className="text-sm text-emerald-50/80">Mission unlock: {nextMissionId}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   data: MissionDetail;
@@ -141,6 +197,13 @@ export default function MissionWorkbench({
           </div>
 
           {validationResult && <ValidationPanel result={validationResult} />}
+
+          {validationResult?.passed && mission.status === "completed" && (
+            <MissionDebrief
+              mission={mission}
+              nextMissionId={validationResult.unlockedMissionIds?.[0]}
+            />
+          )}
         </div>
       </div>
     </div>

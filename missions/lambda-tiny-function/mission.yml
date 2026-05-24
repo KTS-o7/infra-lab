@@ -33,6 +33,37 @@ hints:
     title: Local endpoint
     text: Use --endpoint-url http://localhost:4566 for all Lambda CLI commands in this lab.
     penalty_xp: 5
+steps:
+  - id: deploy-function
+    title: Deploy your first function
+    goal: Deploy a Lambda function named starter-function.
+    why: Lambda lets you run code without provisioning or managing servers. The function package contains your logic, and Lambda handles execution, scaling, and availability.
+    target_state:
+      - label: Function
+        value: starter-function
+      - label: Runtime
+        value: nodejs22.x
+      - label: Handler
+        value: index.handler
+    action: Package the function code and deploy it to the local Lambda runtime.
+    command_id: create-function
+    check_ids:
+      - function-exists
+    success: The starter-function Lambda is deployed and ready to invoke.
+  - id: invoke-and-verify
+    title: Invoke the function
+    goal: Invoke starter-function with a test payload and confirm the response.
+    why: Invoking a function is how you run your code in Lambda. The request/response model lets you integrate functions with APIs, queues, databases, and other event sources.
+    target_state:
+      - label: Invocation
+        value: starter-function invoked
+      - label: Response
+        value: '{"message":"Hello, Local Learner"}'
+    action: Call the function with the test payload and inspect the response.
+    command_id: invoke-function
+    check_ids:
+      - invoke-result
+    success: The function returned the expected response.
 checks:
   - id: function-exists
     type: lambda_function_exists
