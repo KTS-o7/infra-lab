@@ -2,6 +2,7 @@ from app.db import get_session
 from app.models import Profile, MissionProgress, HintUsage
 from sqlmodel import select
 from datetime import datetime
+import app.config as config
 
 def ensure_local_profile(session) -> Profile:
     profile = session.get(Profile, "local")
@@ -56,7 +57,15 @@ def start_mission(session, mission_id: str, mission_xp: int, prerequisites: list
     session.commit()
     return {"missionId": mission_id, "status": "started", "startedAt": str(progress.started_at)}
 
-def validate_mission(session, mission_id: str, mission_xp: int, checks: list, scope: str = "mission", step_id: str = None) -> dict:
+def validate_mission(
+    session,
+    mission_id: str,
+    mission_xp: int,
+    checks: list,
+    scope: str = "mission",
+    step_id: str = None,
+    empty_step_message: str = None,
+) -> dict:
     profile = ensure_local_profile(session)
     progress = session.get(MissionProgress, ("local", mission_id))
 
@@ -66,14 +75,23 @@ def validate_mission(session, mission_id: str, mission_xp: int, checks: list, sc
     progress.attempts += 1
     attempt_number = progress.attempts
 
-    from app.validators import run_check
-    check_results = []
-    all_passed = True
-    for check in checks:
-        result = run_check(check)
-        check_results.append(result)
-        if not result.get("passed"):
-            all_passed = False
+    if scope == "step" and not checks:
+        check_results = [{
+            "id": step_id or "step",
+            "type": "step_has_checks",
+            "passed": False,
+            "message": empty_step_message or "This step does not have validation checks yet.",
+        }]
+        all_passed = False
+    else:
+        from app.validators import run_check
+        check_results = []
+        all_passed = True
+        for check in checks:
+            result = run_check(check)
+            check_results.append(result)
+            if not result.get("passed"):
+                all_passed = False
 
     from datetime import datetime
     xp_awarded = 0
@@ -121,7 +139,6 @@ def reset_mission(session, mission_id: str, mode: str, prerequisites: list) -> d
         pass
     elif mode == "restart":
         if progress.status == "completed":
-            unmet = [p for p in prerequisites if True]
             progress.status = "available"
 
     session.commit()

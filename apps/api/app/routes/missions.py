@@ -174,6 +174,19 @@ def validate_mission(mission_id: str, body: dict = Body(default={}), session: Se
         selected_check_ids = set(step.check_ids)
         checks = [c.model_dump() for c in mission.checks if c.id in selected_check_ids]
         scope = "step"
+        if not checks:
+            result = progress_service.validate_mission(
+                session,
+                mission_id,
+                mission.xp,
+                [],
+                scope=scope,
+                step_id=step_id,
+                empty_step_message="This step does not have validation checks yet.",
+            )
+            if "error" in result:
+                raise HTTPException(status_code=409, detail=result)
+            return result
     else:
         checks = [c.model_dump() for c in mission.checks]
 
@@ -183,8 +196,7 @@ def validate_mission(mission_id: str, body: dict = Body(default={}), session: Se
     return result
 
 @router.post("/missions/{mission_id}/reset")
-def reset_mission(mission_id: str, session: Session = Depends(get_session)):
-    body = {}
+def reset_mission(mission_id: str, body: dict = Body(default={}), session: Session = Depends(get_session)):
     mode = body.get("mode", "practice")
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)
     if mission_id not in instances:

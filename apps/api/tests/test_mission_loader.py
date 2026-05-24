@@ -238,6 +238,70 @@ def test_step_validation_runs_only_step_checks_without_awarding_xp(tmp_path, mon
     assert profile.total_xp == 0
 
 
+def test_step_validation_without_checks_returns_actionable_failure(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            steps:
+              - id: explain-only
+                title: Explain only
+                goal: Read the context.
+                action: Review the mission context.
+                command_id: create-bucket
+                check_ids: []
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+    session.add(Profile(id="local", display_name="Local Learner", total_xp=0))
+    session.add(MissionProgress(profile_id="local", mission_id="demo", status="started"))
+    session.commit()
+
+    response = mission_routes.validate_mission(
+        "demo",
+        body={"stepId": "explain-only"},
+        session=session,
+    )
+
+    assert response["scope"] == "step"
+    assert response["stepId"] == "explain-only"
+    assert response["passed"] is False
+    assert response["xpAwarded"] == 0
+    assert response["checks"] == [
+        {
+            "id": "explain-only",
+            "type": "step_has_checks",
+            "passed": False,
+            "message": "This step does not have validation checks yet.",
+        }
+    ]
+
+
+def test_reset_mission_uses_requested_mode(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(tmp_path, base_mission_yaml())
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    monkeypatch.setattr("app.services.reset.reset_owned_resources", lambda owned: ["s3_bucket:demo"])
+    session = make_session()
+    session.add(Profile(id="local", display_name="Local Learner", total_xp=50))
+    session.add(MissionProgress(profile_id="local", mission_id="demo", status="completed", xp_awarded=50))
+    session.commit()
+
+    response = mission_routes.reset_mission(
+        "demo",
+        body={"mode": "restart"},
+        session=session,
+    )
+    progress = session.get(MissionProgress, ("local", "demo"))
+
+    assert response["status"] == "available"
+    assert response["resourcesRemoved"] == ["s3_bucket:demo"]
+    assert progress.status == "available"
+
+
 def make_session():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
     SQLModel.metadata.create_all(engine)
