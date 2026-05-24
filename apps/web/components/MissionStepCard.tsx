@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ClipboardCheck, Eye, Loader2, Target } from "lucide-react";
+import { ChevronDown, ClipboardCheck, Eye, Loader2, Lock, Target } from "lucide-react";
 import type { MissionStep, ValidationResult } from "@/lib/api";
 import CommandBlock from "./CommandBlock";
 import ValidationPanel from "./ValidationPanel";
@@ -10,11 +10,12 @@ interface Props {
   step: MissionStep;
   command?: { id: string; label: string; command: string };
   result?: ValidationResult;
-  disabled: boolean;
+  canCheck: boolean;
+  checking: boolean;
   onCheck: (stepId: string) => void;
 }
 
-export default function MissionStepCard({ step, command, result, disabled, onCheck }: Props) {
+export default function MissionStepCard({ step, command, result, canCheck, checking, onCheck }: Props) {
   const [showCommand, setShowCommand] = useState(false);
   const targetState = useMemo(() => step.targetState ?? [], [step.targetState]);
 
@@ -87,11 +88,16 @@ export default function MissionStepCard({ step, command, result, disabled, onChe
 
         <button
           onClick={() => onCheck(step.id)}
-          disabled={disabled}
+          disabled={!canCheck || checking}
           className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50 sm:w-auto"
         >
-          {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
-          Check step
+          {checking ? (
+            <><Loader2 className="h-4 w-4 animate-spin" /> Checking step</>
+          ) : !canCheck ? (
+            <><Lock className="h-4 w-4" /> Start mission to check steps</>
+          ) : (
+            <><ClipboardCheck className="h-4 w-4" /> Check step</>
+          )}
         </button>
       </div>
 

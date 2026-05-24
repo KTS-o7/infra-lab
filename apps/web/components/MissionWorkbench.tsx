@@ -92,6 +92,7 @@ export default function MissionWorkbench({
   const steps = mission.steps ?? [];
   const [activeStepId, setActiveStepId] = useState(steps[0]?.id ?? null);
   const [resultsByStep, setResultsByStep] = useState<Record<string, ValidationResult>>({});
+  const [checkingStepId, setCheckingStepId] = useState<string | null>(null);
 
   const activeStep = useMemo(
     () => steps.find((step) => step.id === activeStepId) ?? steps[0],
@@ -106,7 +107,9 @@ export default function MissionWorkbench({
   const canValidate = mission.status === "started" || mission.status === "completed";
 
   const handleCheckStep = async (stepId: string) => {
+    setCheckingStepId(stepId);
     const result = await onValidateStep(stepId);
+    setCheckingStepId(null);
     if (!result) return;
     setResultsByStep((current) => ({ ...current, [stepId]: result }));
     if (result.passed) {
@@ -134,7 +137,8 @@ export default function MissionWorkbench({
               step={activeStep}
               command={commandsById.get(activeStep.commandId)}
               result={resultsByStep[activeStep.id]}
-              disabled={actionLoading || !canValidate}
+              canCheck={canValidate}
+              checking={checkingStepId === activeStep.id}
               onCheck={handleCheckStep}
             />
           )}
