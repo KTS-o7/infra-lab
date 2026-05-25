@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL", "")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "test")
@@ -26,7 +25,7 @@ for pattern in _forbidden_patterns:
 REAL_AWS_KEY_PATTERNS = ["AKIA", "ABIA", "ACCA", "ASIA"]
 for key in REAL_AWS_KEY_PATTERNS:
     if AWS_ACCESS_KEY_ID.startswith(key) and AWS_ACCESS_KEY_ID != "test":
-        raise RuntimeError(f"LOCAL_ONLY_VIOLATION: suspicious real AWS key pattern detected")
+        raise RuntimeError("LOCAL_ONLY_VIOLATION: suspicious real AWS key pattern detected")
 
 def get_local_only_status() -> dict:
     return {

@@ -48,6 +48,7 @@ def run_migrations():
         if not migration:
             session.add(SchemaMigration(version="0001_sqlmodel_foundation", description="Create SQLModel persistence foundation"))
             session.commit()
+    _run_mission_rename_migration()
 
 
 def _copy_legacy_rows(conn, existing_tables: set[str]):
@@ -94,6 +95,107 @@ def _copy_legacy_rows(conn, existing_tables: set[str]):
             FROM hint_usages_legacy
             """
         )
+
+def _run_mission_rename_migration():
+    version = "0002_rename_serverless_boss_capstone"
+    with Session(engine) as session:
+        if session.get(SchemaMigration, version):
+            return
+
+    old_id = "serverless-boss"
+    new_id = "launchdesk-compose-capstone"
+    with engine.begin() as conn:
+        tables = set(inspect(conn).get_table_names())
+        if "mission_progress" in tables:
+            old_progress = conn.exec_driver_sql(
+                "SELECT * FROM mission_progress WHERE mission_id = ?", (old_id,)
+            ).mappings().first()
+            new_progress = conn.exec_driver_sql(
+                "SELECT * FROM mission_progress WHERE mission_id = ?", (new_id,)
+            ).mappings().first()
+            if old_progress and new_progress:
+                status_rank = {"not_started": 0, "started": 1, "completed": 2}
+                status = max(
+                    [old_progress["status"], new_progress["status"]],
+                    key=lambda value: status_rank.get(value, 0),
+                )
+                conn.exec_driver_sql(
+                    """
+                    UPDATE mission_progress
+                    SET status = ?,
+                        attempts = ?,
+                        xp_awarded = ?,
+                        started_at = COALESCE(started_at, ?),
+                        completed_at = COALESCE(completed_at, ?),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE mission_id = ?
+                    """,
+                    (
+                        status,
+                        (old_progress["attempts"] or 0) + (new_progress["attempts"] or 0),
+                        max(old_progress["xp_awarded"] or 0, new_progress["xp_awarded"] or 0),
+                        old_progress["started_at"],
+                        old_progress["completed_at"],
+                        new_id,
+                    ),
+                )
+                conn.exec_driver_sql("DELETE FROM mission_progress WHERE mission_id = ?", (old_id,))
+            elif old_progress:
+                conn.exec_driver_sql(
+                    "UPDATE mission_progress SET mission_id = ?, updated_at = CURRENT_TIMESTAMP WHERE mission_id = ?",
+                    (new_id, old_id),
+                )
+
+        if "capstone_score" in tables:
+            old_score = conn.exec_driver_sql(
+                "SELECT * FROM capstone_score WHERE mission_id = ?", (old_id,)
+            ).mappings().first()
+            new_score = conn.exec_driver_sql(
+                "SELECT * FROM capstone_score WHERE mission_id = ?", (new_id,)
+            ).mappings().first()
+            if old_score and new_score:
+                old_best = old_score["best_score"] if old_score["best_score"] is not None else -1
+                new_best = new_score["best_score"] if new_score["best_score"] is not None else -1
+                best_source = old_score if old_best > new_best else new_score
+                conn.exec_driver_sql(
+                    """
+                    UPDATE capstone_score
+                    SET latest_score = COALESCE(latest_score, ?),
+                        latest_level = COALESCE(latest_level, ?),
+                        best_score = ?,
+                        best_level = ?,
+                        dimensions_json = COALESCE(dimensions_json, ?),
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE mission_id = ?
+                    """,
+                    (
+                        old_score["latest_score"],
+                        old_score["latest_level"],
+                        best_source["best_score"],
+                        best_source["best_level"],
+                        old_score["dimensions_json"],
+                        new_id,
+                    ),
+                )
+                conn.exec_driver_sql("DELETE FROM capstone_score WHERE mission_id = ?", (old_id,))
+            elif old_score:
+                conn.exec_driver_sql(
+                    "UPDATE capstone_score SET mission_id = ?, updated_at = CURRENT_TIMESTAMP WHERE mission_id = ?",
+                    (new_id, old_id),
+                )
+
+        for table in ("validation_attempt", "step_progress", "hint_usage"):
+            if table in tables:
+                conn.exec_driver_sql(f"UPDATE {table} SET mission_id = ? WHERE mission_id = ?", (new_id, old_id))
+
+    with Session(engine) as session:
+        session.add(
+            SchemaMigration(
+                version=version,
+                description="Rename serverless-boss progress records to launchdesk-compose-capstone",
+            )
+        )
+        session.commit()
 
 def get_session() -> Generator[Session, None, None]:
     with Session(engine) as session:

@@ -1,7 +1,5 @@
-from app.aws_client import get_apigateway_client
 import requests
 import app.config as config
-import json
 
 def apigateway_route_exists(api_name: str, route: str) -> dict:
     return {"id": "route-exists", "type": "apigateway_route_exists", "passed": True, "message": f"Route {route} exists on API {api_name}."}
@@ -15,12 +13,12 @@ def apigateway_http_returns(api_name: str, route: str, expected_status: int, exp
             try:
                 body = resp.json()
                 if body == expected_json:
-                    return {"id": "http-response", "type": "apigateway_http_returns", "passed": True, "message": f"HTTP response matches expected."}
+                    return {"id": "http-response", "type": "apigateway_http_returns", "passed": True, "message": "HTTP response matches expected."}
                 else:
-                    return {"id": "http-response", "type": "apigateway_http_returns", "passed": False, "message": f"HTTP response body does not match expected."}
-            except:
-                return {"id": "http-response", "type": "apigateway_http_returns", "passed": False, "message": f"HTTP response is not valid JSON."}
+                    return {"id": "http-response", "type": "apigateway_http_returns", "passed": False, "message": "HTTP response body does not match expected."}
+            except ValueError:
+                return {"id": "http-response", "type": "apigateway_http_returns", "passed": False, "message": "HTTP response is not valid JSON."}
         else:
             return {"id": "http-response", "type": "apigateway_http_returns", "passed": False, "message": f"HTTP response status {resp.status_code} does not match expected {expected_status}."}
-    except Exception as e:
+    except Exception:
         return {"id": "http-response", "type": "apigateway_http_returns", "passed": False, "message": f"HTTP request to {route} failed."}

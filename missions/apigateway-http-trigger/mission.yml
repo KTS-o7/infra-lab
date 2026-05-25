@@ -29,7 +29,7 @@ motivation: |
 theory: |
   API Gateway receives HTTP requests, matches routes, and forwards them to an integration such as Lambda. The route and integration together make the endpoint useful.
 thought_process: |
-  Build from the inside out: deploy the function, create the API boundary, add a route, wire the route to compute, then prove the full HTTP response.
+  Build from the inside out instead of exposing an endpoint before compute exists: deploy the function, create the API boundary, add a route, wire the route to compute, then prove the full HTTP response.
 debrief: |
   This pattern is a common serverless API shape. LaunchDesk now has a local HTTP backend path that can grow into product workflows.
 commands:
@@ -137,6 +137,14 @@ hints:
       - http-response
     text: Use --endpoint-url http://localhost:4566 for all CLI commands in this lab.
     penalty_xp: 5
+  - id: rewire-route
+    title: Rewire the route
+    level: repair
+    applies_to_checks:
+      - route-exists
+      - http-response
+    text: If the route exists but the HTTP check fails, re-run the integration command so GET /hello targets starter-api-function.
+    penalty_xp: 10
 checks:
   - id: function-exists
     type: lambda_function_exists

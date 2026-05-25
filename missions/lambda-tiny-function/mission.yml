@@ -27,7 +27,7 @@ motivation: |
 theory: |
   A Lambda function packages code with a runtime and handler. Invocations send events to the handler and receive structured responses.
 thought_process: |
-  Before adding HTTP, prove the compute unit works by itself. Deploy one function, invoke it with a known payload, and validate the response.
+  Before adding HTTP, prove the compute unit works by itself instead of debugging an API and function at the same time. Deploy one function, invoke it with a known payload, and validate the response.
 debrief: |
   Serverless functions are commonly used behind APIs, queues, schedules, and event streams. LaunchDesk now has a tested compute unit for later entrypoints.
 commands:
@@ -53,6 +53,14 @@ hints:
       - invoke-result
     text: Use --endpoint-url http://localhost:4566 for all Lambda CLI commands in this lab.
     penalty_xp: 5
+  - id: redeploy-function
+    title: Redeploy the function
+    level: repair
+    applies_to_checks:
+      - function-exists
+      - invoke-result
+    text: If invocation fails, rebuild function.zip from the mission function directory and re-run the create function command before invoking again.
+    penalty_xp: 10
 steps:
   - id: deploy-function
     title: Deploy your first function

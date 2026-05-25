@@ -10,6 +10,8 @@ import ResourceProofBoard from "./ResourceProofBoard";
 import HintPanel from "./HintPanel";
 import ResetControl from "./ResetControl";
 import ValidationPanel from "./ValidationPanel";
+import CapstoneScorePanel from "./CapstoneScorePanel";
+import CourseContinuityPanel from "./CourseContinuityPanel";
 
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
   sns: "push-based messaging for pub/sub and mobile notifications",
@@ -121,9 +123,11 @@ export default function MissionWorkbench({
     [mission.hints, revealedHintIds],
   );
 
-  const canStart = mission.status === "available";
+  const canStart = mission.status === "available" && runtimeReady;
+  const canShowStart = mission.status === "available";
   const canValidateMission = (mission.status === "started" || mission.status === "completed") && runtimeReady;
   const isLocked = mission.status === "locked";
+  const isCapstone = mission.missionType === "module_capstone" || mission.missionType === "final_capstone";
   const activeStepProgress = activeStep ? progressByStep[activeStep.id] : undefined;
   const activeStepBlocked = activeStepProgress?.status === "blocked";
   const canValidateActiveStep = canValidateMission && !activeStepBlocked;
@@ -170,7 +174,28 @@ export default function MissionWorkbench({
           </aside>
 
           <main className="min-w-0 border-b border-white/10 p-4 sm:p-5 xl:border-b-0 xl:border-r">
-            {activeStep && (
+            {isLocked ? (
+              <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-5">
+                <div className="flex items-start gap-3">
+                  <Lock className="mt-0.5 h-5 w-5 shrink-0 text-amber-200" />
+                  <div>
+                    <h3 className="font-semibold text-amber-50">Mission locked</h3>
+                    <p className="mt-2 text-sm leading-6 text-amber-100/75">
+                      Complete the prerequisite mission{(mission.prerequisites ?? []).length === 1 ? "" : "s"} before starting this workbench.
+                    </p>
+                    {(mission.prerequisites ?? []).length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {(mission.prerequisites ?? []).map((prerequisite) => (
+                          <span key={prerequisite} className="rounded-md border border-white/10 bg-black/15 px-2 py-1 text-xs text-amber-100">
+                            {prerequisite}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : activeStep ? (
               <MissionStepCard
                 step={activeStep}
                 command={commandsById.get(activeStep.commandId)}
@@ -181,9 +206,9 @@ export default function MissionWorkbench({
                 disabledReason={checkDisabledReason}
                 onCheck={handleCheckStep}
               />
-            )}
+            ) : null}
 
-            {hints.length > 0 && (
+            {!isLocked && hints.length > 0 && (
               <div className="mt-5">
                 <HintPanel
                   hints={hints}
@@ -215,14 +240,14 @@ export default function MissionWorkbench({
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Coach</p>
             <h2 className="mt-1 text-lg font-semibold text-emerald-50">Mission control</h2>
             <div className="mt-4 space-y-3">
-              {canStart && (
+              {canShowStart && (
                 <button
                   onClick={onStart}
-                  disabled={actionLoading}
+                  disabled={actionLoading || !canStart}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
                 >
                   {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  Start mission
+                  {runtimeReady ? "Start mission" : "Runtime offline"}
                 </button>
               )}
 
@@ -237,7 +262,7 @@ export default function MissionWorkbench({
                 </button>
               )}
 
-              <ResetControl missionId={mission.id} onReset={onReset} disabled={actionLoading} />
+              <ResetControl missionId={mission.id} onReset={onReset} disabled={actionLoading || !runtimeReady} />
             </div>
 
             {mission.progress.attempts > 0 && (
@@ -262,6 +287,10 @@ export default function MissionWorkbench({
 
           {validationResult && <ValidationPanel result={validationResult} />}
 
+          {isCapstone && !validationResult?.capstoneScore ? (
+            <CapstoneScorePanel score={mission.progress.capstoneScore} />
+          ) : null}
+
           {mission.status === "completed" && (
             <MissionDebrief
               mission={mission}
@@ -277,6 +306,8 @@ export default function MissionWorkbench({
               </div>
             </div>
           )}
+
+          <CourseContinuityPanel currentMissionId={mission.id} currentCapability={mission.capability} />
           </aside>
         </div>
       </div>

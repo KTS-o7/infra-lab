@@ -31,7 +31,7 @@ motivation: |
 theory: |
   Service composition connects specialized cloud capabilities into one product flow. The API receives traffic, Lambda runs the business logic, DynamoDB stores state, and SQS carries downstream work.
 thought_process: |
-  Build dependencies first, then the compute and entrypoint. Verify each resource exists, then prove the end-to-end behavior by submitting one known order and checking both persistence and queue notification.
+  Build dependencies first instead of starting with the public endpoint: create state and queue boundaries, then compute and entrypoint. Verify each resource exists, then prove the end-to-end behavior by submitting one known order and checking both persistence and queue notification.
 debrief: |
   Production SaaS systems are made of these same boundaries: entrypoints, compute, state, and asynchronous work. This capstone proves LaunchDesk can coordinate multiple local cloud services as one platform.
 commands:
@@ -47,9 +47,6 @@ commands:
   - id: create-api
     label: Create API Gateway API
     command: aws --endpoint-url http://localhost:4566 apigatewayv2 create-api --name orders-api --protocol-type HTTP
-  - id: add-route
-    label: Add POST route
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "POST /orders"
   - id: integrate
     label: Integrate Lambda
     command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:orders-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "POST /orders" --target "$INTEGRATION_ID"
@@ -125,10 +122,10 @@ steps:
       - label: API
         value: orders-api
     action: Create the POST /orders route.
-    command_id: add-route
     check_ids:
       - api-route
     success: The POST /orders route exists.
+    notes: Capstone step. Use the API ID for orders-api and create a POST /orders route before wiring the integration.
   - id: wire-orders-integration
     title: Wire the Lambda integration
     goal: Connect the POST /orders route to the orders-function Lambda.
@@ -181,6 +178,15 @@ hints:
       - http-sends-message
     text: The Lambda function needs to be integrated with API Gateway to receive HTTP requests.
     penalty_xp: 10
+  - id: replay-order
+    title: Replay the order
+    level: repair
+    applies_to_checks:
+      - api-route
+      - http-writes-item
+      - http-sends-message
+    text: If the resources exist but end-to-end proof fails, re-run the integration command and submit the order-001 request again.
+    penalty_xp: 15
 checks:
   - id: api-route
     type: apigateway_route_exists

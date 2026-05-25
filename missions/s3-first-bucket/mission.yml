@@ -98,6 +98,15 @@ hints:
       - bucket-exists
     text: Bucket names are global in real AWS, but local here. You can use any name.
     penalty_xp: 5
+  - id: recreate-storage
+    title: Recreate storage
+    level: repair
+    applies_to_checks:
+      - bucket-exists
+      - object-exists
+      - object-body
+    text: Re-run the create bucket command, then re-run the upload command so the bucket, key, and object body all match the target state.
+    penalty_xp: 10
 checks:
   - id: bucket-exists
     type: s3_bucket_exists

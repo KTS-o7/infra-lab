@@ -27,7 +27,7 @@ motivation: |
 theory: |
   A queue stores messages durably between producers and consumers. Producers enqueue work, and consumers receive messages when they are ready to process them.
 thought_process: |
-  When work can happen after the request returns, put a small message on a queue. Verify the queue exists, then verify the expected work message is available.
+  When work can happen after the request returns, put a small message on a queue instead of doing slow work inline. Verify the queue exists, then verify the expected work message is available.
 debrief: |
   Queue-based handoff is the foundation for async jobs, retries, and worker fleets. LaunchDesk can now separate request handling from background processing.
 commands:
@@ -112,6 +112,13 @@ hints:
       - message-available
     text: Use --endpoint-url http://localhost:4566 for all AWS CLI commands.
     penalty_xp: 5
+  - id: resend-message
+    title: Resend the message
+    level: repair
+    applies_to_checks:
+      - message-available
+    text: If the queue exists but validation cannot find the message, re-run the send message command and keep VisibilityTimeout at 0 for inspection.
+    penalty_xp: 10
 checks:
   - id: queue-exists
     type: sqs_queue_exists

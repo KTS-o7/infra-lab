@@ -10,7 +10,7 @@ interface Props {
 
 export default function ResetControl({ missionId, onReset, disabled }: Props) {
   const [confirming, setConfirming] = useState(false);
-  const [mode, setMode] = useState<"practice" | "restart">("practice");
+  const [mode, setMode] = useState<"resources" | "progress" | "resources_and_progress">("resources");
 
   const handleReset = () => {
     if (!confirming) {
@@ -28,38 +28,50 @@ export default function ResetControl({ missionId, onReset, disabled }: Props) {
   if (confirming) {
     return (
       <div className="space-y-3 rounded-md border border-white/10 bg-black/25 p-4">
-        <p className="text-sm font-medium text-emerald-50">Reset mission?</p>
+        <p className="text-sm font-medium text-emerald-50">Reset {missionId}?</p>
         <div className="space-y-2">
           <label className="flex cursor-pointer items-center gap-2 text-sm text-emerald-100/65">
             <input
               type="radio"
               name="reset-mode"
-              value="practice"
-              checked={mode === "practice"}
-              onChange={() => setMode("practice")}
+              value="resources"
+              checked={mode === "resources"}
+              onChange={() => setMode("resources")}
               className="accent-lime-300"
             />
-            Practice reset — keep XP and completion
+            Resources only - keep progress and XP
           </label>
           <label className="flex cursor-pointer items-center gap-2 text-sm text-emerald-100/65">
             <input
               type="radio"
               name="reset-mode"
-              value="restart"
-              checked={mode === "restart"}
-              onChange={() => setMode("restart")}
+              value="progress"
+              checked={mode === "progress"}
+              onChange={() => setMode("progress")}
               className="accent-lime-300"
             />
-            Restart reset — clear progress
+            Practice history - clear steps and hints
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-emerald-100/65">
+            <input
+              type="radio"
+              name="reset-mode"
+              value="resources_and_progress"
+              checked={mode === "resources_and_progress"}
+              onChange={() => setMode("resources_and_progress")}
+              className="accent-lime-300"
+            />
+            Resources and history
           </label>
         </div>
+        <p className="text-xs leading-5 text-emerald-100/45">Completed mission credit, XP, and best capstone score are preserved by the backend.</p>
         <div className="flex gap-2 pt-2">
           <button
             onClick={handleReset}
             disabled={disabled}
             className="flex-1 rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
           >
-            Confirm Reset
+            Confirm reset
           </button>
           <button
             onClick={handleCancel}
@@ -78,7 +90,7 @@ export default function ResetControl({ missionId, onReset, disabled }: Props) {
       disabled={disabled}
       className="w-full rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-emerald-100/65 transition-colors hover:bg-white/[0.075] hover:text-emerald-50 disabled:opacity-50"
     >
-      Reset Mission
+      Reset mission
     </button>
   );
 }

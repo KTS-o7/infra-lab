@@ -2,6 +2,7 @@
 
 import { ValidationResult } from "@/lib/api";
 import { CheckCircle2, XCircle } from "lucide-react";
+import CapstoneScorePanel from "./CapstoneScorePanel";
 
 interface Props {
   result: ValidationResult;
@@ -25,6 +26,12 @@ export default function ValidationPanel({ result, compact = false }: Props) {
           <p className="text-lg font-semibold text-lime-100">+{result.xpAwarded} XP awarded</p>
         </div>
       )}
+
+      {result.capstoneScore ? (
+        <div className="mb-4">
+          <CapstoneScorePanel score={result.capstoneScore} />
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         {result.checks.map((check) => (

@@ -1,6 +1,4 @@
-import pytest
 from app.config import (
-    AWS_ENDPOINT_URL,
     AWS_ACCESS_KEY_ID,
     get_local_only_status,
     get_floci_endpoint,

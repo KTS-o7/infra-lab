@@ -27,7 +27,7 @@ motivation: |
 theory: |
   A local AWS-compatible endpoint accepts AWS-style CLI calls without contacting AWS. Fake credentials and a fixed local endpoint make the boundary explicit.
 thought_process: |
-  Before creating resources, prove where commands go. Check identity through the local endpoint, then inspect an empty service namespace so later changes have a known baseline.
+  Before creating resources, prove where commands go instead of trusting shell defaults. Check identity through the local endpoint, then inspect an empty service namespace so later changes have a known baseline.
 debrief: |
   Production engineers always confirm environment boundaries before operating. This mission establishes the local-only habit used throughout the LaunchDesk course.
 commands:
@@ -81,6 +81,13 @@ hints:
       - floci-available
     text: The AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are both set to "test". This is normal for local development.
     penalty_xp: 5
+  - id: restart-runtime
+    title: Restart the runtime
+    level: repair
+    applies_to_checks:
+      - floci-available
+    text: If the local endpoint is unreachable, run docker compose up --build and wait for Floci before retrying the check.
+    penalty_xp: 10
 checks:
   - id: floci-available
     type: runtime_floci_available

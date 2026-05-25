@@ -28,6 +28,11 @@ export default function MissionDetail({ missionId }: Props) {
   const [actionLoading, setActionLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
+  const runtimeReady = !runtimeStatus || (
+    runtimeStatus.api.status === "online" &&
+    runtimeStatus.floci.status === "online" &&
+    runtimeStatus.database.status === "online"
+  );
 
   const load = useCallback(() => {
     setLoading(true);
@@ -119,10 +124,15 @@ export default function MissionDetail({ missionId }: Props) {
     return (
       <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
         <p className="mb-4 text-red-200">{error || "Mission not found"}</p>
-        <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
-          <ArrowLeft className="h-4 w-4" />
-          Back to missions
-        </Link>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button onClick={load} className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
+            Retry
+          </button>
+          <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
+            <ArrowLeft className="h-4 w-4" />
+            Back to missions
+          </Link>
+        </div>
       </div>
     );
   }
@@ -147,7 +157,7 @@ export default function MissionDetail({ missionId }: Props) {
         onValidateStep={handleValidateStep}
         onReset={handleReset}
         onUseHint={handleUseHint}
-        runtimeReady={!runtimeStatus || (runtimeStatus.api.status === "online" && runtimeStatus.floci.status === "online")}
+        runtimeReady={runtimeReady}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlmodel import Session
+import logging
 
 from app.db import get_session
 from app.mission_loader import MissionLoader
@@ -7,6 +8,7 @@ from app.services import progress as progress_service
 import app.config as config
 
 router = APIRouter()
+logger = logging.getLogger("infra_quest.missions")
 
 
 def _error_response(code: str, message: str, details: dict = None):
@@ -203,7 +205,12 @@ def _course_payload(session):
         "nextMissionId": next_mission_id,
         "completedAt": completed_at,
     }
-    progress_service.update_course_completion_cache(session, course, progress)
+    progress_service.update_course_completion_cache(
+        session,
+        course,
+        progress,
+        progress_service.course_yml_hash(config.MISSIONS_DIR),
+    )
     return {
         "id": course.id,
         "title": course.title,
@@ -282,6 +289,9 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
                 "startedAt": prog.started_at.isoformat() + "Z" if prog and prog.started_at else None,
                 "completedAt": prog.completed_at.isoformat() + "Z" if prog and prog.completed_at else None,
             },
+            "capstoneScore": progress_service.capstone_score_payload(session, mission_id)
+            if mission.mission_type in {"module_capstone", "final_capstone"}
+            else None,
         }
     )
     return {"mission": payload}
@@ -293,6 +303,15 @@ def start_mission(mission_id: str, session: Session = Depends(get_session)):
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
     result = progress_service.start_mission(session, instances[mission_id])
+    logger.info(
+        "mission_start",
+        extra={
+            "event": "mission_start",
+            "mission_id": mission_id,
+            "status": result.get("status"),
+            "error_code": result.get("error", {}).get("code"),
+        },
+    )
     if "error" in result:
         raise HTTPException(status_code=409, detail=result)
     return result
@@ -317,6 +336,20 @@ def validate_mission(mission_id: str, body: dict = Body(default={}), session: Se
         checks = [c.model_dump() for c in mission.checks]
 
     result = progress_service.validate_mission(session, mission, checks, scope=scope, step_id=step_id)
+    logger.info(
+        "mission_validate",
+        extra={
+            "event": "mission_validate",
+            "mission_id": mission_id,
+            "scope": scope,
+            "step_id": step_id,
+            "passed": result.get("passed"),
+            "status": result.get("status"),
+            "attempt_number": result.get("attemptNumber"),
+            "check_count": len(result.get("checks", [])),
+            "error_code": result.get("error", {}).get("code"),
+        },
+    )
     if "error" in result:
         raise HTTPException(status_code=409, detail=result)
     return result
@@ -329,6 +362,17 @@ def reset_mission(mission_id: str, body: dict = Body(default={}), session: Sessi
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
     result = progress_service.reset_mission(session, instances[mission_id], mode)
+    logger.info(
+        "mission_reset",
+        extra={
+            "event": "mission_reset",
+            "mission_id": mission_id,
+            "mode": mode,
+            "deleted_count": len(result.get("deleted", [])),
+            "failed_count": len(result.get("failed", [])),
+            "error_code": result.get("error", {}).get("code"),
+        },
+    )
     if "error" in result:
         raise HTTPException(status_code=422, detail=result)
     return result
@@ -344,6 +388,17 @@ def use_hint(mission_id: str, hint_id: str, session: Session = Depends(get_sessi
     if not hint:
         raise HTTPException(status_code=404, detail=_error_response("HINT_NOT_FOUND", "Hint not found."))
     result = progress_service.use_hint(session, mission, hint)
+    logger.info(
+        "mission_hint_use",
+        extra={
+            "event": "mission_hint_use",
+            "mission_id": mission_id,
+            "hint_id": hint_id,
+            "hint_level": getattr(hint, "level", None),
+            "penalty_xp": getattr(hint, "penalty_xp", None),
+            "error_code": result.get("error", {}).get("code"),
+        },
+    )
     if "error" in result:
         raise HTTPException(status_code=409, detail=result)
     return result

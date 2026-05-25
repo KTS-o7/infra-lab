@@ -128,6 +128,7 @@ export interface MissionDetail {
       xpAwarded: number;
       startedAt: string | null;
       completedAt: string | null;
+      capstoneScore?: CapstoneScore | null;
     };
   };
 }
@@ -180,6 +181,24 @@ export interface ValidationResult {
   unlockedMissionIds: string[];
   scope?: "mission" | "step";
   stepId?: string | null;
+  capstoneScore?: CapstoneScore | null;
+}
+
+export interface CapstoneScore {
+  score?: number | null;
+  latestScore?: number | null;
+  bestScore?: number | null;
+  masteryLevel?: string | null;
+  latestMasteryLevel?: string | null;
+  bestMasteryLevel?: string | null;
+  dimensions?: {
+    id?: string;
+    label?: string;
+    score?: number | null;
+    maxScore?: number | null;
+    notes?: string | null;
+  }[];
+  localSafetyPassed?: boolean | null;
 }
 
 export interface Profile {

@@ -1,5 +1,4 @@
 from app.aws_client import get_s3_client, get_sqs_client, get_dynamodb_client, get_lambda_client, get_sns_client, get_apigateway_client
-import app.config as config
 
 def reset_owned_resources(owned_resources: list) -> list:
     deleted = []

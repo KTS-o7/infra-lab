@@ -28,7 +28,7 @@ motivation: |
 theory: |
   Pub/sub uses a topic as the event channel. Publishers send one message to the topic, and subscriptions deliver copies to each configured endpoint.
 thought_process: |
-  Use fanout when one fact should notify multiple consumers. Build the topic, attach a queue subscription, publish a known message, and verify delivery.
+  Use fanout when one fact should notify multiple consumers instead of hard-coding every consumer into the publisher. Build the topic, attach a queue subscription, publish a known message, and verify delivery.
 debrief: |
   Event fanout lets production platforms add notification, audit, analytics, and automation consumers without rewriting the original publisher.
 commands:
@@ -127,6 +127,14 @@ hints:
       - fanout-message
     text: Use --endpoint-url http://localhost:4566 for all AWS CLI commands in this lab.
     penalty_xp: 5
+  - id: republish-event
+    title: Republish the event
+    level: repair
+    applies_to_checks:
+      - subscription-exists
+      - fanout-message
+    text: If the topic and queue exist but no message arrives, re-run the subscribe command and then publish the local fanout works message again.
+    penalty_xp: 10
 checks:
   - id: topic-exists
     type: sns_topic_exists

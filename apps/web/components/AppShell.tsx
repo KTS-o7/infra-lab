@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { getRuntimeStatus, RuntimeStatus } from "@/lib/api";
-import { Activity, Boxes, Database, ShieldCheck, TerminalSquare, WifiOff, type LucideIcon } from "lucide-react";
+import { Activity, Boxes, Database, Settings, ShieldCheck, TerminalSquare, Trophy, WifiOff, type LucideIcon } from "lucide-react";
 
 interface Props {
   children: React.ReactNode;
@@ -11,6 +13,7 @@ interface Props {
 export default function AppShell({ children }: Props) {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     getRuntimeStatus()
@@ -48,6 +51,12 @@ export default function AppShell({ children }: Props) {
             </div>
           </div>
 
+          <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
+            <NavLink href="/" label="Course" active={pathname === "/"} />
+            <NavLink href="/profile" label="Profile" active={pathname === "/profile"} icon={Trophy} />
+            <NavLink href="/settings" label="Settings" active={pathname === "/settings"} icon={Settings} />
+          </nav>
+
           <div className="flex items-center gap-2">
             <div className="hidden items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-emerald-100/70 md:flex">
               <TerminalSquare className="h-4 w-4 text-lime-300" />
@@ -60,6 +69,14 @@ export default function AppShell({ children }: Props) {
           </div>
         </div>
       </header>
+
+      <nav aria-label="Primary" className="border-b border-white/10 bg-[#08110f]/82 px-4 py-2 md:hidden">
+        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto">
+          <NavLink href="/" label="Course" active={pathname === "/"} />
+          <NavLink href="/profile" label="Profile" active={pathname === "/profile"} icon={Trophy} />
+          <NavLink href="/settings" label="Settings" active={pathname === "/settings"} icon={Settings} />
+        </div>
+      </nav>
 
       {loading ? null : status && !isHealthy ? (
         <div className="mx-auto w-full max-w-7xl px-4 pt-5 sm:px-6">
@@ -113,6 +130,33 @@ export default function AppShell({ children }: Props) {
         Infra Quest / Local AWS learning lab
       </footer>
     </div>
+  );
+}
+
+function NavLink({
+  href,
+  label,
+  active,
+  icon: Icon,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  icon?: LucideIcon;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={
+        active
+          ? "inline-flex items-center gap-2 rounded-md border border-lime-300/25 bg-lime-300/10 px-3 py-2 text-sm font-medium text-lime-100"
+          : "inline-flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-medium text-emerald-100/58 hover:border-white/10 hover:bg-white/[0.04] hover:text-emerald-50"
+      }
+    >
+      {Icon ? <Icon className="h-4 w-4" /> : null}
+      {label}
+    </Link>
   );
 }
 

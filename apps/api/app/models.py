@@ -1,7 +1,10 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
+
+def utc_now() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 class Profile(SQLModel, table=True):
     __tablename__ = "profile"
@@ -9,8 +12,8 @@ class Profile(SQLModel, table=True):
     id: str = Field(primary_key=True, default="local")
     display_name: str = Field(default="Local Learner")
     total_xp: int = Field(default=0)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 class MissionProgress(SQLModel, table=True):
     __tablename__ = "mission_progress"
@@ -23,8 +26,8 @@ class MissionProgress(SQLModel, table=True):
     xp_awarded: int = Field(default=0)
     started_at: Optional[datetime] = Field(default=None)
     completed_at: Optional[datetime] = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 class ValidationAttempt(SQLModel, table=True):
     __tablename__ = "validation_attempt"
@@ -35,7 +38,7 @@ class ValidationAttempt(SQLModel, table=True):
     step_id: Optional[str] = Field(default=None)
     passed: bool = Field(nullable=False)
     checks_json: str = Field(nullable=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
 
 class StepProgress(SQLModel, table=True):
     __tablename__ = "step_progress"
@@ -47,8 +50,8 @@ class StepProgress(SQLModel, table=True):
     attempts: int = Field(default=0)
     latest_checks_json: Optional[str] = Field(default=None)
     last_validated_at: Optional[datetime] = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 class HintUsage(SQLModel, table=True):
     __tablename__ = "hint_usage"
@@ -58,7 +61,7 @@ class HintUsage(SQLModel, table=True):
     hint_id: str = Field(index=True)
     level: str = Field(default="nudge")
     penalty_xp: int = Field(default=0)
-    used_at: datetime = Field(default_factory=datetime.utcnow)
+    used_at: datetime = Field(default_factory=utc_now)
 
 class CapstoneScore(SQLModel, table=True):
     __tablename__ = "capstone_score"
@@ -70,7 +73,7 @@ class CapstoneScore(SQLModel, table=True):
     latest_level: Optional[str] = Field(default=None)
     best_level: Optional[str] = Field(default=None)
     dimensions_json: Optional[str] = Field(default=None)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 class CourseCompletion(SQLModel, table=True):
     __tablename__ = "course_completion"
@@ -84,11 +87,11 @@ class CourseCompletion(SQLModel, table=True):
     required_capstones_total: int = Field(default=0)
     course_yml_hash: Optional[str] = Field(default=None)
     completed_at: Optional[datetime] = Field(default=None)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 class SchemaMigration(SQLModel, table=True):
     __tablename__ = "schema_migration"
 
     version: str = Field(primary_key=True)
-    applied_at: datetime = Field(default_factory=datetime.utcnow)
+    applied_at: datetime = Field(default_factory=utc_now)
     description: str = Field(nullable=False)

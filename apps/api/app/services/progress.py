@@ -1,10 +1,13 @@
 import json
-from datetime import datetime
+from datetime import UTC, datetime
+from hashlib import sha256
+from pathlib import Path
 from uuid import uuid4
 
 from sqlmodel import select
 
 from app.models import (
+    CapstoneScore,
     CourseCompletion,
     HintUsage,
     MissionProgress,
@@ -15,7 +18,7 @@ from app.models import (
 
 
 def _now() -> datetime:
-    return datetime.utcnow()
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _mission_progress_id(mission_id: str) -> str:
@@ -32,6 +35,13 @@ def _hint_usage_id(mission_id: str, hint_id: str) -> str:
 
 def _serialize_dt(value: datetime | None) -> str | None:
     return value.isoformat() if value else None
+
+
+def course_yml_hash(missions_dir: str) -> str | None:
+    path = Path(missions_dir) / "course.yml"
+    if not path.exists():
+        return None
+    return sha256(path.read_bytes()).hexdigest()
 
 
 def ensure_local_profile(session) -> Profile:
@@ -177,6 +187,83 @@ def _hint_penalty(session, mission) -> int:
     return sum(penalties.get(row.hint_id, 0) for row in rows)
 
 
+def _capstone_level(score: int) -> str:
+    if score >= 90:
+        return "production_minded"
+    if score >= 75:
+        return "strong"
+    if score >= 60:
+        return "complete"
+    return "needs_repair"
+
+
+def _capstone_score(session, mission, checks: list[dict], all_passed: bool, attempt_number: int) -> dict:
+    check_count = len(checks)
+    passed_count = sum(1 for check in checks if check.get("passed"))
+    completeness = 30 if all_passed else round(30 * (passed_count / check_count)) if check_count else 0
+    end_to_end = 40 if all_passed else round(40 * (passed_count / check_count)) if check_count else 0
+    hints_used = len(hint_usage_for_mission(session, mission.id))
+    independence = max(0, 15 - (hints_used * 3) - max(0, attempt_number - 1) * 2)
+    prior_failures = session.exec(
+        select(ValidationAttempt).where(
+            ValidationAttempt.mission_id == mission.id,
+            ValidationAttempt.scope == "mission",
+            ValidationAttempt.passed == False,  # noqa: E712
+        )
+    ).all()
+    recovery = 10 if all_passed and prior_failures else 5 if all_passed else 0
+    local_safety_passed = True
+
+    score = 0 if not local_safety_passed else min(95, completeness + end_to_end + independence + recovery)
+    if not all_passed:
+        score = min(score, 59)
+    level = _capstone_level(score)
+    dimensions = [
+        {"id": "infrastructure_completeness", "label": "Infrastructure completeness", "score": completeness, "maxScore": 30},
+        {"id": "end_to_end_behavior", "label": "End-to-end behavior", "score": end_to_end, "maxScore": 40},
+        {"id": "independence", "label": "Independence", "score": independence, "maxScore": 15},
+        {"id": "recovery", "label": "Recovery", "score": recovery, "maxScore": 10},
+    ]
+    return {
+        "score": score,
+        "level": level,
+        "dimensions": dimensions,
+        "localSafetyPassed": local_safety_passed,
+    }
+
+
+def _persist_capstone_score(session, mission_id: str, score: dict) -> dict:
+    row = session.exec(select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)).first()
+    if not row:
+        row = CapstoneScore(id=f"capstone:{mission_id}", mission_id=mission_id)
+    row.latest_score = score["score"]
+    row.latest_level = score["level"]
+    row.dimensions_json = json.dumps(score["dimensions"])
+    if row.best_score is None or score["score"] > row.best_score:
+        row.best_score = score["score"]
+        row.best_level = score["level"]
+    row.updated_at = _now()
+    session.add(row)
+    session.flush()
+    score["bestScore"] = row.best_score
+    score["bestLevel"] = row.best_level
+    return score
+
+
+def capstone_score_payload(session, mission_id: str) -> dict | None:
+    row = session.exec(select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)).first()
+    if not row:
+        return None
+    return {
+        "latestScore": row.latest_score,
+        "bestScore": row.best_score,
+        "latestLevel": row.latest_level,
+        "bestLevel": row.best_level,
+        "dimensions": json.loads(row.dimensions_json) if row.dimensions_json else [],
+        "updatedAt": _serialize_dt(row.updated_at),
+    }
+
+
 def validate_mission(
     session,
     mission,
@@ -249,6 +336,14 @@ def validate_mission(
         profile.updated_at = _now()
         session.add(profile)
 
+    capstone_score = None
+    if scope == "mission" and mission.mission_type in {"module_capstone", "final_capstone"}:
+        capstone_score = _persist_capstone_score(
+            session,
+            mission_id,
+            _capstone_score(session, mission, check_results, all_passed, attempt_number),
+        )
+
     session.add(progress)
     session.commit()
 
@@ -262,6 +357,7 @@ def validate_mission(
         "unlockedMissionIds": [],
         "scope": scope,
         "stepId": step_id,
+        "capstoneScore": capstone_score,
     }
 
 
@@ -292,6 +388,20 @@ def reset_mission(session, mission, mode: str) -> dict:
             session.delete(step)
         for hint in session.exec(select(HintUsage).where(HintUsage.mission_id == mission_id)).all():
             session.delete(hint)
+        for attempt in session.exec(select(ValidationAttempt).where(ValidationAttempt.mission_id == mission_id)).all():
+            session.delete(attempt)
+        capstone_score = session.exec(select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)).first()
+        if capstone_score:
+            session.delete(capstone_score)
+        progress = get_progress(session, mission_id)
+        if progress:
+            session.delete(progress)
+
+        session.flush()
+        profile = ensure_local_profile(session)
+        profile.total_xp = total_xp(session)
+        profile.updated_at = _now()
+        session.add(profile)
 
     session.commit()
     return {"missionId": mission_id, "mode": mode, "deleted": deleted, "skipped": [], "failed": []}
@@ -345,7 +455,7 @@ def total_xp(session) -> int:
     return sum(row.xp_awarded for row in list_progress(session))
 
 
-def update_course_completion_cache(session, course, progress: dict) -> None:
+def update_course_completion_cache(session, course, progress: dict, course_hash: str | None = None) -> None:
     row = session.exec(select(CourseCompletion).where(CourseCompletion.course_id == course.id)).first()
     if not row:
         row = CourseCompletion(id=f"course:{course.id}", course_id=course.id)
@@ -354,6 +464,7 @@ def update_course_completion_cache(session, course, progress: dict) -> None:
     row.required_lessons_total = progress["requiredLessonsTotal"]
     row.required_capstones_completed = progress["requiredCapstonesCompleted"]
     row.required_capstones_total = progress["requiredCapstonesTotal"]
+    row.course_yml_hash = course_hash
     row.completed_at = datetime.fromisoformat(progress["completedAt"].replace("Z", "")) if progress["completedAt"] else None
     row.updated_at = _now()
     session.add(row)
