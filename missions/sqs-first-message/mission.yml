@@ -10,9 +10,9 @@ estimated_minutes: 10
 prerequisites:
   - s3-first-bucket
 story: |
-  You need to send a message that a worker process will pick up later.
-  In AWS, this is done with SQS (Simple Queue Service).
-  Messages go into a queue, and workers retrieve them asynchronously.
+  The platform has work that should happen after a user request returns. Instead
+  of blocking the app, send a message into a queue so a worker can pick it up
+  asynchronously.
 learning_objectives:
   - Understand SQS queue semantics
   - Create and configure queues
@@ -30,6 +30,59 @@ commands:
   - id: receive-message
     label: Receive message
     command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs receive-message --queue-url "$QUEUE_URL" --visibility-timeout 0 --max-number-of-messages 10 --wait-time-seconds 1
+steps:
+  - id: create-work-queue
+    title: Create the work queue
+    goal: Create an SQS queue named starter-queue.
+    why: A queue decouples the app from background work. The app can enqueue a job quickly, and a worker can process it later.
+    target_state:
+      - label: Queue
+        value: starter-queue
+      - label: Service
+        value: SQS
+    action: Create the queue in your local AWS sandbox.
+    command_id: create-queue
+    check_ids:
+      - queue-exists
+    success: The starter-queue queue exists in local SQS.
+  - id: locate-queue-address
+    title: Locate the queue address
+    goal: Retrieve the queue URL for starter-queue.
+    why: SQS operations usually target a queue URL. The name identifies the queue, while the URL is the address used for message operations.
+    target_state:
+      - label: Queue URL
+        value: starter-queue URL is available
+    action: Ask SQS for the queue URL so later commands can address the queue directly.
+    command_id: get-queue-url
+    check_ids:
+      - queue-exists
+    success: The queue can be resolved to a URL.
+  - id: enqueue-background-work
+    title: Enqueue background work
+    goal: Send the message first local queue message to starter-queue.
+    why: The message is the handoff. A producer records what should happen, and a consumer can receive it later without blocking the producer.
+    target_state:
+      - label: Message body
+        value: first local queue message
+    action: Send the expected message into the queue.
+    command_id: send-message
+    check_ids:
+      - message-available
+    success: The expected message is available in the queue.
+  - id: inspect-queued-work
+    title: Inspect queued work
+    goal: Receive messages from starter-queue without hiding them from validation.
+    why: Receiving shows the worker side of the queue model. This lab uses zero visibility timeout so inspection does not consume the proof message.
+    target_state:
+      - label: Queue
+        value: starter-queue
+      - label: Message
+        value: first local queue message
+    action: Receive messages from the queue and inspect the payload.
+    command_id: receive-message
+    check_ids:
+      - message-available
+    success: The expected message remains available for validation.
 hints:
   - id: queue-name
     title: Queue name

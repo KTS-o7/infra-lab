@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db import get_session
 from app.models import Profile, MissionProgress
@@ -10,6 +10,40 @@ router = APIRouter()
 
 def _error_response(code: str, message: str, details: dict = None):
     return {"error": {"code": code, "message": message, "details": details or {}}}
+
+def _serialize_step(step):
+    return {
+        "id": step.id,
+        "title": step.title,
+        "goal": step.goal,
+        "why": step.why,
+        "targetState": [{"label": item.label, "value": item.value} for item in step.target_state],
+        "action": step.action,
+        "commandId": step.command_id,
+        "checkIds": step.check_ids,
+        "success": step.success,
+        "notes": step.notes,
+    }
+
+def _mission_steps(mission):
+    if mission.steps:
+        return [_serialize_step(step) for step in mission.steps]
+
+    return [
+        {
+            "id": command.id,
+            "title": command.label,
+            "goal": command.label,
+            "why": None,
+            "targetState": [],
+            "action": "Run this command in your terminal against the local AWS sandbox.",
+            "commandId": command.id,
+            "checkIds": [],
+            "success": None,
+            "notes": None,
+        }
+        for command in mission.commands
+    ]
 
 @router.get("/missions")
 def list_missions(session: Session = Depends(get_session)):
@@ -82,6 +116,7 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
         })
 
     commands_out = [{"id": c.id, "label": c.label, "command": c.command} for c in mission.commands]
+    steps_out = _mission_steps(mission)
 
     return {
         "mission": {
@@ -97,6 +132,7 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
             "story": mission.story,
             "learningObjectives": mission.learning_objectives,
             "commands": commands_out,
+            "steps": steps_out,
             "hints": hints_out,
             "progress": {
                 "status": status,
@@ -122,21 +158,45 @@ def start_mission(mission_id: str, session: Session = Depends(get_session)):
     return result
 
 @router.post("/missions/{mission_id}/validate")
-def validate_mission(mission_id: str, session: Session = Depends(get_session)):
+def validate_mission(mission_id: str, body: dict = Body(default={}), session: Session = Depends(get_session)):
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail="Mission not found")
 
     mission = instances[mission_id]
-    checks = [c.model_dump() for c in mission.checks]
-    result = progress_service.validate_mission(session, mission_id, mission.xp, checks)
+    step_id = body.get("stepId") if body else None
+    scope = "mission"
+
+    if step_id:
+        step = next((s for s in mission.steps if s.id == step_id), None)
+        if not step:
+            raise HTTPException(status_code=404, detail=_error_response("STEP_NOT_FOUND", "Step not found."))
+        selected_check_ids = set(step.check_ids)
+        checks = [c.model_dump() for c in mission.checks if c.id in selected_check_ids]
+        scope = "step"
+        if not checks:
+            result = progress_service.validate_mission(
+                session,
+                mission_id,
+                mission.xp,
+                [],
+                scope=scope,
+                step_id=step_id,
+                empty_step_message="This step does not have validation checks yet.",
+            )
+            if "error" in result:
+                raise HTTPException(status_code=409, detail=result)
+            return result
+    else:
+        checks = [c.model_dump() for c in mission.checks]
+
+    result = progress_service.validate_mission(session, mission_id, mission.xp, checks, scope=scope, step_id=step_id)
     if "error" in result:
         raise HTTPException(status_code=409, detail=result)
     return result
 
 @router.post("/missions/{mission_id}/reset")
-def reset_mission(mission_id: str, session: Session = Depends(get_session)):
-    body = {}
+def reset_mission(mission_id: str, body: dict = Body(default={}), session: Session = Depends(get_session)):
     mode = body.get("mode", "practice")
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)
     if mission_id not in instances:

@@ -31,6 +31,72 @@ commands:
   - id: publish
     label: Publish message
     command: TOPIC_ARN=$(aws --endpoint-url http://localhost:4566 sns list-topics --query 'Topics[?contains(TopicArn,`starter-topic`)].TopicArn' --output text) && aws --endpoint-url http://localhost:4566 sns publish --topic-arn "$TOPIC_ARN" --message "local fanout works"
+steps:
+  - id: create-notification-channel
+    title: Create the notification channel
+    goal: An SNS topic named starter-topic exists to receive and distribute messages
+    why: |
+      SNS topics act as pub/sub channels. When something publishes a message to the topic,
+      SNS handles delivering copies to every subscribed endpoint without the publisher
+      needing to know who is listening.
+    target_state:
+      - label: SNS topic
+        value: starter-topic exists
+    action: Create an SNS topic named starter-topic. This is the central hub that receives
+      messages and fans them out to subscribers.
+    command_id: create-topic
+    check_ids:
+      - topic-exists
+    success: A notification channel is ready to receive and distribute messages.
+  - id: create-subscriber-endpoint
+    title: Create the subscriber endpoint
+    goal: An SQS queue named starter-fanout-queue exists to receive copies of topic messages
+    why: |
+      SQS queues are subscriber endpoints that buffer and provide durable access to messages.
+      By subscribing a queue to a topic, every message published to the topic gets a copy
+      delivered to the queue automatically.
+    target_state:
+      - label: SQS queue
+        value: starter-fanout-queue exists
+    action: Create an SQS queue named starter-fanout-queue. This queue receives copies of
+      messages published to the topic.
+    command_id: create-queue
+    check_ids:
+      - queue-exists
+    success: A subscriber endpoint is ready to receive notifications from the topic.
+  - id: wire-the-subscription
+    title: Wire the subscription
+    goal: The queue is subscribed to the topic so messages flow from topic to queue
+    why: |
+      The subscription is what connects the topic to the queue. Without it, SNS has no
+      instructions for where to deliver messages. The subscription tells SNS to deliver
+      copies of every message published to the topic to the specified queue.
+    target_state:
+      - label: SNS subscription
+        value: starter-fanout-queue subscribed to starter-topic
+    action: Subscribe the starter-fanout-queue to the starter-topic so messages published
+      to the topic are delivered to the queue.
+    command_id: subscribe
+    check_ids:
+      - subscription-exists
+    success: The subscription is active, routing messages from topic to queue.
+  - id: publish-and-verify-fanout
+    title: Publish and verify fanout
+    goal: A message published to the topic is delivered to the queue, proving fanout works
+    why: |
+      Publishing a message and confirming its delivery verifies the entire pipeline is working.
+      This is the moment you know that one event reaching the topic will notify all
+      subscribed consumers without the publisher needing to manage delivery logic.
+    target_state:
+      - label: Published message
+        value: "'local fanout works' sent to starter-topic"
+      - label: Delivered message
+        value: same message received by starter-fanout-queue
+    action: Publish a message to the starter-topic and confirm it reaches the starter-fanout-queue.
+    command_id: publish
+    check_ids:
+      - fanout-message
+    success: The fanout pipeline is verified—one message, multiple destinations.
 hints:
   - id: topic-name
     title: Topic naming

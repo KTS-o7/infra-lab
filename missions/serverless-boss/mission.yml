@@ -43,6 +43,110 @@ commands:
   - id: test-endpoint
     label: Test the endpoint
     command: "API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==orders-api].ApiId' --output text) && curl -X POST http://localhost:4566/$API_ID/orders -H Content-Type:application/json -d orderId=order-001 -d item=notebook"
+steps:
+  - id: create-orders-table
+    title: Create the orders table
+    goal: Create a DynamoDB table named orders-table to store incoming orders.
+    why: Durable state is the backbone of any platform. Orders need to be stored reliably before they are processed.
+    target_state:
+      - label: Table
+        value: orders-table
+      - label: Partition key
+        value: pk (String)
+    action: Create the orders-table in DynamoDB with pk as the partition key.
+    command_id: create-dynamodb-table
+    check_ids:
+      - table-exists
+    success: The orders-table exists.
+  - id: create-orders-queue
+    title: Create the orders queue
+    goal: Create an SQS queue named orders-queue for order notification delivery.
+    why: The queue receives notifications when orders are placed. Downstream workers can consume these messages independently of the API.
+    target_state:
+      - label: Queue
+        value: orders-queue
+      - label: Visibility
+        value: "0 (fire-and-forget)"
+    action: Create the orders-queue in SQS.
+    command_id: create-sqs-queue
+    check_ids:
+      - queue-exists
+    success: The orders-queue exists.
+  - id: deploy-orders-function
+    title: Deploy the order processor
+    goal: Deploy the orders-function Lambda that processes incoming orders.
+    why: The Lambda is the brains of the system. It receives HTTP requests, persists order data to DynamoDB, and notifies downstream workers via SQS.
+    target_state:
+      - label: Function
+        value: orders-function
+      - label: Runtime
+        value: nodejs22.x
+      - label: Handler
+        value: index.handler
+    action: Package and deploy the orders-function.
+    command_id: create-lambda
+    check_ids:
+      - function-exists
+    success: The orders-function is deployed.
+  - id: create-orders-api
+    title: Create the API
+    goal: Create an HTTP API named orders-api to receive order submissions.
+    why: The API is the public entrypoint. It receives JSON payloads and passes them to the Lambda function.
+    target_state:
+      - label: API
+        value: orders-api
+      - label: Protocol
+        value: HTTP
+    action: Create the orders-api in API Gateway.
+    command_id: create-api
+    check_ids: []
+    success: The orders-api exists.
+  - id: add-orders-route
+    title: Add the orders route
+    goal: Add a POST /orders route to receive order submissions.
+    why: The route defines the URL path for order creation. POST indicates the endpoint accepts new data.
+    target_state:
+      - label: Route
+        value: POST /orders
+      - label: API
+        value: orders-api
+    action: Create the POST /orders route.
+    command_id: add-route
+    check_ids:
+      - api-route
+    success: The POST /orders route exists.
+  - id: wire-orders-integration
+    title: Wire the Lambda integration
+    goal: Connect the POST /orders route to the orders-function Lambda.
+    why: Integration is what makes the route functional. Without it, the route is defined but cannot execute the processor.
+    target_state:
+      - label: Integration
+        value: orders-function
+      - label: Route
+        value: POST /orders
+    action: Integrate the route with the Lambda function.
+    command_id: integrate
+    check_ids: []
+    success: The route is wired to the Lambda.
+  - id: test-end-to-end
+    title: Test the full flow
+    goal: Submit an order via HTTP and verify it is written to DynamoDB and a notification is sent to SQS.
+    why: End-to-end testing proves the entire system works as designed. The API receives the order, Lambda processes it and writes to DynamoDB, and a notification message is placed in the SQS queue.
+    target_state:
+      - label: Endpoint
+        value: POST /orders
+      - label: Request
+        value: "{orderId: order-001, item: notebook}"
+      - label: DynamoDB
+        value: order#order-001 written
+      - label: SQS
+        value: notification sent
+    action: Submit the test order and verify both the DynamoDB write and SQS notification.
+    command_id: test-endpoint
+    check_ids:
+      - http-writes-item
+      - http-sends-message
+    success: "The order was processed end-to-end: written to DynamoDB and a notification was sent to SQS."
 hints:
   - id: workflow-order
     title: Workflow order
