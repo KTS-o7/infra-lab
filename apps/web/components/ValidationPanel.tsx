@@ -11,7 +11,12 @@ interface Props {
 
 export default function ValidationPanel({ result, compact = false }: Props) {
   return (
-    <div className={`rounded-lg border border-white/10 bg-[#0b1512]/80 shadow-xl shadow-black/10 backdrop-blur ${compact ? "p-4" : "p-6"}`}>
+    <div
+      role="status"
+      aria-live="polite"
+      tabIndex={-1}
+      className={`rounded-lg border border-white/10 bg-[#0b1512]/80 shadow-xl shadow-black/10 backdrop-blur ${compact ? "p-4" : "p-6"}`}
+    >
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className={`${compact ? "text-base" : "text-lg"} font-semibold text-emerald-50`}>
           {result.scope === "step" ? "Step check" : "Validation results"}
@@ -34,7 +39,13 @@ export default function ValidationPanel({ result, compact = false }: Props) {
       ) : null}
 
       <div className="space-y-2">
-        {result.checks.map((check) => (
+        {result.checks.length === 0 ? (
+          <div className="rounded-lg border border-lime-300/20 bg-lime-300/10 p-3">
+            <p className="text-sm text-lime-100">
+              {result.message ?? "This step has no direct proof check. The full mission validation proves it with the rest of the workflow."}
+            </p>
+          </div>
+        ) : result.checks.map((check) => (
           <div
             key={check.id}
             className={`flex items-start gap-2 p-3 rounded-lg border ${

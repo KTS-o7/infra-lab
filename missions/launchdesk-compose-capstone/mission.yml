@@ -59,6 +59,8 @@ steps:
     goal: Create a DynamoDB table named orders-table to store incoming orders.
     why: Durable state is the backbone of any platform. Orders need to be stored reliably before they are processed.
     target_state:
+      - label: Runtime
+        value: local Floci endpoint reachable
       - label: Table
         value: orders-table
       - label: Partition key
@@ -66,6 +68,7 @@ steps:
     action: Create the orders-table in DynamoDB with pk as the partition key.
     command_id: create-dynamodb-table
     check_ids:
+      - floci-available
       - table-exists
     success: The orders-table exists.
   - id: create-orders-queue
@@ -188,6 +191,8 @@ hints:
     text: If the resources exist but end-to-end proof fails, re-run the integration command and submit the order-001 request again.
     penalty_xp: 15
 checks:
+  - id: floci-available
+    type: runtime_floci_available
   - id: api-route
     type: apigateway_route_exists
     api_name: orders-api

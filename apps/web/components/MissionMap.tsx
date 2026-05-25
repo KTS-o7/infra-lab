@@ -71,11 +71,9 @@ function CapabilitySummary({ capabilities }: { capabilities: CapabilityProgress[
 function ModuleCard({
   module,
   nextMissionId,
-  onLockedMission,
 }: {
   module: CourseModule;
   nextMissionId: string | null;
-  onLockedMission: (title: string) => void;
 }) {
   const lessonTotal = module.requiredLessonsTotal + module.requiredCapstonesTotal;
   const lessonDone = module.requiredLessonsCompleted + module.requiredCapstonesCompleted;
@@ -143,15 +141,24 @@ function ModuleCard({
                 <p className="mt-1 text-xs uppercase tracking-[0.14em] text-emerald-100/38">
                   {mission.required ? "Required" : "Optional"} · {mission.status}
                 </p>
+                {mission.submodule ? (
+                  <p className="mt-1 text-xs text-emerald-100/45">Submodule: {mission.submodule}</p>
+                ) : null}
+                {isLocked && (mission.prerequisites ?? []).length > 0 ? (
+                  <p className="mt-2 text-xs leading-5 text-amber-100/75">
+                    Complete prerequisite: {(mission.prerequisites ?? []).join(", ")}
+                  </p>
+                ) : null}
               </div>
             </div>
           );
 
           if (isLocked) {
+            const href = nextMissionId ? `/missions/${nextMissionId}` : `/missions/${mission.prerequisites?.[0] ?? mission.id}`;
             return (
-              <button key={mission.id} type="button" onClick={() => onLockedMission(mission.title)} className="block w-full">
+              <Link key={mission.id} href={href} className="block w-full" aria-label={`${mission.title} is locked. Open the next prerequisite mission.`}>
                 {body}
-              </button>
+              </Link>
             );
           }
 
@@ -170,7 +177,6 @@ export default function MissionMap() {
   const [courseData, setCourseData] = useState<CourseResponse["course"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lockedMsg, setLockedMsg] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -193,11 +199,6 @@ export default function MissionMap() {
     }
     return null;
   }, [courseData]);
-
-  const handleLockedMission = (title: string) => {
-    setLockedMsg(`"${title}" is locked. Continue with the next available mission first.`);
-    window.setTimeout(() => setLockedMsg(null), 3500);
-  };
 
   if (loading) {
     return (
@@ -268,16 +269,9 @@ export default function MissionMap() {
             key={module.id}
             module={module}
             nextMissionId={courseData.progress.nextMissionId}
-            onLockedMission={handleLockedMission}
           />
         ))}
       </div>
-
-      {lockedMsg ? (
-        <div className="fixed bottom-6 left-1/2 z-20 w-[min(calc(100%-2rem),32rem)] -translate-x-1/2 rounded-lg border border-amber-400/30 bg-amber-950/90 px-5 py-3 text-sm text-amber-100 shadow-xl backdrop-blur">
-          {lockedMsg}
-        </div>
-      ) : null}
     </div>
   );
 }

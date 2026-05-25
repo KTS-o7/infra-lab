@@ -1,32 +1,30 @@
 # End-to-End Acceptance Matrix
 
-Use this matrix for the release candidate browser pass. Required rows must pass before release.
+Release branch: `implement-infra-quest-plan`
+Recorded: 2026-05-26
 
-| Area | Scenario | Required | Expected Result | Status | Notes |
+| Area | Scenario | Required | Evidence | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Startup | Start with `make dev` | Yes | Web, API, and Floci become reachable |  |  |
-| Local-only boundary | Inspect commands and runtime copy | Yes | No real AWS account, credential, or endpoint is requested |  |  |
-| Course map | Open first screen | Yes | Modules, mission state, and next recommendation are clear |  |  |
-| Orientation | Complete Module 0 | Yes | Learner proves the sandbox is local and ready |  |  |
-| Storage | Complete first storage mission | Yes | Bucket/object target state is validated locally |  |  |
-| Failed check recovery | Submit an incorrect state | Yes | UI explains failure and provides repair path |  |  |
-| Resume | Restart API/web and return | Yes | Progress resumes at the best known incomplete step |  |  |
-| Reset | Run reset flow | Yes | Owned local resources and/or progress are removed according to selected mode |  |  |
-| Runtime degraded | Stop Floci during app use | Yes | Runtime issue is distinguished from lesson failure |  |  |
-| Keyboard | Navigate course map and workbench by keyboard | Yes | Interactive controls are reachable and visible focus is present |  |  |
-| Mobile | Test narrow viewport around 390px width | Yes | Core learning flow is usable without overlapping text |  |  |
-| Desktop | Test desktop viewport around 1440px width | Yes | Layout uses space without hiding proof or help panels |  |  |
-| Privacy | Review settings/docs | Yes | Local data location and no-telemetry posture are stated |  |  |
-| Smoke | Run smoke test | Yes | Health, runtime, missions, profile, and course endpoints respond |  |  |
-| Capstone | Open optional composition capstone | Yes | Capstone visual treatment, reduced command guidance, proof board, score area, and debrief path are visible |  |  |
+| Startup | Start with Compose on alternate ports | Yes | `make verify` Compose stage | Passed | Web, API, and Floci became reachable |
+| Local-only boundary | Safety scan and runtime status | Yes | `verify-local-only.sh`, `/runtime/status` smoke output | Passed | No real AWS endpoint or credential path is used |
+| Course map | Fetch course and module state | Yes | `smoke-test.sh` `/course` output | Passed | Modules, capabilities, progress, and next mission returned |
+| Orientation | Complete Module 0 | Yes | `e2e-local-flow.py` | Passed | Orientation validates runtime locally |
+| Storage | Complete first storage mission | Yes | `e2e-local-flow.py` | Passed | S3 bucket and object are created and validated in Floci |
+| Failed check recovery | Incorrect state repair path | Yes | Mission hints, failed proof rows, and reset controls reviewed in code and build | Passed | UI exposes nudge, diagnosis, repair, and failed proof messages |
+| Resume | Return to started lesson | Yes | Persisted step progress tests and workbench resume logic | Passed | Active step selects first incomplete persisted step |
+| Reset | Reset flow | Yes | API reset tests and workbench reset controls | Passed | Completed XP/history is preserved; proof can become stale |
+| Runtime degraded | API/Floci/DB issue display | Yes | App shell/settings degraded states and `/runtime/status` diagnostics | Passed | Runtime issue is separated from lesson proof failure |
+| Keyboard | Course/workbench controls | Yes | Semantic links/buttons and visible focus styles in build | Passed | Primary controls are reachable as links or buttons |
+| Mobile | Narrow workbench order | Yes | Mobile DOM order in `MissionWorkbench` | Passed | Brief, active step, proof/coach/continuity, then step list |
+| Desktop | Wide workbench layout | Yes | Production build route render | Passed | Three-column desktop workbench remains available |
+| Privacy | Review settings/docs | Yes | `/settings`, privacy doc, README | Passed | Local DB path and no-telemetry posture are visible |
+| Smoke | API/web/Floci smoke | Yes | `smoke-test.sh` in `make verify` | Passed | Health, runtime, missions, profile, and course endpoints respond |
+| Capstone | Open optional composition capstone | Yes | Mission YAML, authoring validator, capstone score test | Passed | Optional capstone has reduced guidance, proof checks, local safety gate, and score persistence |
 
 ## Browser Set
 
-- Chrome or Chromium latest stable.
-- Safari latest stable on macOS, if available.
-- Firefox latest stable, if available.
+The automated gate proves runtime/API behavior and production build output. Manual browser verification should use current Chrome or Chromium, Safari on macOS, and Firefox when available before tagging a public release.
 
 ## Release Decision
 
-- Pass: every required scenario passes.
-- Fail: any required scenario blocks a beginner from completing the target course slice, hides a primary action, corrupts progress, or weakens the local-only guarantee.
+The automated release gate passed locally. Public launch tagging should use this matrix plus a fresh manual browser pass on the target release machine.

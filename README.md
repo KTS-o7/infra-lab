@@ -23,7 +23,7 @@ Infra Quest teaches AWS concepts through guided missions. Every AWS API call run
 - **Key-Value Store** — DynamoDB table with partition keys
 - **Tiny Function** — Deploy and invoke a Lambda function
 - **HTTP Trigger** — Expose Lambda through API Gateway
-- **Serverless Boss Mission** — Complete serverless workflow
+- **LaunchDesk Compose Capstone** — Complete an optional serverless workflow challenge
 
 ## Tech Stack
 
@@ -45,7 +45,7 @@ Learner progress and validation history are stored locally by the API service. S
 make dev          # Start all services
 make down        # Stop all services
 make reset       # Reset lab data
-make verify      # Run safety scan, tests, and smoke test
+make verify      # Run safety scan, tests, build, smoke, and learner e2e
 make logs        # Tail Docker logs
 ```
 

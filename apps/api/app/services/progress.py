@@ -212,7 +212,8 @@ def _capstone_score(session, mission, checks: list[dict], all_passed: bool, atte
         )
     ).all()
     recovery = 10 if all_passed and prior_failures else 5 if all_passed else 0
-    local_safety_passed = True
+    runtime_checks = [check for check in checks if check.get("type") == "runtime_floci_available"]
+    local_safety_passed = bool(runtime_checks) and all(check.get("passed") for check in runtime_checks)
 
     score = 0 if not local_safety_passed else min(95, completeness + end_to_end + independence + recovery)
     if not all_passed:
@@ -272,10 +273,12 @@ def validate_mission(
     scope: str = "mission",
     step_id: str | None = None,
     empty_step_message: str | None = None,
+    all_missions: list | None = None,
 ) -> dict:
     ensure_local_profile(session)
     mission_id = mission.id
     progress = get_or_create_progress(session, mission_id)
+    was_completed = progress.status == "completed"
     if progress.status == "not_started":
         progress.status = "started"
         progress.started_at = progress.started_at or _now()
@@ -287,11 +290,13 @@ def validate_mission(
     if scope == "step" and not checks:
         check_results = []
         all_passed = True
+        message = "This step has no direct proof check. Full mission validation proves it with the rest of the workflow."
     else:
         from app.validators import run_check
 
         check_results = []
         all_passed = True
+        message = None
         for check in checks:
             result = run_check(check)
             check_results.append(result)
@@ -347,6 +352,15 @@ def validate_mission(
     session.add(progress)
     session.commit()
 
+    unlocked_mission_ids = []
+    if scope == "mission" and all_passed and not was_completed and all_missions:
+        completed_ids = completed_mission_ids(session)
+        for candidate in sorted(all_missions, key=lambda item: (item.order, item.id)):
+            if candidate.id == mission_id or candidate.id in completed_ids:
+                continue
+            if mission_id in candidate.prerequisites and all(prereq in completed_ids for prereq in candidate.prerequisites):
+                unlocked_mission_ids.append(candidate.id)
+
     return {
         "missionId": mission_id,
         "passed": all_passed,
@@ -354,9 +368,10 @@ def validate_mission(
         "xpAwarded": xp_awarded,
         "attemptNumber": attempt_number,
         "checks": check_results,
-        "unlockedMissionIds": [],
+        "unlockedMissionIds": unlocked_mission_ids,
         "scope": scope,
         "stepId": step_id,
+        "message": message,
         "capstoneScore": capstone_score,
     }
 
@@ -374,9 +389,9 @@ def reset_mission(session, mission, mode: str) -> dict:
         }
 
     mission_id = mission.id
-    deleted = []
+    summary = {"deleted": [], "skipped": [], "failed": []}
     if mode in {"resources", "resources_and_progress"}:
-        deleted = reset_owned_resources([resource.model_dump() for resource in mission.owned_resources])
+        summary = reset_owned_resources([resource.model_dump() for resource in mission.owned_resources])
         for step in session.exec(select(StepProgress).where(StepProgress.mission_id == mission_id)).all():
             if step.status == "passed":
                 step.status = "stale"
@@ -385,26 +400,17 @@ def reset_mission(session, mission, mode: str) -> dict:
 
     if mode in {"progress", "resources_and_progress"}:
         for step in session.exec(select(StepProgress).where(StepProgress.mission_id == mission_id)).all():
-            session.delete(step)
+            if mode == "progress":
+                session.delete(step)
+            else:
+                step.status = "stale"
+                step.updated_at = _now()
+                session.add(step)
         for hint in session.exec(select(HintUsage).where(HintUsage.mission_id == mission_id)).all():
             session.delete(hint)
-        for attempt in session.exec(select(ValidationAttempt).where(ValidationAttempt.mission_id == mission_id)).all():
-            session.delete(attempt)
-        capstone_score = session.exec(select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)).first()
-        if capstone_score:
-            session.delete(capstone_score)
-        progress = get_progress(session, mission_id)
-        if progress:
-            session.delete(progress)
-
-        session.flush()
-        profile = ensure_local_profile(session)
-        profile.total_xp = total_xp(session)
-        profile.updated_at = _now()
-        session.add(profile)
 
     session.commit()
-    return {"missionId": mission_id, "mode": mode, "deleted": deleted, "skipped": [], "failed": []}
+    return {"missionId": mission_id, "mode": mode, **summary}
 
 
 def use_hint(session, mission, hint) -> dict:

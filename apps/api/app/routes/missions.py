@@ -15,6 +15,18 @@ def _error_response(code: str, message: str, details: dict = None):
     return {"error": {"code": code, "message": message, "details": details or {}}}
 
 
+def _completed_ids(session: Session) -> set[str]:
+    return progress_service.completed_mission_ids(session)
+
+
+def _effective_status(mission, session: Session) -> str:
+    return progress_service.derive_mission_status(
+        mission,
+        progress_service.get_progress(session, mission.id),
+        _completed_ids(session),
+    )
+
+
 def _serialize_step(step):
     return {
         "id": step.id,
@@ -150,10 +162,12 @@ def _course_payload(session):
                     {
                         "id": mission.id,
                         "order": mission.order,
+                        "submodule": mission.submodule,
                         "title": mission.title,
                         "missionType": mission.mission_type,
                         "required": mission.required,
                         "status": statuses[mission.id],
+                        "prerequisites": mission.prerequisites,
                     }
                     for mission in module_missions
                 ],
@@ -323,6 +337,15 @@ def validate_mission(mission_id: str, body: dict = Body(default={}), session: Se
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
     mission = instances[mission_id]
+    if _effective_status(mission, session) == "locked":
+        raise HTTPException(
+            status_code=409,
+            detail=_error_response(
+                "MISSION_LOCKED",
+                "Complete the prerequisite missions before validating this mission.",
+                {"prerequisites": mission.prerequisites},
+            ),
+        )
     step_id = body.get("stepId") if body else None
     scope = "mission"
     if step_id:
@@ -335,7 +358,14 @@ def validate_mission(mission_id: str, body: dict = Body(default={}), session: Se
     else:
         checks = [c.model_dump() for c in mission.checks]
 
-    result = progress_service.validate_mission(session, mission, checks, scope=scope, step_id=step_id)
+    result = progress_service.validate_mission(
+        session,
+        mission,
+        checks,
+        scope=scope,
+        step_id=step_id,
+        all_missions=list(instances.values()),
+    )
     logger.info(
         "mission_validate",
         extra={
@@ -357,7 +387,16 @@ def validate_mission(mission_id: str, body: dict = Body(default={}), session: Se
 
 @router.post("/missions/{mission_id}/reset")
 def reset_mission(mission_id: str, body: dict = Body(default={}), session: Session = Depends(get_session)):
-    mode = body.get("mode", "resources")
+    if not body or "mode" not in body:
+        raise HTTPException(
+            status_code=422,
+            detail=_error_response(
+                "INVALID_RESET_MODE",
+                "Reset mode is required.",
+                {"validModes": ["resources", "progress", "resources_and_progress"]},
+            ),
+        )
+    mode = body.get("mode")
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))

@@ -874,7 +874,7 @@ Tasks:
 - Rewrite DynamoDB around persisted LaunchDesk records.
 - Rewrite SQS around async work.
 - Rewrite SNS around platform events.
-- Rewrite Serverless Boss as LaunchDesk integration.
+- Rewrite the legacy serverless capstone as LaunchDesk integration.
 
 Acceptance:
 
@@ -965,7 +965,7 @@ Acceptance:
 - No runtime or validation failure leaves the learner at a dead end.
 - No troubleshooting copy asks for real AWS credentials.
 - Setup issues are distinguishable from lesson failures.
-- `/settings` is a navigable page, not a placeholder or docs-only copy block.
+- `/settings` is a navigable page with runtime, storage, privacy, and documentation details.
 - `/profile` shows data from `GET /profile` and handles the loading/error states.
 
 ### Phase 10: Enforce Content Quality Gates
@@ -973,7 +973,7 @@ Acceptance:
 Deliverables:
 
 - mission authoring quality checklist
-- content lint or loader warnings where practical
+- content lint or loader warnings for applicable files
 - capstone guidance rules
 - final manual review checklist
 - staged help authoring requirements
@@ -1007,7 +1007,7 @@ Deliverables:
 
 Tasks:
 
-- Add setup issue detection for Docker/ports/services where practical.
+- Add setup issue detection for Docker, ports, and services in the release gate.
 - Extend runtime status with setup issues.
 - Add structured logs for mission start, validation, reset, hint use, and completion.
 - Redact credentials and unsafe payloads from logs.
@@ -1035,7 +1035,7 @@ Tasks:
 - Validate local-only commands.
 - Validate target-state proof coverage.
 - Validate owned resources for created resources.
-- Ensure `make verify` runs local-only scan, backend tests, frontend typecheck/build, authoring validation, and smoke test.
+- Ensure `make verify` runs local-only scan, authoring validation, release artifact checks, backend tests, backend lint, frontend typecheck/build, smoke test, and local learner e2e.
 - Add contributor docs or README section for mission authoring.
 
 Acceptance:

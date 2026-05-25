@@ -18,7 +18,7 @@ export default function AppShell({ children }: Props) {
   useEffect(() => {
     getRuntimeStatus()
       .then(setStatus)
-      .catch(() => setStatus(null))
+      .catch(() => setStatus(apiOfflineStatus()))
       .finally(() => setLoading(false));
 
     const interval = setInterval(async () => {
@@ -26,7 +26,7 @@ export default function AppShell({ children }: Props) {
         const s = await getRuntimeStatus();
         setStatus(s);
       } catch {
-        // ignore
+        setStatus(apiOfflineStatus());
       }
     }, 30000);
 
@@ -131,6 +131,15 @@ export default function AppShell({ children }: Props) {
       </footer>
     </div>
   );
+}
+
+function apiOfflineStatus(): RuntimeStatus {
+  return {
+    api: { status: "offline" },
+    floci: { status: "unknown", endpoint: "http://localhost:4566", checkedAt: new Date().toISOString() },
+    database: { status: "unknown" },
+    localOnly: { status: "unknown", endpoint: "http://localhost:4566" },
+  };
 }
 
 function NavLink({

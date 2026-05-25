@@ -14,9 +14,11 @@ interface Props {
 
 export default function MissionTerminalPanel({ command, canCheck, checking, disabledReason, onCheck }: Props) {
   const [copied, setCopied] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const commandText = command?.command ?? "# No CLI command is attached to this step yet.";
 
   const handleCopy = () => {
+    if (!revealed) return;
     navigator.clipboard.writeText(commandText).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -35,10 +37,20 @@ export default function MissionTerminalPanel({ command, canCheck, checking, disa
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setRevealed((current) => !current)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-lime-300/20 bg-lime-300/10 px-3 py-1.5 text-xs font-medium text-lime-100 transition hover:bg-lime-300/15"
+          >
+            <Terminal className="h-3.5 w-3.5" />
+            {revealed ? "Hide command" : "Reveal command"}
+          </button>
+          <button
             onClick={handleCopy}
+            disabled={!revealed}
             className={clsx(
               "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
-              copied
+              !revealed
+                ? "cursor-not-allowed border-white/10 bg-white/[0.02] text-emerald-100/30"
+                : copied
                 ? "border-lime-300/25 bg-lime-300/10 text-lime-100"
                 : "border-white/10 bg-white/[0.04] text-emerald-100/70 hover:bg-white/[0.08] hover:text-emerald-50",
             )}
@@ -58,10 +70,16 @@ export default function MissionTerminalPanel({ command, canCheck, checking, disa
               <span className="h-2.5 w-2.5 rounded-full bg-lime-300/80" />
               <span className="ml-2 font-mono">localhost:4566</span>
             </div>
-            <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-sm leading-6 text-lime-100">
-              <span className="select-none text-emerald-100/35">$ </span>
-              {commandText}
-            </pre>
+            {revealed ? (
+              <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-sm leading-6 text-lime-100">
+                <span className="select-none text-emerald-100/35">$ </span>
+                {commandText}
+              </pre>
+            ) : (
+              <div className="rounded-md border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm leading-6 text-emerald-100/60">
+                Read the goal and target state first, then reveal the local CLI command when you are ready to make the change.
+              </div>
+            )}
           </div>
         </div>
 

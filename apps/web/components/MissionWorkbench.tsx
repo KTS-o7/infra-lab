@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, Loader2, ArrowRight, BookOpen, Lock } from "lucide-react";
 import type { MissionDetail, MissionHint, StepProgress, ValidationResult } from "@/lib/api";
 import MissionBrief from "./MissionBrief";
@@ -94,8 +95,12 @@ export default function MissionWorkbench({
 }: Props) {
   const mission = data.mission;
   const steps = mission.steps ?? [];
-  const [activeStepId, setActiveStepId] = useState(steps[0]?.id ?? null);
   const progressByStep = useMemo(() => buildProgressByStep(mission.stepProgress ?? []), [mission.stepProgress]);
+  const initialActiveStepId = useMemo(
+    () => firstIncompleteStepId(steps, progressByStep),
+    [steps, progressByStep],
+  );
+  const [activeStepId, setActiveStepId] = useState(initialActiveStepId);
   const initialResultsByStep = useMemo(() => buildResultsFromProgress(mission.id, mission.stepProgress ?? []), [mission.id, mission.stepProgress]);
   const [resultsByStep, setResultsByStep] = useState<Record<string, ValidationResult>>(initialResultsByStep);
   const [checkingStepId, setCheckingStepId] = useState<string | null>(null);
@@ -105,8 +110,8 @@ export default function MissionWorkbench({
   }, [initialResultsByStep]);
 
   useEffect(() => {
-    if (!activeStepId && steps[0]) setActiveStepId(steps[0].id);
-  }, [activeStepId, steps]);
+    setActiveStepId(initialActiveStepId);
+  }, [initialActiveStepId, mission.id]);
 
   const activeStep = useMemo(
     () => steps.find((step) => step.id === activeStepId) ?? steps[0],
@@ -163,17 +168,7 @@ export default function MissionWorkbench({
         </div>
 
         <div className="grid gap-0 xl:grid-cols-[18rem_minmax(0,1fr)_22rem]">
-          <aside className="border-b border-white/10 p-4 xl:border-b-0 xl:border-r">
-            <MissionStepList
-              steps={steps}
-              activeStepId={activeStep?.id ?? null}
-              resultsByStep={resultsByStep}
-              progressByStep={progressByStep}
-              onSelect={setActiveStepId}
-            />
-          </aside>
-
-          <main className="min-w-0 border-b border-white/10 p-4 sm:p-5 xl:border-b-0 xl:border-r">
+          <main className="min-w-0 border-b border-white/10 p-4 sm:p-5 xl:order-2 xl:border-b-0 xl:border-r">
             {isLocked ? (
               <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-5">
                 <div className="flex items-start gap-3">
@@ -186,9 +181,9 @@ export default function MissionWorkbench({
                     {(mission.prerequisites ?? []).length > 0 ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {(mission.prerequisites ?? []).map((prerequisite) => (
-                          <span key={prerequisite} className="rounded-md border border-white/10 bg-black/15 px-2 py-1 text-xs text-amber-100">
+                          <Link key={prerequisite} href={`/missions/${prerequisite}`} className="rounded-md border border-white/10 bg-black/15 px-2 py-1 text-xs text-amber-100 transition hover:border-amber-200/30 hover:bg-amber-200/10">
                             {prerequisite}
-                          </span>
+                          </Link>
                         ))}
                       </div>
                     ) : null}
@@ -219,7 +214,17 @@ export default function MissionWorkbench({
             )}
           </main>
 
-          <aside className="space-y-4 p-4 xl:sticky xl:top-24 xl:self-start">
+          <aside className="border-b border-white/10 p-4 xl:order-1 xl:border-b-0 xl:border-r">
+            <MissionStepList
+              steps={steps}
+              activeStepId={activeStep?.id ?? null}
+              resultsByStep={resultsByStep}
+              progressByStep={progressByStep}
+              onSelect={setActiveStepId}
+            />
+          </aside>
+
+          <aside className="space-y-4 p-4 xl:order-3 xl:sticky xl:top-24 xl:self-start">
             <ResourceProofBoard
               steps={steps}
               resultsByStep={resultsByStep}
@@ -338,4 +343,9 @@ function buildResultsFromProgress(missionId: string, stepProgress: StepProgress[
     };
   }
   return resultsByStep;
+}
+
+function firstIncompleteStepId(steps: MissionDetail["mission"]["steps"], progressByStep: Record<string, StepProgress>) {
+  const firstIncomplete = steps.find((step) => progressByStep[step.id]?.status !== "passed");
+  return firstIncomplete?.id ?? steps[0]?.id ?? null;
 }

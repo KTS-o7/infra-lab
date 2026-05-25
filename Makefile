@@ -18,6 +18,7 @@ verify:
 	cd apps/web && bun run typecheck
 	cd apps/web && NEXT_TELEMETRY_DISABLED=1 bun run build
 	docker compose down --remove-orphans
+	rm -f data/api/lab.db
 	API_PORT=18000 WEB_PORT=13000 FLOCI_PORT=14566 NEXT_PUBLIC_API_URL=http://localhost:18000 docker compose up --build -d
 	API_URL=http://localhost:18000 WEB_URL=http://localhost:13000 FLOCI_URL=http://localhost:14566 ./scripts/smoke-test.sh
 	API_URL=http://localhost:18000 FLOCI_URL=http://localhost:14566 ./scripts/e2e-local-flow.py

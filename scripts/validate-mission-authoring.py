@@ -228,6 +228,8 @@ def validate_mission(path: Path) -> list[str]:
             add(errors, path, f"{mission_id} capstone should provide reduced command guidance: fewer commands than steps")
         if not any(is_blank(step.get("command_id")) for step in steps):
             add(errors, path, f"{mission_id} capstone should leave at least one step without a command_id")
+        if not any(check.get("type") == "runtime_floci_available" for check in checks):
+            add(errors, path, f"{mission_id} capstone must include runtime_floci_available as the local-safety gate")
 
     if len(text(mission.get("theory")).split()) >= len(text(mission.get("story")).split()) + len(text(mission.get("thought_process")).split()):
         add(errors, path, f"{mission_id} theory should stay shorter than the surrounding build context")

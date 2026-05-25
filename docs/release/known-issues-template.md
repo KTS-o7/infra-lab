@@ -1,23 +1,18 @@
 # Known Issues
 
-Use this file as the release known-issues register. Copy rows into the final handoff summary with the current status.
+Release branch: `implement-infra-quest-plan`
+Recorded: 2026-05-26
 
 | ID | Title | Severity | Affected Area | Workaround | Release Blocking | Owner | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| IQ-YYYYMMDD-001 |  | Blocker/Major/Minor |  |  | Yes/No |  | Open |
+| IQ-20260526-001 | Manual three-learner usability sessions are not recorded in-repo | Minor | Release evidence | Use the automated proxy gate for PR readiness; record human sessions before public tag | No | Release owner | Open |
 
 ## Severity Guide
 
 - Blocker: prevents setup, mission completion, validation, reset, or the local-only guarantee.
 - Major: causes significant learner confusion or requires facilitator intervention, but has a documented workaround.
-- Minor: cosmetic, copy, or convenience issue that does not block the target release flow.
+- Minor: cosmetic, copy, or launch evidence item that does not block the target release flow.
 
-## Required Detail
+## Current Decision
 
-Every issue should include:
-
-- exact command or browser action that reproduced it
-- expected result
-- actual result
-- operating system and browser, when relevant
-- whether the issue was seen in a beginner usability session, clean-machine run, or acceptance matrix pass
+No blocker or major known issue is recorded for the PR release gate. The remaining item is release evidence for public launch tagging, not product behavior in the target course slice.

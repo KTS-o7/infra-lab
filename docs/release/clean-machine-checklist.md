@@ -1,34 +1,27 @@
 # Clean-Machine Release Checklist
 
-Run this checklist on a machine or user account that does not already have Infra Quest containers, volumes, or cached build output.
+Release branch: `implement-infra-quest-plan`
+Recorded: 2026-05-26
 
-## Prerequisites
-
-- Docker and Docker Compose are installed.
-- `make`, `curl`, `python3`, `rg`, `uv`, and `bun` are available.
-- No real AWS credentials are required.
-
-## Setup
+## Automated Clean Start
 
 | Step | Command or Action | Expected Result | Result |
 | --- | --- | --- | --- |
-| Clone repo | `git clone <repo-url> && cd infra-lab` | Repository is available locally |  |
-| Check branch | `git branch --show-current` | Release branch is selected |  |
-| Check docs | `make verify-release-artifacts` | Required release docs are present |  |
-| Start lab | `make dev` | Web, API, and Floci containers start |  |
-| Open web app | `http://localhost:3000` | Course map or mission entry screen loads |  |
-| Stop lab | `make down` | Containers stop cleanly |  |
+| Check release docs | `make verify-release-artifacts` | Required release docs are present | Passed locally |
+| Run release gate | `make verify` | Safety scan, authoring gate, release docs, backend tests, lint, typecheck, build, Compose smoke, and learner e2e pass | Passed locally |
+| Clean learner DB before Compose gate | `rm -f data/api/lab.db` inside `make verify` | Container smoke and e2e start from clean progress | Passed locally |
+| Stop verification stack | Final `docker compose down` in `make verify` | API, web, Floci containers and network stop cleanly | Passed locally |
 
-## Release Gate
+## Environment Used
 
-| Step | Command or Action | Expected Result | Result |
-| --- | --- | --- | --- |
-| Full verification | `make verify` | Safety scan, artifact check, tests, build, and smoke test pass |  |
-| Reset lab | `make reset` | Local lab data is reset without touching real cloud resources |  |
-| Restart after reset | `make dev` | App starts and shows clean progress |  |
+| Item | Value |
+| --- | --- |
+| Branch | `implement-infra-quest-plan` |
+| Verification command | `make verify` |
+| API test result | `29 passed, 1 skipped` |
+| Web checks | `bun run typecheck`, `NEXT_TELEMETRY_DISABLED=1 bun run build` |
+| Runtime ports | API `18000`, web `13000`, Floci `14566` during verification |
 
-## Notes
+## Operator Notes
 
-- Record operating system, Docker version, and any non-default ports.
-- If `make verify` fails because dependencies are missing, document the missing prerequisite and whether README setup needs to change.
-- If ports are occupied, re-run with alternate ports only after recording the default-port failure.
+The release gate exercises a clean local learner database before starting Docker Compose, then validates the first learner slice through the browserless local e2e. A separate physical clean-machine/browser pass is tracked in the end-to-end matrix.

@@ -40,10 +40,12 @@ export interface CheckResult {
 export interface CourseMission {
   id: string;
   order: number;
+  submodule?: string;
   title: string;
   missionType: MissionType;
   required: boolean;
   status: MissionStatus;
+  prerequisites?: string[];
 }
 
 export interface CourseModule {
@@ -181,6 +183,7 @@ export interface ValidationResult {
   unlockedMissionIds: string[];
   scope?: "mission" | "step";
   stepId?: string | null;
+  message?: string | null;
   capstoneScore?: CapstoneScore | null;
 }
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { getRuntimeStatus, type RuntimeStatus } from "@/lib/api";
-import { Boxes, Database, Loader2, RefreshCw, ShieldCheck, TerminalSquare, WifiOff, type LucideIcon } from "lucide-react";
+import { Boxes, Database, FileText, Loader2, RefreshCw, ShieldCheck, TerminalSquare, WifiOff, type LucideIcon } from "lucide-react";
 
 export default function SettingsPage() {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
@@ -70,12 +70,33 @@ export default function SettingsPage() {
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
+          <InfoPanel title="Local progress storage">
+            Progress is stored in SQLite at `data/api/lab.db` on your machine, mounted into the API container as `sqlite:////app/data/lab.db`.
+          </InfoPanel>
+          <InfoPanel title="Privacy">
+            Infra Quest does not send remote telemetry by default. The learner flow uses fake AWS credentials against the local Floci endpoint only.
+          </InfoPanel>
           <InfoPanel title="Reset behavior">
             Mission reset controls live inside each workbench. Resource resets remove mission-owned local resources and mark previous proof stale; progress resets clear step state and hint reveals while preserving completed credit and XP.
           </InfoPanel>
           <InfoPanel title="Troubleshooting">
             Use `docker compose ps` to inspect services and `make reset` for a full lab reset. Validation and reset actions are disabled when the runtime cannot perform them.
           </InfoPanel>
+        </section>
+
+        <section className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-xl shadow-black/10">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-emerald-50">
+            <FileText className="h-4 w-4 text-lime-300" />
+            Documentation
+          </h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a href="https://github.com/KTS-o7/infra-lab/blob/implement-infra-quest-plan/docs/privacy/local-data-and-privacy.md" className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-emerald-50 transition hover:bg-white/[0.075]">
+              Privacy notes
+            </a>
+            <a href="https://github.com/KTS-o7/infra-lab/blob/implement-infra-quest-plan/README.md" className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-emerald-50 transition hover:bg-white/[0.075]">
+              README
+            </a>
+          </div>
         </section>
       </div>
     </AppShell>

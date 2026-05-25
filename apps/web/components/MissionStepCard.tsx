@@ -21,6 +21,12 @@ export default function MissionStepCard({ step, command, result, progress, canCh
   const targetState = useMemo(() => step.targetState ?? [], [step.targetState]);
   const passed = result?.passed || progress?.status === "passed";
   const failed = result?.passed === false || progress?.status === "failed";
+  const statusLabel =
+    progress?.status === "no_checks"
+      ? "Proved by full validation"
+      : progress?.status === "stale"
+        ? "Re-check after reset"
+        : progress?.status?.replace("_", " ");
 
   return (
     <div className="space-y-4">
@@ -32,7 +38,7 @@ export default function MissionStepCard({ step, command, result, progress, canCh
         </div>
         {(result || progress?.status) && (
           <span className={`rounded-md border px-2.5 py-1 text-xs font-medium ${passed ? "border-lime-300/20 bg-lime-300/10 text-lime-100" : failed ? "border-amber-300/20 bg-amber-300/10 text-amber-100" : "border-white/10 bg-white/[0.04] text-emerald-100/48"}`}>
-            {passed ? "Passed" : failed ? "Needs work" : progress?.status?.replace("_", " ")}
+            {passed ? "Passed" : failed ? "Needs work" : statusLabel}
           </span>
         )}
       </div>

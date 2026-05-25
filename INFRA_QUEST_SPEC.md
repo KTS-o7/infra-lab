@@ -519,7 +519,7 @@ modules:
     capstone_required: false
 ```
 
-Note: `capstone_mission_id: null` for modules 0–5 and 7 means those capstone missions are planned in the PRD/PLAN but have not yet been authored. Set `capstone_mission_id` to the mission ID and update `capstone_required` only after the mission file exists and has passed authoring validation. Do not set `capstone_required: true` until the mission is part of the current target release.
+Note: `capstone_mission_id: null` for modules 0-5 and 7 means those capstone missions are outside the current target release. Set `capstone_mission_id` to the mission ID and update `capstone_required` only after the mission file exists and has passed authoring validation. Do not set `capstone_required: true` until the mission is part of the current target release.
 
 Loader validation:
 
@@ -1628,7 +1628,7 @@ Infra Quest is local-first. No remote telemetry is enabled by default.
 
 Logging rules:
 
-- use structured logs where practical
+- use structured logs for backend runtime and learner action events
 - log route, mission ID, check type, pass/fail, and duration
 - do not log AWS credentials
 - do not log full command strings if they may contain secrets in future missions
@@ -2221,15 +2221,18 @@ Full local verification:
 make verify
 ```
 
-Required `make verify` sequence:
+Required `make verify` sequence for this release:
 
 ```text
 local-only scan
+mission authoring validation
+release artifact check
 backend tests
+backend lint
 frontend typecheck
 frontend build
-mission authoring validation
 smoke test
+local learner e2e
 ```
 
 CI must run the same checks where supported by the environment.

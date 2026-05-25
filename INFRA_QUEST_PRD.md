@@ -30,7 +30,7 @@ A beginner should be able to:
 8. Build the target local infrastructure state.
 9. Validate each step from the browser.
 10. See a proof board explain what exists and what is missing.
-11. Complete required module and final capstones for the target release.
+11. Complete every capstone declared required for the target release; the current PR release keeps the composition capstone optional and has no required final capstone.
 12. Finish with a working local SaaS-style platform.
 
 Success is not "the learner copied the right command." Success is "the learner understands what they built, why it exists, and what state proves it works."
@@ -797,7 +797,7 @@ Acceptance criteria:
 User actions:
 
 1. Completes all required lessons.
-2. Completes required final capstones.
+2. Completes final capstones only when the target release declares them required.
 3. Opens the course map or profile.
 
 Expected behavior:
