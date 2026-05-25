@@ -1,5 +1,9 @@
 id: apigateway-http-trigger
 order: 7
+module: api
+submodule: expose-http-entrypoint
+mission_type: lesson
+required: true
 title: HTTP Trigger
 summary: Expose a Lambda function through an HTTP endpoint with API Gateway.
 difficulty: beginner
@@ -19,6 +23,15 @@ learning_objectives:
   - Create and configure routes
   - Integrate Lambda with HTTP endpoints
   - Test HTTP endpoints locally
+capability: http_api
+motivation: |
+  LaunchDesk needs an HTTP entrypoint so clients can call backend behavior through a stable URL instead of invoking functions directly.
+theory: |
+  API Gateway receives HTTP requests, matches routes, and forwards them to an integration such as Lambda. The route and integration together make the endpoint useful.
+thought_process: |
+  Build from the inside out: deploy the function, create the API boundary, add a route, wire the route to compute, then prove the full HTTP response.
+debrief: |
+  This pattern is a common serverless API shape. LaunchDesk now has a local HTTP backend path that can grow into product workflows.
 commands:
   - id: create-function
     label: Create Lambda function
@@ -35,7 +48,6 @@ commands:
   - id: invoke
     label: Call HTTP endpoint
     command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://localhost:4566/$API_ID/hello"
-hints:
 steps:
   - id: deploy-api-function
     title: Deploy the function
@@ -62,7 +74,8 @@ steps:
         value: HTTP
     action: Create the HTTP API in your local API Gateway.
     command_id: create-api
-    check_ids: []
+    check_ids:
+      - route-exists
     success: The starter-api HTTP API exists.
   - id: add-hello-route
     title: Add the route
@@ -89,7 +102,8 @@ steps:
         value: GET /hello
     action: Integrate the route with the Lambda function.
     command_id: integrate
-    check_ids: []
+    check_ids:
+      - http-response
     success: The route is wired to the Lambda.
   - id: call-and-verify
     title: Call the HTTP endpoint
@@ -110,10 +124,17 @@ steps:
 hints:
   - id: route-key
     title: Route key
+    level: nudge
+    applies_to_checks:
+      - route-exists
     text: The route key is "GET /hello". API Gateway routes requests based on the path and method.
     penalty_xp: 5
   - id: endpoint
     title: Local endpoint
+    level: diagnosis
+    applies_to_checks:
+      - function-exists
+      - http-response
     text: Use --endpoint-url http://localhost:4566 for all CLI commands in this lab.
     penalty_xp: 5
 checks:

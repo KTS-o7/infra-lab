@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getMission, startMission, validateMission, resetMission, useHint as useHintApi, type MissionDetail, type ValidationResult } from "@/lib/api";
+import {
+  getMission,
+  getRuntimeStatus,
+  startMission,
+  validateMission,
+  resetMission,
+  useHint as useHintApi,
+  type MissionDetail,
+  type RuntimeStatus,
+  type ValidationResult,
+} from "@/lib/api";
 import RuntimeBanner from "./RuntimeBanner";
 import MissionWorkbench from "./MissionWorkbench";
 import Link from "next/link";
@@ -17,6 +27,7 @@ export default function MissionDetail({ missionId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -28,6 +39,11 @@ export default function MissionDetail({ missionId }: Props) {
   }, [missionId]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    getRuntimeStatus()
+      .then(setRuntimeStatus)
+      .catch(() => setRuntimeStatus(null));
+  }, []);
 
   const handleStart = async () => {
     setActionLoading(true);
@@ -111,18 +127,6 @@ export default function MissionDetail({ missionId }: Props) {
     );
   }
 
-  if (data.mission.status === "locked") {
-    return (
-      <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
-        <p className="mb-4 text-red-200">This mission is locked.</p>
-        <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
-          <ArrowLeft className="h-4 w-4" />
-          Back to missions
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div>
       <RuntimeBanner />
@@ -143,6 +147,7 @@ export default function MissionDetail({ missionId }: Props) {
         onValidateStep={handleValidateStep}
         onReset={handleReset}
         onUseHint={handleUseHint}
+        runtimeReady={!runtimeStatus || (runtimeStatus.api.status === "online" && runtimeStatus.floci.status === "online")}
       />
     </div>
   );

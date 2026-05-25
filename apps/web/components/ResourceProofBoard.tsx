@@ -1,16 +1,17 @@
 import { CheckCircle2, CircleDashed, Database, FileText, Globe, HelpCircle, MessageSquare, Package, XCircle, Zap } from "lucide-react";
-import type { MissionStep, ValidationResult } from "@/lib/api";
+import type { MissionStep, StepProgress, ValidationResult } from "@/lib/api";
 
 interface Props {
   steps: MissionStep[];
   resultsByStep: Record<string, ValidationResult>;
+  progressByStep?: Record<string, StepProgress>;
   latestMissionResult?: ValidationResult | null;
 }
 
 type ProofState = "pending" | "passed" | "failed";
 
-export default function ResourceProofBoard({ steps, resultsByStep, latestMissionResult }: Props) {
-  const rows = buildProofRows(steps, resultsByStep, latestMissionResult);
+export default function ResourceProofBoard({ steps, resultsByStep, progressByStep = {}, latestMissionResult }: Props) {
+  const rows = buildProofRows(steps, resultsByStep, progressByStep, latestMissionResult);
 
   return (
     <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-xl shadow-black/10 backdrop-blur">
@@ -41,9 +42,13 @@ export default function ResourceProofBoard({ steps, resultsByStep, latestMission
 function buildProofRows(
   steps: MissionStep[],
   resultsByStep: Record<string, ValidationResult>,
+  progressByStep: Record<string, StepProgress>,
   latestMissionResult?: ValidationResult | null,
 ) {
   const checks = new Map<string, { passed: boolean }>();
+  for (const progress of Object.values(progressByStep)) {
+    for (const check of progress.latestChecks ?? []) checks.set(check.id, { passed: check.passed });
+  }
   for (const result of Object.values(resultsByStep)) {
     for (const check of result.checks) checks.set(check.id, { passed: check.passed });
   }

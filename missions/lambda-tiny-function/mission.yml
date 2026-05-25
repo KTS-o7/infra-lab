@@ -1,5 +1,9 @@
 id: lambda-tiny-function
 order: 6
+module: api
+submodule: run-serverless-code
+mission_type: lesson
+required: true
 title: Tiny Function
 summary: Deploy and invoke a local Lambda function.
 difficulty: beginner
@@ -8,7 +12,7 @@ services:
 xp: 175
 estimated_minutes: 20
 prerequisites:
-  - dynamodb-first-table
+  - s3-first-bucket
 story: |
   You want to run code without managing servers.
   In AWS, this is done with Lambda, a serverless compute service.
@@ -17,6 +21,15 @@ learning_objectives:
   - Understand Lambda function basics
   - Deploy functions locally
   - Invoke and test functions
+capability: http_api
+motivation: |
+  LaunchDesk needs backend logic that can run on demand without managing a long-lived server. A small function is the first compute building block.
+theory: |
+  A Lambda function packages code with a runtime and handler. Invocations send events to the handler and receive structured responses.
+thought_process: |
+  Before adding HTTP, prove the compute unit works by itself. Deploy one function, invoke it with a known payload, and validate the response.
+debrief: |
+  Serverless functions are commonly used behind APIs, queues, schedules, and event streams. LaunchDesk now has a tested compute unit for later entrypoints.
 commands:
   - id: create-function
     label: Create Lambda function
@@ -27,10 +40,17 @@ commands:
 hints:
   - id: handler-syntax
     title: Handler syntax
+    level: nudge
+    applies_to_checks:
+      - function-exists
     text: The handler is "index.handler" meaning the exported handler function in index.mjs.
     penalty_xp: 5
   - id: endpoint
     title: Local endpoint
+    level: diagnosis
+    applies_to_checks:
+      - function-exists
+      - invoke-result
     text: Use --endpoint-url http://localhost:4566 for all Lambda CLI commands in this lab.
     penalty_xp: 5
 steps:

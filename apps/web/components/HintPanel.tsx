@@ -1,15 +1,17 @@
 "use client";
 
-interface Hint {
-  id: string;
-  title: string;
-  text?: string;
-  isUsed: boolean;
-  penaltyXp: number;
-}
+import { HelpCircle, Lock, Search, Wrench } from "lucide-react";
+import { clsx } from "clsx";
+import type { MissionHint } from "@/lib/api";
+
+const levelIcon = {
+  nudge: HelpCircle,
+  diagnosis: Search,
+  repair: Wrench,
+};
 
 interface Props {
-  hints: Hint[];
+  hints: MissionHint[];
   onUseHint: (hintId: string) => void;
   missionStarted: boolean;
 }
@@ -22,26 +24,38 @@ export default function HintPanel({ hints, onUseHint, missionStarted }: Props) {
         {hints.map((hint) => (
           <div key={hint.id} className="rounded-md border border-white/10 bg-black/25 p-4">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {(() => {
+                  const Icon = levelIcon[hint.level as keyof typeof levelIcon] ?? HelpCircle;
+                  return <Icon className="h-4 w-4 shrink-0 text-lime-300" />;
+                })()}
                 <span className="text-sm font-medium text-emerald-50">{hint.title}</span>
+                {hint.level && (
+                  <span className="rounded-md border border-white/10 bg-white/[0.035] px-2 py-0.5 text-xs text-emerald-100/48">
+                    {hint.level}
+                  </span>
+                )}
                 {hint.penaltyXp > 0 && (
                   <span className="text-xs text-amber-300">-{hint.penaltyXp} XP</span>
                 )}
               </div>
-              {!hint.isUsed && hint.text && missionStarted && (
+              {!hint.revealed && missionStarted && (
                 <button
                   onClick={() => onUseHint(hint.id)}
-                  className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-emerald-100/65 hover:bg-white/[0.075] hover:text-emerald-50"
+                  className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-emerald-100/65 hover:bg-white/[0.075] hover:text-emerald-50"
                 >
-                  Reveal Hint
+                  Reveal
                 </button>
               )}
             </div>
-            {hint.isUsed && hint.text && (
+            {hint.revealed && hint.text && (
               <p className="text-sm leading-6 text-emerald-100/62">{hint.text}</p>
             )}
-            {!hint.text && !hint.isUsed && (
-              <p className="text-sm italic text-emerald-100/42">Use hint to reveal guidance.</p>
+            {!hint.revealed && (
+              <p className={clsx("flex items-center gap-2 text-sm italic", missionStarted ? "text-emerald-100/42" : "text-emerald-100/32")}>
+                {!missionStarted && <Lock className="h-3.5 w-3.5" />}
+                {missionStarted ? "Reveal this staged hint when you need the next diagnostic move." : "Start the mission to reveal hints."}
+              </p>
             )}
           </div>
         ))}

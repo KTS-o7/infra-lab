@@ -1,5 +1,9 @@
 id: sns-fanout
 order: 4
+module: events
+submodule: broadcast-platform-events
+mission_type: lesson
+required: true
 title: Publish and Subscribe
 summary: Create an SNS topic and fan out messages to SQS queues.
 difficulty: beginner
@@ -18,6 +22,15 @@ learning_objectives:
   - Understand SNS topic and subscription model
   - Create topics and queues
   - Configure fanout delivery
+capability: event_fanout
+motivation: |
+  LaunchDesk will have more than one downstream system interested in the same event. A publisher should not need to know every consumer.
+theory: |
+  Pub/sub uses a topic as the event channel. Publishers send one message to the topic, and subscriptions deliver copies to each configured endpoint.
+thought_process: |
+  Use fanout when one fact should notify multiple consumers. Build the topic, attach a queue subscription, publish a known message, and verify delivery.
+debrief: |
+  Event fanout lets production platforms add notification, audit, analytics, and automation consumers without rewriting the original publisher.
 commands:
   - id: create-topic
     label: Create SNS topic
@@ -100,10 +113,18 @@ steps:
 hints:
   - id: topic-name
     title: Topic naming
+    level: nudge
+    applies_to_checks:
+      - topic-exists
     text: The topic name is starter-topic. SNS topics work differently than S3 buckets.
     penalty_xp: 5
   - id: endpoint
     title: Local endpoint
+    level: diagnosis
+    applies_to_checks:
+      - topic-exists
+      - subscription-exists
+      - fanout-message
     text: Use --endpoint-url http://localhost:4566 for all AWS CLI commands in this lab.
     penalty_xp: 5
 checks:

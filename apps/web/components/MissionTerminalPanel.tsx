@@ -8,10 +8,11 @@ interface Props {
   command?: { id: string; label: string; command: string };
   canCheck: boolean;
   checking: boolean;
+  disabledReason?: string;
   onCheck: () => void;
 }
 
-export default function MissionTerminalPanel({ command, canCheck, checking, onCheck }: Props) {
+export default function MissionTerminalPanel({ command, canCheck, checking, disabledReason, onCheck }: Props) {
   const [copied, setCopied] = useState(false);
   const commandText = command?.command ?? "# No CLI command is attached to this step yet.";
 
@@ -72,6 +73,7 @@ export default function MissionTerminalPanel({ command, canCheck, checking, onCh
           <button
             onClick={onCheck}
             disabled={!canCheck || checking}
+            aria-disabled={!canCheck || checking}
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {checking ? (
@@ -82,7 +84,7 @@ export default function MissionTerminalPanel({ command, canCheck, checking, onCh
             ) : !canCheck ? (
               <>
                 <Lock className="h-4 w-4" />
-                Start mission first
+                {disabledReason ?? "Start mission first"}
               </>
             ) : (
               <>

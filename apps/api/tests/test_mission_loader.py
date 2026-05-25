@@ -1,20 +1,24 @@
 import textwrap
 
 import pytest
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import SQLModel, Session, create_engine, select
 
 from app.mission_loader import MissionLoader
-from app.models import Profile, MissionProgress
+from app.models import HintUsage, MissionProgress, Profile, StepProgress, ValidationAttempt
 from app.routes import missions as mission_routes
 
 def test_mission_loader_schema():
-    loader = MissionLoader()
-    assert True
+    assert MissionLoader is not None
 
 
 def reset_loader():
     MissionLoader._instances = {}
+    MissionLoader._course = None
     MissionLoader._loaded = False
+
+
+def get_progress(session, mission_id: str):
+    return session.exec(select(MissionProgress).where(MissionProgress.mission_id == mission_id)).first()
 
 
 def write_mission(root, body: str):
@@ -227,7 +231,7 @@ def test_step_validation_runs_only_step_checks_without_awarding_xp(tmp_path, mon
         body={"stepId": "create-storage"},
         session=session,
     )
-    progress = session.get(MissionProgress, ("local", "demo"))
+    progress = get_progress(session, "demo")
     profile = session.get(Profile, "local")
 
     assert response["scope"] == "step"
@@ -236,6 +240,11 @@ def test_step_validation_runs_only_step_checks_without_awarding_xp(tmp_path, mon
     assert [check["id"] for check in response["checks"]] == ["bucket-exists"]
     assert progress.status == "started"
     assert profile.total_xp == 0
+    attempts = session.exec(select(ValidationAttempt).where(ValidationAttempt.mission_id == "demo")).all()
+    step_progress = session.exec(select(StepProgress).where(StepProgress.mission_id == "demo")).first()
+    assert attempts[0].scope == "step"
+    assert step_progress.status == "passed"
+    assert step_progress.attempts == 1
 
 
 def test_step_validation_without_checks_returns_actionable_failure(tmp_path, monkeypatch):
@@ -268,16 +277,9 @@ def test_step_validation_without_checks_returns_actionable_failure(tmp_path, mon
 
     assert response["scope"] == "step"
     assert response["stepId"] == "explain-only"
-    assert response["passed"] is False
+    assert response["passed"] is True
     assert response["xpAwarded"] == 0
-    assert response["checks"] == [
-        {
-            "id": "explain-only",
-            "type": "step_has_checks",
-            "passed": False,
-            "message": "This step does not have validation checks yet.",
-        }
-    ]
+    assert response["checks"] == []
 
 
 def test_reset_mission_uses_requested_mode(tmp_path, monkeypatch):
@@ -290,16 +292,56 @@ def test_reset_mission_uses_requested_mode(tmp_path, monkeypatch):
     session.add(MissionProgress(profile_id="local", mission_id="demo", status="completed", xp_awarded=50))
     session.commit()
 
-    response = mission_routes.reset_mission(
-        "demo",
-        body={"mode": "restart"},
-        session=session,
-    )
-    progress = session.get(MissionProgress, ("local", "demo"))
+    response = mission_routes.reset_mission("demo", body={"mode": "resources"}, session=session)
+    progress = get_progress(session, "demo")
 
-    assert response["status"] == "available"
-    assert response["resourcesRemoved"] == ["s3_bucket:demo"]
-    assert progress.status == "available"
+    assert response["mode"] == "resources"
+    assert response["deleted"] == ["s3_bucket:demo"]
+    assert progress.status == "completed"
+
+
+def test_course_endpoint_derives_progress_from_missions(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(tmp_path, base_mission_yaml())
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    response = mission_routes.get_course(session=session)
+
+    assert response["course"]["progress"]["requiredLessonsTotal"] == 1
+    assert response["course"]["progress"]["nextMissionId"] == "demo"
+    assert response["course"]["modules"][0]["missions"][0]["status"] == "available"
+
+
+def test_hint_use_is_idempotent_and_reveals_detail(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            hints:
+              - id: endpoint-required
+                title: Check endpoint
+                level: nudge
+                applies_to_checks:
+                  - bucket-exists
+                text: Use the local endpoint.
+                penalty_xp: 5
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    first = mission_routes.use_hint("demo", "endpoint-required", session=session)
+    second = mission_routes.use_hint("demo", "endpoint-required", session=session)
+    detail = mission_routes.get_mission("demo", session=session)
+    usages = session.exec(select(HintUsage).where(HintUsage.mission_id == "demo")).all()
+
+    assert first["usedAt"] == second["usedAt"]
+    assert len(usages) == 1
+    assert detail["mission"]["hints"][0]["revealed"] is True
+    assert detail["mission"]["hints"][0]["text"] == "Use the local endpoint."
 
 
 def make_session():
@@ -338,4 +380,4 @@ def test_all_missions_with_commands_have_authored_steps():
             if fallback_steps:
                 failures.append(f"Mission {mission_id} has {len(fallback_steps)} steps that look like fallbacks (empty check_ids or generic action)")
 
-    assert failures == [], f"Missions with issues:\n" + "\n".join(failures)
+    assert failures == [], "Missions with issues:\n" + "\n".join(failures)

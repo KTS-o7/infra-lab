@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
-import type { MissionDetail, ValidationResult } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Loader2, ArrowRight, BookOpen, Lock } from "lucide-react";
+import type { MissionDetail, MissionHint, StepProgress, ValidationResult } from "@/lib/api";
 import MissionBrief from "./MissionBrief";
 import MissionStepList from "./MissionStepList";
 import MissionStepCard from "./MissionStepCard";
@@ -42,7 +42,7 @@ function MissionDebrief({ mission, nextMissionId }: MissionDebriefProps) {
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">What was built</p>
           <p className="mt-1 text-sm text-emerald-50/80 leading-relaxed">
-            {mission.summary}
+            {mission.debrief || mission.summary}
           </p>
         </div>
 
@@ -76,6 +76,7 @@ interface Props {
   onValidateStep: (stepId: string) => Promise<ValidationResult | null>;
   onReset: (mode: string) => void;
   onUseHint: (hintId: string) => void;
+  runtimeReady?: boolean;
 }
 
 export default function MissionWorkbench({
@@ -87,12 +88,23 @@ export default function MissionWorkbench({
   onValidateStep,
   onReset,
   onUseHint,
+  runtimeReady = true,
 }: Props) {
   const mission = data.mission;
   const steps = mission.steps ?? [];
   const [activeStepId, setActiveStepId] = useState(steps[0]?.id ?? null);
-  const [resultsByStep, setResultsByStep] = useState<Record<string, ValidationResult>>({});
+  const progressByStep = useMemo(() => buildProgressByStep(mission.stepProgress ?? []), [mission.stepProgress]);
+  const initialResultsByStep = useMemo(() => buildResultsFromProgress(mission.id, mission.stepProgress ?? []), [mission.id, mission.stepProgress]);
+  const [resultsByStep, setResultsByStep] = useState<Record<string, ValidationResult>>(initialResultsByStep);
   const [checkingStepId, setCheckingStepId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setResultsByStep(initialResultsByStep);
+  }, [initialResultsByStep]);
+
+  useEffect(() => {
+    if (!activeStepId && steps[0]) setActiveStepId(steps[0].id);
+  }, [activeStepId, steps]);
 
   const activeStep = useMemo(
     () => steps.find((step) => step.id === activeStepId) ?? steps[0],
@@ -103,8 +115,19 @@ export default function MissionWorkbench({
     [mission.commands],
   );
 
+  const revealedHintIds = useMemo(() => new Set((mission.helpUsage ?? []).map((usage) => usage.hintId)), [mission.helpUsage]);
+  const hints = useMemo(
+    () => (mission.hints ?? []).map((hint): MissionHint => ({ ...hint, revealed: hint.revealed ?? hint.isUsed ?? revealedHintIds.has(hint.id) })),
+    [mission.hints, revealedHintIds],
+  );
+
   const canStart = mission.status === "available";
-  const canValidate = mission.status === "started" || mission.status === "completed";
+  const canValidateMission = (mission.status === "started" || mission.status === "completed") && runtimeReady;
+  const isLocked = mission.status === "locked";
+  const activeStepProgress = activeStep ? progressByStep[activeStep.id] : undefined;
+  const activeStepBlocked = activeStepProgress?.status === "blocked";
+  const canValidateActiveStep = canValidateMission && !activeStepBlocked;
+  const checkDisabledReason = !runtimeReady ? "Runtime offline" : isLocked ? "Mission locked" : activeStepBlocked ? "Step blocked" : "Start mission first";
 
   const handleCheckStep = async (stepId: string) => {
     setCheckingStepId(stepId);
@@ -141,6 +164,7 @@ export default function MissionWorkbench({
               steps={steps}
               activeStepId={activeStep?.id ?? null}
               resultsByStep={resultsByStep}
+              progressByStep={progressByStep}
               onSelect={setActiveStepId}
             />
           </aside>
@@ -151,18 +175,20 @@ export default function MissionWorkbench({
                 step={activeStep}
                 command={commandsById.get(activeStep.commandId)}
                 result={resultsByStep[activeStep.id]}
-                canCheck={canValidate}
+                progress={activeStepProgress}
+                canCheck={canValidateActiveStep}
                 checking={checkingStepId === activeStep.id}
+                disabledReason={checkDisabledReason}
                 onCheck={handleCheckStep}
               />
             )}
 
-            {(mission.hints ?? []).length > 0 && (
+            {hints.length > 0 && (
               <div className="mt-5">
                 <HintPanel
-                  hints={mission.hints ?? []}
+                  hints={hints}
                   onUseHint={onUseHint}
-                  missionStarted={canValidate}
+                  missionStarted={canValidateMission}
                 />
               </div>
             )}
@@ -172,8 +198,18 @@ export default function MissionWorkbench({
             <ResourceProofBoard
               steps={steps}
               resultsByStep={resultsByStep}
+              progressByStep={progressByStep}
               latestMissionResult={validationResult}
             />
+
+            {isLocked && (
+              <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-100">
+                <div className="flex items-start gap-2">
+                  <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>This mission is locked until its prerequisites are complete.</p>
+                </div>
+              </div>
+            )}
 
             <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-2xl shadow-black/20 backdrop-blur">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Coach</p>
@@ -190,14 +226,14 @@ export default function MissionWorkbench({
                 </button>
               )}
 
-              {canValidate && (
+              {(mission.status === "started" || mission.status === "completed") && (
                 <button
                   onClick={onValidateMission}
-                  disabled={actionLoading}
+                  disabled={actionLoading || !runtimeReady}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
                 >
                   {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  Complete mission
+                  {runtimeReady ? "Complete mission" : "Runtime offline"}
                 </button>
               )}
 
@@ -214,19 +250,61 @@ export default function MissionWorkbench({
                 )}
               </div>
             )}
+            {(mission.stepProgress ?? []).length > 0 && (
+              <div className="mt-4 border-t border-white/10 pt-4 text-sm text-emerald-100/55">
+                Step progress:{" "}
+                <span className="text-emerald-50">
+                  {(mission.stepProgress ?? []).filter((step) => step.status === "passed").length}/{steps.length}
+                </span>
+              </div>
+            )}
           </div>
 
           {validationResult && <ValidationPanel result={validationResult} />}
 
-          {validationResult?.passed && mission.status === "completed" && (
+          {mission.status === "completed" && (
             <MissionDebrief
               mission={mission}
-              nextMissionId={validationResult.unlockedMissionIds?.[0]}
+              nextMissionId={validationResult?.unlockedMissionIds?.[0]}
             />
+          )}
+
+          {mission.status !== "completed" && (
+            <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-4 text-sm text-emerald-100/55">
+              <div className="flex items-start gap-2">
+                <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-lime-300" />
+                <p>Debrief unlocks after the full mission validation passes.</p>
+              </div>
+            </div>
           )}
           </aside>
         </div>
       </div>
     </div>
   );
+}
+
+function buildProgressByStep(stepProgress: StepProgress[]) {
+  const progressByStep: Record<string, StepProgress> = {};
+  for (const progress of stepProgress) progressByStep[progress.stepId] = progress;
+  return progressByStep;
+}
+
+function buildResultsFromProgress(missionId: string, stepProgress: StepProgress[]) {
+  const resultsByStep: Record<string, ValidationResult> = {};
+  for (const progress of stepProgress) {
+    if (!progress.latestChecks?.length) continue;
+    resultsByStep[progress.stepId] = {
+      missionId,
+      passed: progress.latestChecks.every((check) => check.passed),
+      status: progress.status,
+      xpAwarded: 0,
+      attemptNumber: progress.attempts,
+      checks: progress.latestChecks,
+      unlockedMissionIds: [],
+      scope: "step",
+      stepId: progress.stepId,
+    };
+  }
+  return resultsByStep;
 }
