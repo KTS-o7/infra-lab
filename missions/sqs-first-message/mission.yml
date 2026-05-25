@@ -1,0 +1,105 @@
+id: sqs-first-message
+order: 3
+title: Queue the Message
+summary: Create an SQS queue and send a message that can be received later.
+difficulty: beginner
+services:
+  - sqs
+xp: 100
+estimated_minutes: 10
+prerequisites:
+  - s3-first-bucket
+story: |
+  The platform has work that should happen after a user request returns. Instead
+  of blocking the app, send a message into a queue so a worker can pick it up
+  asynchronously.
+learning_objectives:
+  - Understand SQS queue semantics
+  - Create and configure queues
+  - Send and receive messages
+commands:
+  - id: create-queue
+    label: Create queue
+    command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-queue --attributes VisibilityTimeout=0
+  - id: get-queue-url
+    label: Get queue URL
+    command: aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue
+  - id: send-message
+    label: Send message
+    command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs send-message --queue-url "$QUEUE_URL" --message-body "first local queue message"
+  - id: receive-message
+    label: Receive message
+    command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs receive-message --queue-url "$QUEUE_URL" --visibility-timeout 0 --max-number-of-messages 10 --wait-time-seconds 1
+steps:
+  - id: create-work-queue
+    title: Create the work queue
+    goal: Create an SQS queue named starter-queue.
+    why: A queue decouples the app from background work. The app can enqueue a job quickly, and a worker can process it later.
+    target_state:
+      - label: Queue
+        value: starter-queue
+      - label: Service
+        value: SQS
+    action: Create the queue in your local AWS sandbox.
+    command_id: create-queue
+    check_ids:
+      - queue-exists
+    success: The starter-queue queue exists in local SQS.
+  - id: locate-queue-address
+    title: Locate the queue address
+    goal: Retrieve the queue URL for starter-queue.
+    why: SQS operations usually target a queue URL. The name identifies the queue, while the URL is the address used for message operations.
+    target_state:
+      - label: Queue URL
+        value: starter-queue URL is available
+    action: Ask SQS for the queue URL so later commands can address the queue directly.
+    command_id: get-queue-url
+    check_ids:
+      - queue-exists
+    success: The queue can be resolved to a URL.
+  - id: enqueue-background-work
+    title: Enqueue background work
+    goal: Send the message first local queue message to starter-queue.
+    why: The message is the handoff. A producer records what should happen, and a consumer can receive it later without blocking the producer.
+    target_state:
+      - label: Message body
+        value: first local queue message
+    action: Send the expected message into the queue.
+    command_id: send-message
+    check_ids:
+      - message-available
+    success: The expected message is available in the queue.
+  - id: inspect-queued-work
+    title: Inspect queued work
+    goal: Receive messages from starter-queue without hiding them from validation.
+    why: Receiving shows the worker side of the queue model. This lab uses zero visibility timeout so inspection does not consume the proof message.
+    target_state:
+      - label: Queue
+        value: starter-queue
+      - label: Message
+        value: first local queue message
+    action: Receive messages from the queue and inspect the payload.
+    command_id: receive-message
+    check_ids:
+      - message-available
+    success: The expected message remains available for validation.
+hints:
+  - id: queue-name
+    title: Queue name
+    text: The queue name is starter-queue. Queue names are local in this lab.
+    penalty_xp: 5
+  - id: endpoint
+    title: Local endpoint
+    text: Use --endpoint-url http://localhost:4566 for all AWS CLI commands.
+    penalty_xp: 5
+checks:
+  - id: queue-exists
+    type: sqs_queue_exists
+    queue_name: starter-queue
+  - id: message-available
+    type: sqs_message_available
+    queue_name: starter-queue
+    body: first local queue message
+owned_resources:
+  - type: sqs_queue
+    queue_name: starter-queue

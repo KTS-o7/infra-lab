@@ -1,0 +1,70 @@
+id: cloud-explorer
+order: 1
+title: Cloud Explorer
+summary: Explore the local AWS lab environment and verify everything is working.
+difficulty: beginner
+services:
+  - local
+xp: 50
+estimated_minutes: 5
+prerequisites: []
+story: |
+  You have joined a team that needs a safe copy of its cloud platform for practice.
+  Before building anything, prove the boundary: every AWS-style call must stay inside
+  this local Floci sandbox, never a real AWS account.
+learning_objectives:
+  - Understand that this lab uses local infrastructure
+  - Verify Floci is running
+  - Learn the local endpoint URL
+  - Understand fake AWS credentials
+commands:
+  - id: check-floci
+    label: Check Floci health
+    command: aws --endpoint-url http://localhost:4566 sts get-caller-identity
+  - id: list-buckets
+    label: List S3 buckets
+    command: aws --endpoint-url http://localhost:4566 s3 ls
+steps:
+  - id: confirm-sandbox
+    title: Confirm the sandbox boundary
+    goal: Verify that AWS-style calls go to the local Floci endpoint.
+    why: Production cloud accounts are risky places to learn. This lab keeps practice isolated by routing all AWS-style traffic to a local endpoint.
+    target_state:
+      - label: Endpoint
+        value: http://localhost:4566
+      - label: Credentials
+        value: fake local credentials
+    action: Ask the local endpoint who you are. The response proves the CLI is speaking to the sandbox.
+    command_id: check-floci
+    check_ids:
+      - floci-available
+    success: Floci is reachable and the lab boundary is active.
+  - id: inspect-empty-storage
+    title: Inspect local storage
+    goal: Look at the local S3 namespace before creating resources.
+    why: Operators inspect current state before changing it. A clean sandbox gives you a predictable starting point.
+    target_state:
+      - label: Service
+        value: S3
+      - label: Expected state
+        value: no required buckets yet
+    action: List local S3 buckets so you can see the sandbox state before future missions add resources.
+    command_id: list-buckets
+    check_ids:
+      - floci-available
+    success: The local S3 API is reachable.
+hints:
+  - id: local-only
+    title: Local only lab
+    text: This lab does not use real AWS. All commands point to http://localhost:4566.
+    penalty_xp: 5
+  - id: fake-creds
+    title: Fake credentials
+    text: The AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are both set to "test". This is normal for local development.
+    penalty_xp: 5
+checks:
+  - id: floci-available
+    type: runtime_floci_available
+owned_resources:
+  - type: none
+    reason: orientation mission has no owned resources

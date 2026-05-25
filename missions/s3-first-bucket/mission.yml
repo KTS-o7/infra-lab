@@ -1,0 +1,99 @@
+id: s3-first-bucket
+order: 2
+title: First Bucket
+summary: Create your first object storage bucket and upload a file.
+difficulty: beginner
+services:
+  - s3
+xp: 100
+estimated_minutes: 10
+prerequisites:
+  - cloud-explorer
+story: |
+  The platform needs durable storage for onboarding files. Server disks disappear
+  when containers restart, so the app needs an object store boundary where files
+  can live independently from the application process.
+learning_objectives:
+  - Understand what an S3 bucket is
+  - Create a bucket locally
+  - Upload and inspect an object
+commands:
+  - id: create-bucket
+    label: Create bucket
+    command: aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket
+  - id: upload-file
+    label: Upload file
+    command: echo "Hello from local AWS" > hello.txt && aws --endpoint-url http://localhost:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
+  - id: verify-upload
+    label: Verify upload
+    command: aws --endpoint-url http://localhost:4566 s3 ls s3://starter-bucket/
+steps:
+  - id: create-storage-boundary
+    title: Create the storage boundary
+    goal: Create an S3 bucket named starter-bucket.
+    why: A bucket is the named boundary for object storage. Real apps use buckets for uploads, exports, generated files, and other durable assets.
+    target_state:
+      - label: Bucket
+        value: starter-bucket
+      - label: Service
+        value: S3
+    action: Create the bucket in your local AWS sandbox.
+    command_id: create-bucket
+    check_ids:
+      - bucket-exists
+    success: The starter-bucket bucket exists in local S3.
+  - id: store-welcome-object
+    title: Store the welcome file
+    goal: Upload hello.txt into starter-bucket.
+    why: Buckets hold objects. An object is the file plus its key, which is the path-like name applications use to retrieve it later.
+    target_state:
+      - label: Object
+        value: s3://starter-bucket/hello.txt
+      - label: Body
+        value: Hello from local AWS
+    action: Create the welcome file locally and copy it into the bucket.
+    command_id: upload-file
+    check_ids:
+      - object-exists
+      - object-body
+    success: The hello.txt object exists and contains the expected body.
+  - id: inspect-stored-object
+    title: Inspect stored objects
+    goal: List the bucket contents and confirm the object is visible.
+    why: Operators verify storage state after writes. Listing the bucket connects the CLI action to the object model you just created.
+    target_state:
+      - label: Bucket listing
+        value: hello.txt appears in starter-bucket
+    action: List the bucket contents from the local S3 API.
+    command_id: verify-upload
+    check_ids:
+      - object-exists
+    success: The bucket listing includes hello.txt.
+hints:
+  - id: endpoint-required
+    title: Check the endpoint
+    text: Every AWS CLI command in this lab needs --endpoint-url http://localhost:4566.
+    penalty_xp: 5
+  - id: bucket-names
+    title: Bucket naming
+    text: Bucket names are global in real AWS, but local here. You can use any name.
+    penalty_xp: 5
+checks:
+  - id: bucket-exists
+    type: s3_bucket_exists
+    bucket: starter-bucket
+  - id: object-exists
+    type: s3_object_exists
+    bucket: starter-bucket
+    key: hello.txt
+  - id: object-body
+    type: s3_object_body_equals
+    bucket: starter-bucket
+    key: hello.txt
+    value: Hello from local AWS
+owned_resources:
+  - type: s3_object
+    bucket: starter-bucket
+    key: hello.txt
+  - type: s3_bucket
+    bucket: starter-bucket
