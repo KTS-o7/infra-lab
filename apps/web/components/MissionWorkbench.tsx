@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, ArrowRight, BookOpen, Lock } from "lucide-react";
-import type { MissionDetail, MissionHint, StepProgress, ValidationResult } from "@/lib/api";
+import type { MissionDetail, MissionHint, ResetMode, StepProgress, ValidationResult } from "@/lib/api";
 import MissionBrief from "./MissionBrief";
 import MissionStepList from "./MissionStepList";
 import MissionStepCard from "./MissionStepCard";
@@ -77,7 +77,7 @@ interface Props {
   onStart: () => void;
   onValidateMission: () => void;
   onValidateStep: (stepId: string) => Promise<ValidationResult | null>;
-  onReset: (mode: string) => void;
+  onReset: (mode: ResetMode) => void;
   onUseHint: (hintId: string) => void;
   runtimeReady?: boolean;
 }

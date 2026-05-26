@@ -9,6 +9,7 @@ import {
   resetMission,
   useHint as useHintApi,
   type MissionDetail,
+  type ResetMode,
   type RuntimeStatus,
   type ValidationResult,
 } from "@/lib/api";
@@ -90,7 +91,7 @@ export default function MissionDetail({ missionId }: Props) {
     }
   };
 
-  const handleReset = async (mode: string) => {
+  const handleReset = async (mode: ResetMode) => {
     setActionLoading(true);
     try {
       await resetMission(missionId, mode);

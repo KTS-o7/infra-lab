@@ -511,6 +511,36 @@ def test_hint_use_is_idempotent_and_reveals_detail(tmp_path, monkeypatch):
     assert detail["mission"]["hints"][0]["text"] == "Use the local endpoint."
 
 
+def test_hint_use_rejects_locked_mission(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            prerequisites:
+              - cloud-explorer
+            hints:
+              - id: endpoint-required
+                title: Check endpoint
+                level: nudge
+                applies_to_checks:
+                  - bucket-exists
+                text: Use the local endpoint.
+                penalty_xp: 5
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    with pytest.raises(Exception) as exc:
+        mission_routes.use_hint("demo", "endpoint-required", session=session)
+
+    assert exc.value.status_code == 409
+    assert exc.value.detail["error"]["code"] == "MISSION_LOCKED"
+    assert session.exec(select(HintUsage).where(HintUsage.mission_id == "demo")).first() is None
+
+
 def test_capstone_validation_persists_score_and_returns_payload(tmp_path, monkeypatch):
     reset_loader()
     write_mission(

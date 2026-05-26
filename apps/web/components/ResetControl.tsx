@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import type { ResetMode } from "@/lib/api";
 
 interface Props {
   missionId: string;
-  onReset: (mode: string) => void;
+  onReset: (mode: ResetMode) => void;
   disabled: boolean;
 }
 
 export default function ResetControl({ missionId, onReset, disabled }: Props) {
   const [confirming, setConfirming] = useState(false);
-  const [mode, setMode] = useState<"resources" | "progress" | "resources_and_progress">("resources");
+  const [mode, setMode] = useState<ResetMode>("resources");
 
   const handleReset = () => {
     if (!confirming) {

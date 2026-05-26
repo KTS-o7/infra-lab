@@ -187,6 +187,16 @@ export interface ValidationResult {
   capstoneScore?: CapstoneScore | null;
 }
 
+export type ResetMode = "resources" | "progress" | "resources_and_progress";
+
+export interface ResetResult {
+  missionId: string;
+  mode: ResetMode;
+  deleted: { type: string; id: string; status: "deleted" }[];
+  skipped: { type?: string; id?: string; status?: string; message?: string }[];
+  failed: { type: string; id: string; status: "error"; message: string }[];
+}
+
 export interface CapstoneScore {
   score?: number | null;
   latestScore?: number | null;
@@ -253,7 +263,7 @@ export async function validateMission(id: string, stepId?: string): Promise<Vali
   return res.json();
 }
 
-export async function resetMission(id: string, mode: string = "practice"): Promise<{ missionId: string; status: string; resourcesRemoved: string[] }> {
+export async function resetMission(id: string, mode: ResetMode): Promise<ResetResult> {
   const res = await fetch(`${API_BASE}/missions/${id}/reset`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

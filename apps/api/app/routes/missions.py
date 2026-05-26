@@ -423,6 +423,15 @@ def use_hint(mission_id: str, hint_id: str, session: Session = Depends(get_sessi
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
     mission = instances[mission_id]
+    if _effective_status(mission, session) == "locked":
+        raise HTTPException(
+            status_code=409,
+            detail=_error_response(
+                "MISSION_LOCKED",
+                "Complete the prerequisite missions before revealing hints for this mission.",
+                {"prerequisites": mission.prerequisites},
+            ),
+        )
     hint = next((h for h in mission.hints if h.id == hint_id), None)
     if not hint:
         raise HTTPException(status_code=404, detail=_error_response("HINT_NOT_FOUND", "Hint not found."))
