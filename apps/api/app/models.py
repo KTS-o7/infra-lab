@@ -1,6 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import Field, SQLModel
+
 
 class Profile(SQLModel, table=True):
     __tablename__ = "profiles"
@@ -10,6 +12,7 @@ class Profile(SQLModel, table=True):
     total_xp: int = Field(default=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 
 class MissionProgress(SQLModel, table=True):
     __tablename__ = "mission_progress"
@@ -24,6 +27,7 @@ class MissionProgress(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+
 class ValidationAttempt(SQLModel, table=True):
     __tablename__ = "validation_attempts"
 
@@ -35,6 +39,7 @@ class ValidationAttempt(SQLModel, table=True):
     checks_json: str = Field(nullable=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+
 class HintUsage(SQLModel, table=True):
     __tablename__ = "hint_usages"
 
@@ -43,6 +48,7 @@ class HintUsage(SQLModel, table=True):
     hint_id: str = Field(primary_key=True)
     penalty_xp: int = Field(nullable=False)
     used_at: datetime = Field(default_factory=datetime.utcnow)
+
 
 class Badge(SQLModel, table=True):
     __tablename__ = "badges"

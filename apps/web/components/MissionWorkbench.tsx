@@ -29,36 +29,52 @@ interface MissionDebriefProps {
 
 function MissionDebrief({ mission, nextMissionId }: MissionDebriefProps) {
   const primaryService = mission.services?.[0] ?? "";
-  const serviceDesc = SERVICE_DESCRIPTIONS[primaryService.toLowerCase()] ?? "distributed system patterns";
+  const serviceDesc =
+    SERVICE_DESCRIPTIONS[primaryService.toLowerCase()] ??
+    "distributed system patterns";
 
   return (
     <div className="rounded-lg border border-lime-500/30 bg-[#0b1512]/95 p-5 shadow-2xl shadow-black/20 backdrop-blur">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Mission complete</p>
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">
+        Mission complete
+      </p>
       <h2 className="mt-1 text-lg font-semibold text-lime-300">
         Platform online: {primaryService.toUpperCase()}
       </h2>
 
       <div className="mt-4 space-y-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">What was built</p>
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">
+            What was built
+          </p>
           <p className="mt-1 text-sm text-emerald-50/80 leading-relaxed">
             {mission.summary}
           </p>
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">Real systems</p>
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">
+            Real systems
+          </p>
           <p className="mt-1 text-sm text-emerald-50/80 leading-relaxed">
-            In production AWS, <span className="text-lime-200">{primaryService.toUpperCase()}</span> provides {serviceDesc}.
+            In production AWS,{" "}
+            <span className="text-lime-200">
+              {primaryService.toUpperCase()}
+            </span>{" "}
+            provides {serviceDesc}.
           </p>
         </div>
 
         {nextMissionId && (
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">What&apos;s next</p>
+            <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">
+              What&apos;s next
+            </p>
             <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-white/5 p-3">
               <ArrowRight className="h-4 w-4 flex-shrink-0 text-lime-300" />
-              <span className="text-sm text-emerald-50/80">Mission unlock: {nextMissionId}</span>
+              <span className="text-sm text-emerald-50/80">
+                Mission unlock: {nextMissionId}
+              </span>
             </div>
           </div>
         )}
@@ -91,7 +107,9 @@ export default function MissionWorkbench({
   const mission = data.mission;
   const steps = mission.steps ?? [];
   const [activeStepId, setActiveStepId] = useState(steps[0]?.id ?? null);
-  const [resultsByStep, setResultsByStep] = useState<Record<string, ValidationResult>>({});
+  const [resultsByStep, setResultsByStep] = useState<
+    Record<string, ValidationResult>
+  >({});
   const [checkingStepId, setCheckingStepId] = useState<string | null>(null);
 
   const activeStep = useMemo(
@@ -104,7 +122,8 @@ export default function MissionWorkbench({
   );
 
   const canStart = mission.status === "available";
-  const canValidate = mission.status === "started" || mission.status === "completed";
+  const canValidate =
+    mission.status === "started" || mission.status === "completed";
 
   const handleCheckStep = async (stepId: string) => {
     setCheckingStepId(stepId);
@@ -126,12 +145,20 @@ export default function MissionWorkbench({
       <div className="overflow-hidden rounded-lg border border-white/10 bg-[#07100d]/90 shadow-2xl shadow-black/30">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.03] px-5 py-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Lab console</p>
-            <h2 className="text-lg font-semibold text-emerald-50">Rebuild workspace</h2>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">
+              Lab console
+            </p>
+            <h2 className="text-lg font-semibold text-emerald-50">
+              Rebuild workspace
+            </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-emerald-100/45">
-            <span className="rounded-md border border-white/10 bg-black/20 px-2.5 py-1">Endpoint localhost:4566</span>
-            <span className="rounded-md border border-lime-300/20 bg-lime-300/10 px-2.5 py-1 text-lime-100">No real AWS</span>
+            <span className="rounded-md border border-white/10 bg-black/20 px-2.5 py-1">
+              Endpoint localhost:4566
+            </span>
+            <span className="rounded-md border border-lime-300/20 bg-lime-300/10 px-2.5 py-1 text-lime-100">
+              No real AWS
+            </span>
           </div>
         </div>
 
@@ -176,54 +203,76 @@ export default function MissionWorkbench({
             />
 
             <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-2xl shadow-black/20 backdrop-blur">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Coach</p>
-            <h2 className="mt-1 text-lg font-semibold text-emerald-50">Mission control</h2>
-            <div className="mt-4 space-y-3">
-              {canStart && (
-                <button
-                  onClick={onStart}
-                  disabled={actionLoading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
-                >
-                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  Start mission
-                </button>
-              )}
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">
+                Coach
+              </p>
+              <h2 className="mt-1 text-lg font-semibold text-emerald-50">
+                Mission control
+              </h2>
+              <div className="mt-4 space-y-3">
+                {canStart && (
+                  <button
+                    onClick={onStart}
+                    disabled={actionLoading}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    Start mission
+                  </button>
+                )}
 
-              {canValidate && (
-                <button
-                  onClick={onValidateMission}
-                  disabled={actionLoading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
-                >
-                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  Complete mission
-                </button>
-              )}
+                {canValidate && (
+                  <button
+                    onClick={onValidateMission}
+                    disabled={actionLoading}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    Complete mission
+                  </button>
+                )}
 
-              <ResetControl missionId={mission.id} onReset={onReset} disabled={actionLoading} />
+                <ResetControl
+                  missionId={mission.id}
+                  onReset={onReset}
+                  disabled={actionLoading}
+                />
+              </div>
+
+              {mission.progress.attempts > 0 && (
+                <div className="mt-4 border-t border-white/10 pt-4 text-sm text-emerald-100/55">
+                  Attempts:{" "}
+                  <span className="text-emerald-50">
+                    {mission.progress.attempts}
+                  </span>
+                  {mission.progress.xpAwarded > 0 && (
+                    <span className="mt-1 block">
+                      XP earned:{" "}
+                      <span className="text-lime-200">
+                        {mission.progress.xpAwarded}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
-            {mission.progress.attempts > 0 && (
-              <div className="mt-4 border-t border-white/10 pt-4 text-sm text-emerald-100/55">
-                Attempts: <span className="text-emerald-50">{mission.progress.attempts}</span>
-                {mission.progress.xpAwarded > 0 && (
-                  <span className="mt-1 block">
-                    XP earned: <span className="text-lime-200">{mission.progress.xpAwarded}</span>
-                  </span>
-                )}
-              </div>
+            {validationResult && <ValidationPanel result={validationResult} />}
+
+            {validationResult?.passed && mission.status === "completed" && (
+              <MissionDebrief
+                mission={mission}
+                nextMissionId={validationResult.unlockedMissionIds?.[0]}
+              />
             )}
-          </div>
-
-          {validationResult && <ValidationPanel result={validationResult} />}
-
-          {validationResult?.passed && mission.status === "completed" && (
-            <MissionDebrief
-              mission={mission}
-              nextMissionId={validationResult.unlockedMissionIds?.[0]}
-            />
-          )}
           </aside>
         </div>
       </div>

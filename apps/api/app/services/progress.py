@@ -2,7 +2,13 @@ from app.db import get_session
 from app.models import Profile, MissionProgress, HintUsage
 from sqlmodel import select
 from datetime import datetime
+
+from sqlmodel import select
+
 import app.config as config
+from app.db import get_session
+from app.models import ChatMessage, HintUsage, LearnMoreUsage, MissionProgress, Profile
+
 
 def ensure_local_profile(session) -> Profile:
     profile = session.get(Profile, "local")
@@ -17,18 +23,24 @@ def ensure_local_profile(session) -> Profile:
             profile = session.get(Profile, "local")
     return profile
 
+
 def get_or_create_progress(session, mission_id: str) -> MissionProgress:
     progress = session.get(MissionProgress, ("local", mission_id))
     if not progress:
-        progress = MissionProgress(profile_id="local", mission_id=mission_id, status="available")
+        progress = MissionProgress(
+            profile_id="local", mission_id=mission_id, status="available"
+        )
         session.add(progress)
         session.commit()
         session.refresh(progress)
     return progress
 
+
 def get_profile_with_progress(session) -> dict:
     profile = ensure_local_profile(session)
-    results = session.exec(select(MissionProgress).where(MissionProgress.profile_id == "local")).all()
+    results = session.exec(
+        select(MissionProgress).where(MissionProgress.profile_id == "local")
+    ).all()
     completed_ids = [p.mission_id for p in results if p.status == "completed"]
     return {
         "id": profile.id,
@@ -38,24 +50,46 @@ def get_profile_with_progress(session) -> dict:
         "badges": [],
     }
 
-def start_mission(session, mission_id: str, mission_xp: int, prerequisites: list) -> dict:
+
+def start_mission(
+    session, mission_id: str, mission_xp: int, prerequisites: list
+) -> dict:
     profile = ensure_local_profile(session)
     progress = get_or_create_progress(session, mission_id)
 
     if progress.status == "locked":
-        return {"error": {"code": "MISSION_LOCKED", "message": "Mission is locked.", "details": {}}}
+        return {
+            "error": {
+                "code": "MISSION_LOCKED",
+                "message": "Mission is locked.",
+                "details": {},
+            }
+        }
 
     if progress.status == "started":
-        return {"missionId": mission_id, "status": "started", "startedAt": str(progress.started_at)}
+        return {
+            "missionId": mission_id,
+            "status": "started",
+            "startedAt": str(progress.started_at),
+        }
 
     if progress.status == "completed":
-        return {"missionId": mission_id, "status": "completed", "startedAt": str(progress.started_at)}
+        return {
+            "missionId": mission_id,
+            "status": "completed",
+            "startedAt": str(progress.started_at),
+        }
 
     progress.status = "started"
     progress.started_at = datetime.utcnow()
     progress.attempts = 0
     session.commit()
-    return {"missionId": mission_id, "status": "started", "startedAt": str(progress.started_at)}
+    return {
+        "missionId": mission_id,
+        "status": "started",
+        "startedAt": str(progress.started_at),
+    }
+
 
 def validate_mission(
     session,
@@ -70,21 +104,31 @@ def validate_mission(
     progress = session.get(MissionProgress, ("local", mission_id))
 
     if not progress or progress.status not in ("started", "completed"):
-        return {"error": {"code": "MISSION_NOT_STARTED", "message": "Start this mission before validating it.", "details": {}}}
+        return {
+            "error": {
+                "code": "MISSION_NOT_STARTED",
+                "message": "Start this mission before validating it.",
+                "details": {},
+            }
+        }
 
     progress.attempts += 1
     attempt_number = progress.attempts
 
     if scope == "step" and not checks:
-        check_results = [{
-            "id": step_id or "step",
-            "type": "step_has_checks",
-            "passed": False,
-            "message": empty_step_message or "This step does not have validation checks yet.",
-        }]
+        check_results = [
+            {
+                "id": step_id or "step",
+                "type": "step_has_checks",
+                "passed": False,
+                "message": empty_step_message
+                or "This step does not have validation checks yet.",
+            }
+        ]
         all_passed = False
     else:
         from app.validators import run_check
+
         check_results = []
         all_passed = True
         for check in checks:
@@ -94,6 +138,7 @@ def validate_mission(
                 all_passed = False
 
     from datetime import datetime
+
     xp_awarded = 0
     unlocked = []
 
@@ -118,13 +163,20 @@ def validate_mission(
         "stepId": step_id,
     }
 
+
 def reset_mission(session, mission_id: str, mode: str, prerequisites: list) -> dict:
-    from app.services.reset import reset_owned_resources
     from app.mission_loader import MissionLoader
+    from app.services.reset import reset_owned_resources
 
     progress = session.get(MissionProgress, ("local", mission_id))
     if not progress:
-        return {"error": {"code": "MISSION_NOT_FOUND", "message": f"Mission {mission_id} not found.", "details": {}}}
+        return {
+            "error": {
+                "code": "MISSION_NOT_FOUND",
+                "message": f"Mission {mission_id} not found.",
+                "details": {},
+            }
+        }
 
     owned = []
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)
@@ -142,7 +194,12 @@ def reset_mission(session, mission_id: str, mode: str, prerequisites: list) -> d
             progress.status = "available"
 
     session.commit()
-    return {"missionId": mission_id, "status": progress.status, "resourcesRemoved": deleted}
+    return {
+        "missionId": mission_id,
+        "status": progress.status,
+        "resourcesRemoved": deleted,
+    }
+
 
 def use_hint(session, mission_id: str, hint_id: str, penalty_xp: int) -> dict:
     profile = ensure_local_profile(session)
@@ -151,24 +208,50 @@ def use_hint(session, mission_id: str, hint_id: str, penalty_xp: int) -> dict:
     existing = session.get(HintUsage, ("local", mission_id, hint_id))
     if existing:
         from app.mission_loader import MissionLoader
+
         instances = MissionLoader.load_missions(config.MISSIONS_DIR)
         mission = instances.get(mission_id)
-        hint = next((h for h in mission.hints if h.id == hint_id), None) if mission else None
+        hint = (
+            next((h for h in mission.hints if h.id == hint_id), None)
+            if mission
+            else None
+        )
         return {
             "missionId": mission_id,
-            "hint": {"id": hint_id, "title": hint.title if hint else "", "text": hint.text if hint else "", "penaltyXp": penalty_xp, "isUsed": True},
+            "hint": {
+                "id": hint_id,
+                "title": hint.title if hint else "",
+                "text": hint.text if hint else "",
+                "penaltyXp": penalty_xp,
+                "isUsed": True,
+            },
             "possibleXp": max(0, mission.xp - penalty_xp) if mission else 0,
         }
 
-    usage = HintUsage(profile_id="local", mission_id=mission_id, hint_id=hint_id, penalty_xp=penalty_xp)
+    usage = HintUsage(
+        profile_id="local",
+        mission_id=mission_id,
+        hint_id=hint_id,
+        penalty_xp=penalty_xp,
+    )
     session.add(usage)
     session.commit()
 
     from app.mission_loader import MissionLoader
+
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)
     mission = instances.get(mission_id)
     possible_xp = max(0, mission.xp - penalty_xp) if mission else 0
 
+    return {
+        "missionId": mission_id,
+        "hint": {
+            "id": hint_id,
+            "title": "",
+            "text": "",
+            "penaltyXp": penalty_xp,
+            "isUsed": True,
+        },
     return {
         "missionId": mission_id,
         "hint": {"id": hint_id, "title": "", "text": "", "penaltyXp": penalty_xp, "isUsed": True},

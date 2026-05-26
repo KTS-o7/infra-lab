@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 export interface RuntimeStatus {
   api: { status: string };
@@ -97,13 +97,20 @@ export async function getMission(id: string): Promise<MissionDetail> {
   return res.json();
 }
 
-export async function startMission(id: string): Promise<{ missionId: string; status: string; startedAt: string }> {
-  const res = await fetch(`${API_BASE}/missions/${id}/start`, { method: "POST" });
+export async function startMission(
+  id: string,
+): Promise<{ missionId: string; status: string; startedAt: string }> {
+  const res = await fetch(`${API_BASE}/missions/${id}/start`, {
+    method: "POST",
+  });
   if (!res.ok) throw new Error("Failed to start mission");
   return res.json();
 }
 
-export async function validateMission(id: string, stepId?: string): Promise<ValidationResult> {
+export async function validateMission(
+  id: string,
+  stepId?: string,
+): Promise<ValidationResult> {
   const res = await fetch(`${API_BASE}/missions/${id}/validate`, {
     method: "POST",
     headers: stepId ? { "Content-Type": "application/json" } : undefined,
@@ -113,7 +120,10 @@ export async function validateMission(id: string, stepId?: string): Promise<Vali
   return res.json();
 }
 
-export async function resetMission(id: string, mode: string = "practice"): Promise<{ missionId: string; status: string; resourcesRemoved: string[] }> {
+export async function resetMission(
+  id: string,
+  mode: string = "practice",
+): Promise<{ missionId: string; status: string; resourcesRemoved: string[] }> {
   const res = await fetch(`${API_BASE}/missions/${id}/reset`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -123,8 +133,24 @@ export async function resetMission(id: string, mode: string = "practice"): Promi
   return res.json();
 }
 
-export async function useHint(missionId: string, hintId: string): Promise<{ missionId: string; hint: { id: string; title: string; text: string; penaltyXp: number; isUsed: boolean }; possibleXp: number }> {
-  const res = await fetch(`${API_BASE}/missions/${missionId}/hints/${hintId}/use`, { method: "POST" });
+export async function useHint(
+  missionId: string,
+  hintId: string,
+): Promise<{
+  missionId: string;
+  hint: {
+    id: string;
+    title: string;
+    text: string;
+    penaltyXp: number;
+    isUsed: boolean;
+  };
+  possibleXp: number;
+}> {
+  const res = await fetch(
+    `${API_BASE}/missions/${missionId}/hints/${hintId}/use`,
+    { method: "POST" },
+  );
   if (!res.ok) throw new Error("Failed to use hint");
   return res.json();
 }

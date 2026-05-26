@@ -22,25 +22,25 @@ check_service() {
 }
 
 check_service "http://localhost:3000" "Web"
-check_service "http://localhost:8000/health" "API"
+check_service "http://localhost:8001/health" "API"
 check_service "http://localhost:4566/" "Floci"
 
 echo ""
 echo "=== API Runtime Status ==="
-curl -s http://localhost:8000/runtime/status | python3 -m json.tool || echo "JSON parse failed"
+curl -s http://localhost:8001/runtime/status | python3 -m json.tool || echo "JSON parse failed"
 
 echo ""
 echo "=== Mission List ==="
-curl -s http://localhost:8000/missions | python3 -m json.tool || echo "JSON parse failed"
+curl -s http://localhost:8001/missions | python3 -m json.tool || echo "JSON parse failed"
 
 echo ""
 echo "=== Profile ==="
-curl -s http://localhost:8000/profile | python3 -m json.tool || echo "JSON parse failed"
+curl -s http://localhost:8001/profile | python3 -m json.tool || echo "JSON parse failed"
 
 echo ""
 echo "=== S3 API Test (create/delete bucket via Floci) ==="
 BUCKET="smoke-test-bucket-$(date +%s)"
-curl -s -X POST "http://localhost:8000/floci/s3/bucket" \
+curl -s -X POST "http://localhost:8001/floci/s3/bucket" \
     -H "Content-Type: application/json" \
     -d "{\"bucket\": \"$BUCKET\"}" | python3 -m json.tool || echo "S3 bucket create failed"
 

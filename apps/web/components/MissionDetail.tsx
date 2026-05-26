@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getMission, startMission, validateMission, resetMission, useHint as useHintApi, type MissionDetail, type ValidationResult } from "@/lib/api";
+import {
+  getMission,
+  startMission,
+  validateMission,
+  resetMission,
+  useHint as useHintApi,
+  type MissionDetail,
+  type ValidationResult,
+} from "@/lib/api";
 import RuntimeBanner from "./RuntimeBanner";
 import MissionWorkbench from "./MissionWorkbench";
 import Link from "next/link";
@@ -16,7 +24,8 @@ export default function MissionDetail({ missionId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [validationResult, setValidationResult] =
+    useState<ValidationResult | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -27,7 +36,9 @@ export default function MissionDetail({ missionId }: Props) {
       .finally(() => setLoading(false));
   }, [missionId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleStart = async () => {
     setActionLoading(true);
@@ -103,7 +114,10 @@ export default function MissionDetail({ missionId }: Props) {
     return (
       <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
         <p className="mb-4 text-red-200">{error || "Mission not found"}</p>
-        <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to missions
         </Link>
@@ -115,7 +129,10 @@ export default function MissionDetail({ missionId }: Props) {
     return (
       <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
         <p className="mb-4 text-red-200">This mission is locked.</p>
-        <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to missions
         </Link>
@@ -128,11 +145,13 @@ export default function MissionDetail({ missionId }: Props) {
       <RuntimeBanner />
 
       <div className="mb-6">
-        <Link href="/" className="mb-4 inline-flex items-center gap-2 text-sm text-emerald-100/55 hover:text-lime-200">
+        <Link
+          href="/"
+          className="mb-4 inline-flex items-center gap-2 text-sm text-emerald-100/55 hover:text-lime-200"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to mission map
         </Link>
-
       </div>
       <MissionWorkbench
         data={data}

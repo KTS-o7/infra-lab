@@ -21,18 +21,24 @@ if _local_only_violation:
 _forbidden_patterns = ["amazonaws.com", "https://aws"]
 for pattern in _forbidden_patterns:
     if pattern in AWS_ENDPOINT_URL.lower():
-        raise RuntimeError(f"LOCAL_ONLY_VIOLATION: endpoint contains forbidden pattern '{pattern}'")
+        raise RuntimeError(
+            f"LOCAL_ONLY_VIOLATION: endpoint contains forbidden pattern '{pattern}'"
+        )
 
 REAL_AWS_KEY_PATTERNS = ["AKIA", "ABIA", "ACCA", "ASIA"]
 for key in REAL_AWS_KEY_PATTERNS:
     if AWS_ACCESS_KEY_ID.startswith(key) and AWS_ACCESS_KEY_ID != "test":
-        raise RuntimeError(f"LOCAL_ONLY_VIOLATION: suspicious real AWS key pattern detected")
+        raise RuntimeError(
+            f"LOCAL_ONLY_VIOLATION: suspicious real AWS key pattern detected"
+        )
+
 
 def get_local_only_status() -> dict:
     return {
         "status": "enforced",
         "endpoint": AWS_ENDPOINT_URL,
     }
+
 
 def get_floci_endpoint() -> str:
     return AWS_ENDPOINT_URL
