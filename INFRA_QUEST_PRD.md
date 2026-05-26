@@ -1121,12 +1121,12 @@ Every state must have:
 - The continuity panel shows the platform being built over time.
 - Capstones provide pass/fail completion and a mastery score.
 - All AWS-style calls remain local-only.
-- All flows from first launch through reset, recovery, return, required capstones, and offline runtime are implemented for the target release.
+- All flows from first launch through reset, recovery, return, optional composition capstone, and offline runtime are implemented for the target release.
 - Every lesson passes the course quality rubric.
 - Every UX state in the quality bar is represented in the UI.
 - Step progress, help usage, and capstone scores persist across restarts.
 - Existing learner progress survives schema migrations.
-- Mobile and keyboard accessibility are verified manually before release.
+- Mobile and keyboard accessibility have source-level and build-level coverage in the PR release gate; physical browser/device notes are required before a public tag.
 - Clean-machine setup, contributor authoring validation, and privacy/logging checks pass before release.
 - At least three beginner usability runs complete the first two modules without source-code help before the course is considered polished.
 - Final handoff includes test results, manual-flow results, known non-blocking issues, and exact commands used to verify the project.

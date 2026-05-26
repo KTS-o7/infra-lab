@@ -27,7 +27,7 @@ export default function CommandBlock({ id, label, command }: Props) {
         <button
           onClick={handleCopy}
           className={clsx(
-            "flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-medium transition-colors",
+            "flex min-h-10 shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08110f]",
             copied
               ? "border-lime-300/20 bg-lime-300/10 text-lime-100"
               : "border-white/10 bg-white/[0.04] text-emerald-100/65 hover:bg-white/[0.075] hover:text-emerald-50"
@@ -46,7 +46,8 @@ export default function CommandBlock({ id, label, command }: Props) {
           )}
         </button>
       </div>
-      <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-[#08110f] p-3 font-mono text-sm leading-6 text-emerald-50">{command}</pre>
+      <p className="sr-only" aria-live="polite">{copied ? `${label} copied to clipboard` : ""}</p>
+      <pre tabIndex={0} className="overflow-x-auto whitespace-pre rounded-md bg-[#08110f] p-3 font-mono text-sm leading-6 text-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300">{command}</pre>
     </div>
   );
 }

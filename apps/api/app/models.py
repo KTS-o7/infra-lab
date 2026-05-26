@@ -73,6 +73,8 @@ class CapstoneScore(SQLModel, table=True):
     latest_level: Optional[str] = Field(default=None)
     best_level: Optional[str] = Field(default=None)
     dimensions_json: Optional[str] = Field(default=None)
+    latest_local_safety_passed: Optional[bool] = Field(default=None)
+    best_local_safety_passed: Optional[bool] = Field(default=None)
     updated_at: datetime = Field(default_factory=utc_now)
 
 class CourseCompletion(SQLModel, table=True):

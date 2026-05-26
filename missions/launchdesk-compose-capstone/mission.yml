@@ -43,16 +43,16 @@ commands:
     command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name orders-queue --attributes VisibilityTimeout=0
   - id: create-lambda
     label: Create Lambda function
-    command: cd missions/launchdesk-compose-capstone/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name orders-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+    command: cd missions/launchdesk-compose-capstone/function && zip -r function.zip index.py && aws --endpoint-url http://localhost:4566 lambda create-function --function-name orders-function --runtime python3.12 --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role --environment Variables={AWS_ENDPOINT_URL=http://floci:4566,AWS_ACCESS_KEY_ID=test,AWS_SECRET_ACCESS_KEY=test,AWS_DEFAULT_REGION=us-east-1}
   - id: create-api
     label: Create API Gateway API
     command: aws --endpoint-url http://localhost:4566 apigatewayv2 create-api --name orders-api --protocol-type HTTP
   - id: integrate
     label: Integrate Lambda
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:orders-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "POST /orders" --target "$INTEGRATION_ID"
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && ROUTE_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-routes --api-id "$API_ID" --query 'Items[?RouteKey==`POST /orders`].RouteId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:orders-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 update-route --api-id "$API_ID" --route-id "$ROUTE_ID" --target "integrations/$INTEGRATION_ID"
   - id: test-endpoint
     label: Test the endpoint
-    command: "API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && curl -X POST \"http://localhost:4566/$API_ID/orders\" -H \"Content-Type: application/json\" -d '{\"orderId\":\"order-001\",\"item\":\"notebook\"}'"
+    command: "API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && curl -X POST \"http://localhost:4566/restapis/$API_ID/default/_user_request_/orders\" -H \"Content-Type: application/json\" -d '{\"orderId\":\"order-001\",\"item\":\"notebook\"}'"
 steps:
   - id: create-orders-table
     title: Create the orders table
@@ -93,7 +93,7 @@ steps:
       - label: Function
         value: orders-function
       - label: Runtime
-        value: nodejs22.x
+        value: python3.12
       - label: Handler
         value: index.handler
     action: Package and deploy the orders-function.
@@ -113,7 +113,7 @@ steps:
     action: Create the orders-api in API Gateway.
     command_id: create-api
     check_ids:
-      - api-route
+      - orders-api-exists
     success: The orders-api exists.
   - id: add-orders-route
     title: Add the orders route
@@ -141,8 +141,7 @@ steps:
     action: Integrate the route with the Lambda function.
     command_id: integrate
     check_ids:
-      - http-writes-item
-      - http-sends-message
+      - integrated-route
     success: The route is wired to the Lambda.
   - id: test-end-to-end
     title: Test the full flow
@@ -193,10 +192,18 @@ hints:
 checks:
   - id: floci-available
     type: runtime_floci_available
+  - id: orders-api-exists
+    type: apigateway_api_exists
+    api_name: orders-api
   - id: api-route
     type: apigateway_route_exists
     api_name: orders-api
     route: POST /orders
+  - id: integrated-route
+    type: apigateway_route_exists
+    api_name: orders-api
+    route: POST /orders
+    target_prefix: integrations/
   - id: function-exists
     type: lambda_function_exists
     function_name: orders-function

@@ -18,6 +18,7 @@ Recorded: 2026-05-26
 | Understands local-only posture | README, `/settings`, runtime local-only status | Passed |
 | Finds next recommended mission | `/course` and course map next mission state | Passed |
 | Completes all required lessons | `e2e-local-flow.py` | Passed |
+| Completes optional composition capstone | `e2e-local-flow.py` API Gateway to Lambda to DynamoDB/SQS workflow | Passed |
 | Recovers from failed state | Hints, proof rows, reset controls, and validation messages | Passed |
 | Restarts and resumes progress | Persisted progress tests and workbench resume logic | Passed |
 | Avoids real AWS credentials and endpoints | Local-only scan and command authoring validation | Passed |

@@ -49,6 +49,7 @@ def run_migrations():
             session.add(SchemaMigration(version="0001_sqlmodel_foundation", description="Create SQLModel persistence foundation"))
             session.commit()
     _run_mission_rename_migration()
+    _run_capstone_safety_migration()
 
 
 def _copy_legacy_rows(conn, existing_tables: set[str]):
@@ -193,6 +194,31 @@ def _run_mission_rename_migration():
             SchemaMigration(
                 version=version,
                 description="Rename serverless-boss progress records to launchdesk-compose-capstone",
+            )
+        )
+        session.commit()
+
+
+def _run_capstone_safety_migration():
+    version = "0003_capstone_local_safety"
+    with Session(engine) as session:
+        if session.get(SchemaMigration, version):
+            return
+
+    with engine.begin() as conn:
+        tables = set(inspect(conn).get_table_names())
+        if "capstone_score" in tables:
+            columns = {column["name"] for column in inspect(conn).get_columns("capstone_score")}
+            if "latest_local_safety_passed" not in columns:
+                conn.exec_driver_sql("ALTER TABLE capstone_score ADD COLUMN latest_local_safety_passed BOOLEAN")
+            if "best_local_safety_passed" not in columns:
+                conn.exec_driver_sql("ALTER TABLE capstone_score ADD COLUMN best_local_safety_passed BOOLEAN")
+
+    with Session(engine) as session:
+        session.add(
+            SchemaMigration(
+                version=version,
+                description="Add persisted capstone local safety gate results",
             )
         )
         session.commit()

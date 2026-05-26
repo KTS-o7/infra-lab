@@ -38,6 +38,12 @@ export default function AppShell({ children }: Props) {
   return (
     <div className="min-h-screen bg-[#08110f] text-emerald-50">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_10%,rgba(132,204,22,0.16),transparent_28%),radial-gradient(circle_at_78%_0%,rgba(45,212,191,0.12),transparent_24%),linear-gradient(180deg,#0b1714_0%,#08110f_42%,#060b0a_100%)]" />
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-lime-300 focus:px-4 focus:py-2 focus:font-semibold focus:text-[#08110f] focus:outline-none focus:ring-2 focus:ring-lime-100"
+      >
+        Skip to main content
+      </a>
 
       <header className="sticky top-0 z-20 border-b border-white/10 bg-[#08110f]/88 px-4 py-3 backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
@@ -93,7 +99,7 @@ export default function AppShell({ children }: Props) {
         </div>
       ) : null}
 
-      <main className="px-4 py-6 sm:px-6 sm:py-8">
+      <main id="main-content" className="px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-7xl">
           <section className="mb-8 grid gap-4 lg:grid-cols-[1fr_360px]">
             <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/20 backdrop-blur sm:p-6">
@@ -159,8 +165,8 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       className={
         active
-          ? "inline-flex items-center gap-2 rounded-md border border-lime-300/25 bg-lime-300/10 px-3 py-2 text-sm font-medium text-lime-100"
-          : "inline-flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-medium text-emerald-100/58 hover:border-white/10 hover:bg-white/[0.04] hover:text-emerald-50"
+          ? "inline-flex min-h-10 items-center gap-2 rounded-md border border-lime-300/25 bg-lime-300/10 px-3 py-2 text-sm font-medium text-lime-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08110f]"
+          : "inline-flex min-h-10 items-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-medium text-emerald-100/58 hover:border-white/10 hover:bg-white/[0.04] hover:text-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#08110f]"
       }
     >
       {Icon ? <Icon className="h-4 w-4" /> : null}

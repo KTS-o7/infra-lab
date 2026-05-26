@@ -33,7 +33,7 @@ export default function MissionStepList({ steps, activeStepId, resultsByStep, pr
               onClick={() => onSelect(step.id)}
               aria-current={active ? "step" : undefined}
               className={clsx(
-                "flex w-full items-start gap-3 rounded-md border p-3 text-left transition",
+                "flex min-h-10 w-full items-start gap-3 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1512]",
                 active
                   ? "border-lime-300/30 bg-lime-300/10"
                   : blocked

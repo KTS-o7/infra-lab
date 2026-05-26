@@ -6,6 +6,7 @@ Recorded: 2026-05-26
 | ID | Title | Severity | Affected Area | Workaround | Release Blocking | Owner | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | IQ-20260526-001 | Manual three-learner usability sessions are not recorded in-repo | Minor | Release evidence | Use the automated proxy gate for PR readiness; record human sessions before public tag | No | Release owner | Open |
+| IQ-20260526-002 | Physical browser/device accessibility pass is not recorded in-repo | Minor | Release evidence | Use the production build, semantic controls, focus styles, and responsive source review for PR readiness; record Chrome/Safari/Firefox plus narrow viewport notes before public tag | No | Release owner | Open |
 
 ## Severity Guide
 
@@ -15,4 +16,4 @@ Recorded: 2026-05-26
 
 ## Current Decision
 
-No blocker or major known issue is recorded for the PR release gate. The remaining item is release evidence for public launch tagging, not product behavior in the target course slice.
+No blocker or major known issue is recorded for the PR release gate. The remaining items are release evidence for public launch tagging, not product behavior in the target course slice.

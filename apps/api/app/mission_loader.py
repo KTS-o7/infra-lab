@@ -21,9 +21,11 @@ class CheckSpec(BaseModel):
     payload: Optional[Dict[str, Any]] = None
     api_name: Optional[str] = None
     route: Optional[str] = None
+    target_prefix: Optional[str] = None
     expected_status: Optional[int] = None
     expected_json: Optional[Dict[str, Any]] = None
     request_json: Optional[Dict[str, Any]] = None
+    expected_body_contains: Optional[str] = None
     topic_name: Optional[str] = None
 
 class CommandSpec(BaseModel):

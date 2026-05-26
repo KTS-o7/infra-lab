@@ -124,6 +124,7 @@ export interface MissionDetail {
     hints?: MissionHint[];
     stepProgress?: StepProgress[];
     helpUsage?: HelpUsage[];
+    capstoneScore?: CapstoneScore | null;
     progress: {
       status: string;
       attempts: number;
@@ -212,6 +213,7 @@ export interface CapstoneScore {
     notes?: string | null;
   }[];
   localSafetyPassed?: boolean | null;
+  bestLocalSafetyPassed?: boolean | null;
 }
 
 export interface Profile {

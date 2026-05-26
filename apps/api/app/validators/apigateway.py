@@ -32,15 +32,22 @@ def apigateway_route_exists(api_name: str, route: str, target_prefix: str | None
                 return {"id": "route-exists", "type": "apigateway_route_exists", "passed": True, "message": f"Route {route} exists on API {api_name}."}
         return {"id": "route-exists", "type": "apigateway_route_exists", "passed": False, "message": f"Route {route} was not found on API {api_name}."}
     except Exception:
-        return {"id": "route-exists", "type": "apigateway_route_exists", "passed": False, "message": f"Route {route} was not found on API {api_name}."}
+            return {"id": "route-exists", "type": "apigateway_route_exists", "passed": False, "message": f"Route {route} was not found on API {api_name}."}
+
+
+def api_url_by_name(api_name: str, path: str) -> str | None:
+    api_id = _api_id_by_name(api_name)
+    if not api_id:
+        return None
+    return f"{config.AWS_ENDPOINT_URL}/restapis/{api_id}/default/_user_request_/{path.lstrip('/')}"
+
 
 def apigateway_http_returns(api_name: str, route: str, expected_status: int, expected_json: dict) -> dict:
     method, path = route.split(" ", 1)
     try:
-        api_id = _api_id_by_name(api_name)
-        if not api_id:
+        url = api_url_by_name(api_name, path)
+        if not url:
             return {"id": "http-response", "type": "apigateway_http_returns", "passed": False, "message": f"API {api_name} was not found."}
-        url = f"{config.AWS_ENDPOINT_URL}/restapis/{api_id}/default/_user_request_/{path.lstrip('/')}"
         resp = requests.request(method, url, timeout=5)
         if resp.status_code == expected_status:
             try:

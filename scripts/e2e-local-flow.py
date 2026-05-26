@@ -81,23 +81,33 @@ def create_lambda_zip(source: Path) -> Path:
     return archive
 
 
-def create_lambda(function_name: str, source: Path) -> None:
+def create_lambda(
+    function_name: str,
+    source: Path,
+    *,
+    runtime: str = "nodejs22.x",
+    environment: dict[str, str] | None = None,
+) -> None:
     archive = create_lambda_zip(source)
+    command = [
+        "lambda",
+        "create-function",
+        "--function-name",
+        function_name,
+        "--runtime",
+        runtime,
+        "--handler",
+        "index.handler",
+        "--zip-file",
+        f"fileb://{archive}",
+        "--role",
+        "arn:aws:iam::000000000000:role/local-lambda-role",
+    ]
+    if environment:
+        variables = ",".join(f"{key}={value}" for key, value in environment.items())
+        command.extend(["--environment", f"Variables={{{variables}}}"])
     try:
-        aws_cli(
-            "lambda",
-            "create-function",
-            "--function-name",
-            function_name,
-            "--runtime",
-            "nodejs22.x",
-            "--handler",
-            "index.handler",
-            "--zip-file",
-            f"fileb://{archive}",
-            "--role",
-            "arn:aws:iam::000000000000:role/local-lambda-role",
-        )
+        aws_cli(*command)
     finally:
         shutil.rmtree(archive.parent, ignore_errors=True)
 
@@ -179,6 +189,9 @@ def main() -> int:
     step_validate("apigateway-http-trigger", "deploy-api-function")
     aws_cli("apigatewayv2", "create-api", "--name", "starter-api", "--protocol-type", "HTTP")
     api_id = aws_cli_output("apigatewayv2", "get-apis", "--query", "Items[?Name==`starter-api`].ApiId", "--output", "text")
+    step_validate("apigateway-http-trigger", "create-http-api")
+    aws_cli("apigatewayv2", "create-route", "--api-id", api_id, "--route-key", "GET /hello")
+    step_validate("apigateway-http-trigger", "add-hello-route")
     integration_id = aws_cli_output(
         "apigatewayv2",
         "create-integration",
@@ -195,9 +208,8 @@ def main() -> int:
         "--output",
         "text",
     )
-    aws_cli("apigatewayv2", "create-route", "--api-id", api_id, "--route-key", "GET /hello", "--target", f"integrations/{integration_id}")
-    step_validate("apigateway-http-trigger", "create-http-api")
-    step_validate("apigateway-http-trigger", "add-hello-route")
+    route_id = aws_cli_output("apigatewayv2", "get-routes", "--api-id", api_id, "--query", "Items[?RouteKey==`GET /hello`].RouteId", "--output", "text")
+    aws_cli("apigatewayv2", "update-route", "--api-id", api_id, "--route-id", route_id, "--target", f"integrations/{integration_id}")
     step_validate("apigateway-http-trigger", "wire-lambda-integration")
     mission_validate("apigateway-http-trigger")
 
@@ -259,6 +271,63 @@ def main() -> int:
     step_validate("operate-and-recover", "confirm-runtime-health")
     step_validate("operate-and-recover", "repair-targeted-state")
     mission_validate("operate-and-recover")
+
+    assert_status("launchdesk-compose-capstone", "available")
+    post_json("/missions/launchdesk-compose-capstone/start")
+    aws_cli(
+        "dynamodb",
+        "create-table",
+        "--table-name",
+        "orders-table",
+        "--attribute-definitions",
+        "AttributeName=pk,AttributeType=S",
+        "--key-schema",
+        "AttributeName=pk,KeyType=HASH",
+        "--billing-mode",
+        "PAY_PER_REQUEST",
+    )
+    step_validate("launchdesk-compose-capstone", "create-orders-table")
+    aws_cli("sqs", "create-queue", "--queue-name", "orders-queue", "--attributes", "VisibilityTimeout=0")
+    step_validate("launchdesk-compose-capstone", "create-orders-queue")
+    create_lambda(
+        "orders-function",
+        ROOT / "missions/launchdesk-compose-capstone/function/index.py",
+        runtime="python3.12",
+        environment={
+            "AWS_ENDPOINT_URL": "http://floci:4566",
+            "AWS_ACCESS_KEY_ID": "test",
+            "AWS_SECRET_ACCESS_KEY": "test",
+            "AWS_DEFAULT_REGION": "us-east-1",
+        },
+    )
+    step_validate("launchdesk-compose-capstone", "deploy-orders-function")
+    aws_cli("apigatewayv2", "create-api", "--name", "orders-api", "--protocol-type", "HTTP")
+    orders_api_id = aws_cli_output("apigatewayv2", "get-apis", "--query", "Items[?Name==`orders-api`].ApiId", "--output", "text")
+    step_validate("launchdesk-compose-capstone", "create-orders-api")
+    aws_cli("apigatewayv2", "create-route", "--api-id", orders_api_id, "--route-key", "POST /orders")
+    step_validate("launchdesk-compose-capstone", "add-orders-route")
+    orders_integration_id = aws_cli_output(
+        "apigatewayv2",
+        "create-integration",
+        "--api-id",
+        orders_api_id,
+        "--integration-type",
+        "LAMBDA_PROXY",
+        "--integration-uri",
+        "arn:aws:lambda:us-east-1:000000000000:function:orders-function",
+        "--payload-format",
+        "1.0",
+        "--query",
+        "IntegrationId",
+        "--output",
+        "text",
+    )
+    orders_route_id = aws_cli_output("apigatewayv2", "get-routes", "--api-id", orders_api_id, "--query", "Items[?RouteKey==`POST /orders`].RouteId", "--output", "text")
+    aws_cli("apigatewayv2", "update-route", "--api-id", orders_api_id, "--route-id", orders_route_id, "--target", f"integrations/{orders_integration_id}")
+    step_validate("launchdesk-compose-capstone", "wire-orders-integration")
+    capstone = mission_validate("launchdesk-compose-capstone")
+    if not capstone.get("capstoneScore") or not capstone["capstoneScore"].get("localSafetyPassed"):
+        raise AssertionError(f"Capstone score did not include a passing local safety gate: {capstone}")
 
     profile = get_json("/profile")["profile"]
     if profile["totalXp"] < 1050:

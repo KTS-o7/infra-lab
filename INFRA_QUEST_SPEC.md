@@ -623,6 +623,12 @@ checks:
 
 Validators must inspect Floci state. They must not trust user-submitted claims.
 
+Workflow validators may perform a learner-facing HTTP request against a local API Gateway route, then verify downstream Floci state. The supported target-release workflow checks are:
+
+- `workflow_http_writes_dynamodb`: `api_name`, `route`, `request_json`, `table_name`, and DynamoDB `key`
+- `workflow_http_sends_sqs`: `api_name`, `route`, `request_json`, `queue_name`, and `expected_body_contains`
+- `apigateway_route_exists` may include `target_prefix` when the check must prove that a route is wired to an integration, not merely present.
+
 ### Steps
 
 Steps are the learner-facing workbench layer.

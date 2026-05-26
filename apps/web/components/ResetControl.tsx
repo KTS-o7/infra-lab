@@ -70,13 +70,13 @@ export default function ResetControl({ missionId, onReset, disabled }: Props) {
           <button
             onClick={handleReset}
             disabled={disabled}
-            className="flex-1 rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+            className="min-h-10 flex-1 rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] disabled:opacity-50"
           >
             Confirm reset
           </button>
           <button
             onClick={handleCancel}
-            className="rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-100/65 hover:bg-white/[0.075] hover:text-emerald-50"
+            className="min-h-10 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-100/65 hover:bg-white/[0.075] hover:text-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d]"
           >
             Cancel
           </button>
@@ -89,7 +89,7 @@ export default function ResetControl({ missionId, onReset, disabled }: Props) {
     <button
       onClick={handleReset}
       disabled={disabled}
-      className="w-full rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-emerald-100/65 transition-colors hover:bg-white/[0.075] hover:text-emerald-50 disabled:opacity-50"
+      className="min-h-10 w-full rounded-md border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-emerald-100/65 transition-colors hover:bg-white/[0.075] hover:text-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] disabled:opacity-50"
     >
       Reset mission
     </button>

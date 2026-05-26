@@ -571,9 +571,74 @@ def test_capstone_validation_persists_score_and_returns_payload(tmp_path, monkey
     detail = mission_routes.get_mission("demo", session=session)
 
     assert response["capstoneScore"]["score"] >= 90
+    assert response["capstoneScore"]["localSafetyPassed"] is True
     assert response["capstoneScore"]["bestScore"] == response["capstoneScore"]["score"]
     assert row.best_level == response["capstoneScore"]["level"]
+    assert row.latest_local_safety_passed is True
     assert detail["mission"]["capstoneScore"]["bestScore"] == row.best_score
+    assert detail["mission"]["capstoneScore"]["localSafetyPassed"] is True
+    assert detail["mission"]["progress"]["capstoneScore"]["localSafetyPassed"] is True
+
+
+def test_capstone_local_safety_blocks_completion(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            mission_type: module_capstone
+            checks:
+              - id: floci-available
+                type: runtime_floci_available
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    monkeypatch.setattr("app.validators.run_check", lambda check: {
+        "id": check["id"],
+        "type": check["type"],
+        "passed": False,
+        "message": "local runtime unavailable",
+    })
+    session = make_session()
+
+    response = mission_routes.validate_mission("demo", body={}, session=session)
+    progress = get_progress(session, "demo")
+
+    assert response["passed"] is False
+    assert response["capstoneScore"]["localSafetyPassed"] is False
+    assert progress.status == "started"
+
+
+def test_capstone_missing_local_safety_check_blocks_completion(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            mission_type: module_capstone
+            checks:
+              - id: bucket-exists
+                type: s3_bucket_exists
+                bucket: demo
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    monkeypatch.setattr("app.validators.run_check", lambda check: {
+        "id": check["id"],
+        "type": check["type"],
+        "passed": True,
+        "message": "passed",
+    })
+    session = make_session()
+
+    response = mission_routes.validate_mission("demo", body={}, session=session)
+    progress = get_progress(session, "demo")
+
+    assert response["passed"] is False
+    assert response["capstoneScore"]["localSafetyPassed"] is False
+    assert progress.status == "started"
 
 
 def test_runtime_status_reports_diagnostic_issues(monkeypatch):

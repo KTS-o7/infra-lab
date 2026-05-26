@@ -40,7 +40,7 @@ commands:
     command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-fanout-queue --attributes VisibilityTimeout=0
   - id: subscribe
     label: Subscribe queue to topic
-    command: TOPIC_ARN=$(aws --endpoint-url http://localhost:4566 sns list-topics --query 'Topics[?contains(TopicArn,`starter-topic`)].TopicArn' --output text) && QUEUE_ARN=$(aws --endpoint-url http://localhost:4566 sqs get-queue-arn --queue-name starter-fanout-queue --query QueueArn --output text) && aws --endpoint-url http://localhost:4566 sns subscribe --topic-arn "$TOPIC_ARN" --protocol sqs --notification-endpoint "$QUEUE_ARN"
+    command: TOPIC_ARN=$(aws --endpoint-url http://localhost:4566 sns list-topics --query 'Topics[?contains(TopicArn,`starter-topic`)].TopicArn' --output text) && QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-fanout-queue --query QueueUrl --output text) && QUEUE_ARN=$(aws --endpoint-url http://localhost:4566 sqs get-queue-attributes --queue-url "$QUEUE_URL" --attribute-names QueueArn --query 'Attributes.QueueArn' --output text) && aws --endpoint-url http://localhost:4566 sns subscribe --topic-arn "$TOPIC_ARN" --protocol sqs --notification-endpoint "$QUEUE_ARN"
   - id: publish
     label: Publish message
     command: TOPIC_ARN=$(aws --endpoint-url http://localhost:4566 sns list-topics --query 'Topics[?contains(TopicArn,`starter-topic`)].TopicArn' --output text) && aws --endpoint-url http://localhost:4566 sns publish --topic-arn "$TOPIC_ARN" --message "local fanout works"

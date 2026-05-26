@@ -302,6 +302,9 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
                 "xpAwarded": prog.xp_awarded if prog else 0,
                 "startedAt": prog.started_at.isoformat() + "Z" if prog and prog.started_at else None,
                 "completedAt": prog.completed_at.isoformat() + "Z" if prog and prog.completed_at else None,
+                "capstoneScore": progress_service.capstone_score_payload(session, mission_id)
+                if mission.mission_type in {"module_capstone", "final_capstone"}
+                else None,
             },
             "capstoneScore": progress_service.capstone_score_payload(session, mission_id)
             if mission.mission_type in {"module_capstone", "final_capstone"}

@@ -183,7 +183,7 @@ export default function MissionWorkbench({
                     {(mission.prerequisites ?? []).length > 0 ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {(mission.prerequisites ?? []).map((prerequisite) => (
-                          <Link key={prerequisite} href={`/missions/${prerequisite}`} className="rounded-md border border-white/10 bg-black/15 px-2 py-1 text-xs text-amber-100 transition hover:border-amber-200/30 hover:bg-amber-200/10">
+                          <Link key={prerequisite} href={`/missions/${prerequisite}`} className="inline-flex min-h-10 items-center rounded-md border border-white/10 bg-black/15 px-3 py-2 text-xs text-amber-100 transition hover:border-amber-200/30 hover:bg-amber-200/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1b1507]">
                             {prerequisite}
                           </Link>
                         ))}
@@ -216,16 +216,6 @@ export default function MissionWorkbench({
             )}
           </main>
 
-          <aside className="border-b border-white/10 p-4 xl:order-1 xl:border-b-0 xl:border-r">
-            <MissionStepList
-              steps={steps}
-              activeStepId={activeStep?.id ?? null}
-              resultsByStep={resultsByStep}
-              progressByStep={progressByStep}
-              onSelect={setActiveStepId}
-            />
-          </aside>
-
           <aside className="space-y-4 p-4 xl:order-3 xl:sticky xl:top-24 xl:self-start">
             <ResourceProofBoard
               steps={steps}
@@ -251,7 +241,7 @@ export default function MissionWorkbench({
                 <button
                   onClick={onStart}
                   disabled={actionLoading || !canStart}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
+                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] disabled:opacity-50"
                 >
                   {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   {runtimeReady ? "Start mission" : "Runtime offline"}
@@ -262,7 +252,7 @@ export default function MissionWorkbench({
                 <button
                   onClick={onValidateMission}
                   disabled={actionLoading || !runtimeReady}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 disabled:opacity-50"
+                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-lime-300 px-4 py-3 font-semibold text-[#08110f] transition hover:bg-lime-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07100d] disabled:opacity-50"
                 >
                   {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   {runtimeReady ? "Complete mission" : "Runtime offline"}
@@ -297,7 +287,7 @@ export default function MissionWorkbench({
           {resetResult && <ResetResultPanel result={resetResult} />}
 
           {isCapstone && !validationResult?.capstoneScore ? (
-            <CapstoneScorePanel score={mission.progress.capstoneScore} />
+            <CapstoneScorePanel score={mission.capstoneScore ?? mission.progress.capstoneScore} />
           ) : null}
 
           {mission.status === "completed" && (
@@ -317,6 +307,16 @@ export default function MissionWorkbench({
           )}
 
           <CourseContinuityPanel currentMissionId={mission.id} currentCapability={mission.capability} />
+          </aside>
+
+          <aside className="border-t border-white/10 p-4 xl:order-1 xl:border-r xl:border-t-0">
+            <MissionStepList
+              steps={steps}
+              activeStepId={activeStep?.id ?? null}
+              resultsByStep={resultsByStep}
+              progressByStep={progressByStep}
+              onSelect={setActiveStepId}
+            />
           </aside>
         </div>
       </div>

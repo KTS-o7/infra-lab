@@ -5,6 +5,7 @@ from app.validators.dynamodb import dynamodb_table_exists, dynamodb_key_schema_e
 from app.validators.lambda_ import lambda_function_exists, lambda_invoke_returns
 from app.validators.sns import sns_topic_exists, sns_subscription_exists, sns_to_sqs_delivery
 from app.validators.apigateway import apigateway_api_exists, apigateway_route_exists, apigateway_http_returns
+from app.validators.workflow import workflow_http_sends_sqs, workflow_http_writes_dynamodb
 
 CHECK_REGISTRY = {
     "s3_bucket_exists": s3_bucket_exists,
@@ -25,6 +26,8 @@ CHECK_REGISTRY = {
     "apigateway_api_exists": apigateway_api_exists,
     "apigateway_route_exists": apigateway_route_exists,
     "apigateway_http_returns": apigateway_http_returns,
+    "workflow_http_writes_dynamodb": workflow_http_writes_dynamodb,
+    "workflow_http_sends_sqs": workflow_http_sends_sqs,
 }
 
 def run_check(check_spec: dict) -> dict:

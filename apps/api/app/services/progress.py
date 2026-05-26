@@ -233,6 +233,11 @@ def _capstone_score(session, mission, checks: list[dict], all_passed: bool, atte
     }
 
 
+def _capstone_local_safety_passed(checks: list[dict]) -> bool:
+    runtime_checks = [check for check in checks if check.get("type") == "runtime_floci_available"]
+    return bool(runtime_checks) and all(check.get("passed") for check in runtime_checks)
+
+
 def _persist_capstone_score(session, mission_id: str, score: dict) -> dict:
     row = session.exec(select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)).first()
     if not row:
@@ -240,9 +245,11 @@ def _persist_capstone_score(session, mission_id: str, score: dict) -> dict:
     row.latest_score = score["score"]
     row.latest_level = score["level"]
     row.dimensions_json = json.dumps(score["dimensions"])
+    row.latest_local_safety_passed = score["localSafetyPassed"]
     if row.best_score is None or score["score"] > row.best_score:
         row.best_score = score["score"]
         row.best_level = score["level"]
+        row.best_local_safety_passed = score["localSafetyPassed"]
     row.updated_at = _now()
     session.add(row)
     session.flush()
@@ -261,6 +268,8 @@ def capstone_score_payload(session, mission_id: str) -> dict | None:
         "latestLevel": row.latest_level,
         "bestLevel": row.best_level,
         "dimensions": json.loads(row.dimensions_json) if row.dimensions_json else [],
+        "localSafetyPassed": row.latest_local_safety_passed,
+        "bestLocalSafetyPassed": row.best_local_safety_passed,
         "updatedAt": _serialize_dt(row.updated_at),
     }
 
@@ -303,13 +312,19 @@ def validate_mission(
             if not result.get("passed"):
                 all_passed = False
 
+    is_capstone = mission.mission_type in {"module_capstone", "final_capstone"}
+    capstone_gate_passed = True
+    if scope == "mission" and is_capstone:
+        capstone_gate_passed = _capstone_local_safety_passed(check_results)
+    effective_passed = all_passed and capstone_gate_passed
+
     session.add(
         ValidationAttempt(
             id=str(uuid4()),
             mission_id=mission_id,
             scope=scope,
             step_id=step_id,
-            passed=all_passed,
+            passed=effective_passed,
             checks_json=json.dumps(check_results),
         )
     )
@@ -331,7 +346,7 @@ def validate_mission(
         session.add(row)
 
     xp_awarded = 0
-    if scope == "mission" and all_passed and progress.status != "completed":
+    if scope == "mission" and effective_passed and progress.status != "completed":
         progress.status = "completed"
         progress.completed_at = _now()
         xp_awarded = max(0, mission.xp - _hint_penalty(session, mission))
@@ -342,7 +357,7 @@ def validate_mission(
         session.add(profile)
 
     capstone_score = None
-    if scope == "mission" and mission.mission_type in {"module_capstone", "final_capstone"}:
+    if scope == "mission" and is_capstone:
         capstone_score = _persist_capstone_score(
             session,
             mission_id,
@@ -353,7 +368,7 @@ def validate_mission(
     session.commit()
 
     unlocked_mission_ids = []
-    if scope == "mission" and all_passed and not was_completed and all_missions:
+    if scope == "mission" and effective_passed and not was_completed and all_missions:
         completed_ids = completed_mission_ids(session)
         for candidate in sorted(all_missions, key=lambda item: (item.order, item.id)):
             if candidate.id == mission_id or candidate.id in completed_ids:
@@ -363,7 +378,7 @@ def validate_mission(
 
     return {
         "missionId": mission_id,
-        "passed": all_passed,
+        "passed": effective_passed,
         "status": progress.status,
         "xpAwarded": xp_awarded,
         "attemptNumber": attempt_number,

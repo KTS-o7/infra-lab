@@ -42,7 +42,7 @@ export default function HintPanel({ hints, onUseHint, missionStarted }: Props) {
               {!hint.revealed && missionStarted && (
                 <button
                   onClick={() => onUseHint(hint.id)}
-                  className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-emerald-100/65 hover:bg-white/[0.075] hover:text-emerald-50"
+                  className="min-h-10 shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-emerald-100/65 hover:bg-white/[0.075] hover:text-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1512]"
                 >
                   Reveal
                 </button>

@@ -1082,11 +1082,12 @@ Tasks:
 - Test supported responsive widths.
 - Confirm no release-blocking bugs remain.
 - Update README to match actual commands.
+- Keep any remaining public-launch evidence gaps in release docs; after the final code iteration, only docs/plan/spec/PRD updates are allowed.
 
 Acceptance:
 
 - Project starts from documented commands.
-- Required course slice works end to end.
+- Required course slice and optional composition capstone workflow work end to end in the automated local gate.
 - Final handoff contains commands run, flows run, and known non-blocking issues.
 
 ### Phase 15: Design Embedded Terminal
