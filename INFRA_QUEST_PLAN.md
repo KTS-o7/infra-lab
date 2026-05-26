@@ -1163,5 +1163,6 @@ The first execution slice has been implemented. The current branch is in PR-read
 6. Mission workbench renders explicit runtime, mission, step, command, proof, hint, reset, and completion states.
 7. Required course slice and optional composition capstone workflow pass the automated local gate.
 8. Remaining public-launch evidence gaps are documented in `docs/release/known-issues-template.md`: three human learner sessions and physical browser/device accessibility notes.
+9. Final release handoff is recorded in `docs/release/final-handoff.md`.
 
 After the final code iteration, only PRD/spec/plan/release-doc updates should be made on this branch unless a new explicit code-change request supersedes this handoff constraint.

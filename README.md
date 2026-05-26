@@ -85,6 +85,7 @@ Release candidate documentation lives in `docs/release/`:
 - [Beginner Usability Gate](docs/release/beginner-usability-gate.md)
 - [Clean-Machine Release Checklist](docs/release/clean-machine-checklist.md)
 - [End-to-End Acceptance Matrix](docs/release/end-to-end-acceptance-matrix.md)
+- [Final Release Handoff](docs/release/final-handoff.md)
 - [Known Issues Template](docs/release/known-issues-template.md)
 
 The embedded terminal implementation plan is documented in [Embedded Terminal Security Design](docs/design/embedded-terminal-security.md).

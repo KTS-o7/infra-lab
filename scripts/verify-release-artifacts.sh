@@ -7,6 +7,7 @@ REQUIRED_FILES=(
     "docs/release/beginner-usability-gate.md"
     "docs/release/clean-machine-checklist.md"
     "docs/release/end-to-end-acceptance-matrix.md"
+    "docs/release/final-handoff.md"
     "docs/release/known-issues-template.md"
     "docs/privacy/local-data-and-privacy.md"
     "docs/design/embedded-terminal-security.md"
