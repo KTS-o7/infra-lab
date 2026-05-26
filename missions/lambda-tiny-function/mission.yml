@@ -20,10 +20,10 @@ learning_objectives:
 commands:
   - id: create-function
     label: Create Lambda function
-    command: cd missions/lambda-tiny-function/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+    command: cd missions/lambda-tiny-function/function && zip -r function.zip index.mjs && aws --endpoint-url http://floci:4566 lambda create-function --function-name starter-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
   - id: invoke-function
     label: Invoke function
-    command: aws --endpoint-url http://localhost:4566 lambda invoke --function-name starter-function --payload '{"name":"Local Learner"}' /tmp/response.json && cat /tmp/response.json
+    command: aws --endpoint-url http://floci:4566 lambda invoke --function-name starter-function --payload '{"name":"Local Learner"}' /tmp/response.json && cat /tmp/response.json
 hints:
   - id: handler-syntax
     title: Handler syntax
@@ -31,7 +31,7 @@ hints:
     penalty_xp: 5
   - id: endpoint
     title: Local endpoint
-    text: Use --endpoint-url http://localhost:4566 for all Lambda CLI commands in this lab.
+    text: Use --endpoint-url http://floci:4566 for all Lambda CLI commands in this lab.
     penalty_xp: 5
 steps:
   - id: deploy-function

@@ -40,7 +40,7 @@ From there, a learner can complete guided AWS missions, validate their work, ear
 All AWS SDK and CLI traffic must go to:
 
 ```text
-http://localhost:4566
+http://floci:4566
 ```
 
 Inside Docker containers, services should use:
@@ -486,7 +486,7 @@ Response `200`:
       {
         "id": "create-bucket",
         "label": "Create bucket",
-        "command": "aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket"
+        "command": "aws --endpoint-url http://floci:4566 s3 mb s3://starter-bucket"
       }
     ],
     "hints": [
@@ -792,7 +792,7 @@ learning_objectives:
 commands:
   - id: create-bucket
     label: Create bucket
-    command: aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket
+    command: aws --endpoint-url http://floci:4566 s3 mb s3://starter-bucket
 checks:
   - id: bucket-exists
     type: s3_bucket_exists
@@ -833,7 +833,7 @@ Field rules:
 - `services` values must be lowercase AWS service identifiers.
 - `xp` must be an integer from `0` to `1000`.
 - `estimated_minutes` must be an integer from `1` to `120`.
-- `commands[].command` must include `--endpoint-url http://localhost:4566` when it starts with `aws `.
+- `commands[].command` must include `--endpoint-url http://floci:4566` when it starts with `aws `.
 - `checks[].id` must be unique within a mission.
 - `hints[].id` must be unique within a mission.
 - `owned_resources` must include every resource reset logic may delete.
@@ -1056,9 +1056,9 @@ learning_objectives:
 
 commands:
   - label: Create bucket
-    command: aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket
+    command: aws --endpoint-url http://floci:4566 s3 mb s3://starter-bucket
   - label: Upload object
-    command: aws --endpoint-url http://localhost:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
+    command: aws --endpoint-url http://floci:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
 
 checks:
   - type: s3_bucket_exists

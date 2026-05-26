@@ -7,6 +7,7 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "test")
 AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////app/data/lab.db")
 MISSIONS_DIR = os.getenv("MISSIONS_DIR", "/app/missions")
+AI_AGENT_CMD = os.getenv("AI_AGENT_CMD", "")
 
 _local_only_violation = False
 _violation_reason = ""

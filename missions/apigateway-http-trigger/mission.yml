@@ -22,19 +22,19 @@ learning_objectives:
 commands:
   - id: create-function
     label: Create Lambda function
-    command: cd missions/apigateway-http-trigger/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-api-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+    command: cd missions/apigateway-http-trigger/function && zip -r function.zip index.mjs && aws --endpoint-url http://floci:4566 lambda create-function --function-name starter-api-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
   - id: create-api
     label: Create API Gateway API
-    command: aws --endpoint-url http://localhost:4566 apigatewayv2 create-api --name starter-api --protocol-type HTTP
+    command: aws --endpoint-url http://floci:4566 apigatewayv2 create-api --name starter-api --protocol-type HTTP
   - id: add-route
     label: Add route
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello"
+    command: API_ID=$(aws --endpoint-url http://floci:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && aws --endpoint-url http://floci:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello"
   - id: integrate
     label: Integrate Lambda
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:starter-api-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello" --target "$INTEGRATION_ID"
+    command: API_ID=$(aws --endpoint-url http://floci:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://floci:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:starter-api-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://floci:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello" --target "$INTEGRATION_ID"
   - id: invoke
     label: Call HTTP endpoint
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://localhost:4566/$API_ID/hello"
+    command: API_ID=$(aws --endpoint-url http://floci:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://floci:4566/$API_ID/hello"
 hints:
 steps:
   - id: deploy-api-function
@@ -97,7 +97,7 @@ steps:
     why: Testing the full HTTP path confirms the integration works end-to-end. API Gateway receives the request, invokes Lambda, and returns the function's response.
     target_state:
       - label: Endpoint
-        value: http://localhost:4566/{apiId}/hello
+        value: http://floci:4566/{apiId}/hello
       - label: Status
         value: "200"
       - label: Response
@@ -114,7 +114,7 @@ hints:
     penalty_xp: 5
   - id: endpoint
     title: Local endpoint
-    text: Use --endpoint-url http://localhost:4566 for all CLI commands in this lab.
+    text: Use --endpoint-url http://floci:4566 for all CLI commands in this lab.
     penalty_xp: 5
 checks:
   - id: function-exists

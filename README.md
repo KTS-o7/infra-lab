@@ -35,7 +35,24 @@ Infra Quest teaches AWS concepts through guided missions. Every AWS API call run
 
 ## Safety
 
-This project is **local-only**. No real AWS endpoints are used. All CLI commands include `--endpoint-url http://localhost:4566`.
+This project is **local-only**. No real AWS endpoints are used. All CLI commands include `--endpoint-url http://floci:4566` when running inside the web terminal.
+
+## Advanced: Running AI Agent in Local Terminal
+
+By default, the "Ask me anything" chat runs its AI command inside the Docker container. If you want it to run in your **actual local terminal** (e.g. to use tools like `gemini` or `gh copilot` that are only installed on your host), follow these steps:
+
+1.  Start the AMA Host Bridge on your local machine:
+    ```bash
+    python3 scripts/ama-host-bridge.py
+    ```
+2.  Set the following in your `.env`:
+    ```bash
+    AMA_HOST_BRIDGE=http://host.docker.internal:8080
+    ```
+3.  Restart Docker Compose:
+    ```bash
+    docker compose up -d
+    ```
 
 ## Commands
 

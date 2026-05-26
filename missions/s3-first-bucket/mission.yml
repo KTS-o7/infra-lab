@@ -20,13 +20,13 @@ learning_objectives:
 commands:
   - id: create-bucket
     label: Create bucket
-    command: aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket
+    command: aws --endpoint-url http://floci:4566 s3 mb s3://starter-bucket
   - id: upload-file
     label: Upload file
-    command: echo "Hello from local AWS" > hello.txt && aws --endpoint-url http://localhost:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
+    command: echo "Hello from local AWS" > hello.txt && aws --endpoint-url http://floci:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
   - id: verify-upload
     label: Verify upload
-    command: aws --endpoint-url http://localhost:4566 s3 ls s3://starter-bucket/
+    command: aws --endpoint-url http://floci:4566 s3 ls s3://starter-bucket/
 steps:
   - id: create-storage-boundary
     title: Create the storage boundary
@@ -72,7 +72,7 @@ steps:
 hints:
   - id: endpoint-required
     title: Check the endpoint
-    text: Every AWS CLI command in this lab needs --endpoint-url http://localhost:4566.
+    text: Every AWS CLI command in this lab needs --endpoint-url http://floci:4566.
     penalty_xp: 5
   - id: bucket-names
     title: Bucket naming

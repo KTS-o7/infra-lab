@@ -34,11 +34,26 @@ export interface MissionDetail {
     learningObjectives: string[];
     commands: { id: string; label: string; command: string }[];
     steps: MissionStep[];
-    hints?: { id: string; title: string; text?: string; isUsed: boolean; penaltyXp: number }[];
+    hints?: {
+      id: string;
+      title: string;
+      text?: string;
+      isUsed: boolean;
+      penaltyXp: number;
+    }[];
+    learnMore?: {
+      id: string;
+      question: string;
+      answer: string;
+      docsUrl?: string;
+      xp: number;
+      isUsed: boolean;
+    }[];
     progress: {
       status: string;
       attempts: number;
       hintsUsed: string[];
+      learnMoreUsed: string[];
       xpAwarded: number;
       startedAt: string | null;
       completedAt: string | null;
@@ -77,6 +92,12 @@ export interface Profile {
   totalXp: number;
   completedMissionIds?: string[];
   badges?: { id: string; title: string; awardedAt: string }[];
+}
+
+export interface ChatMessage {
+  role: "user" | "ai";
+  content: string;
+  createdAt: string;
 }
 
 export async function getRuntimeStatus(): Promise<RuntimeStatus> {
@@ -152,6 +173,38 @@ export async function useHint(
     { method: "POST" },
   );
   if (!res.ok) throw new Error("Failed to use hint");
+  return res.json();
+}
+
+export async function useLearnMore(
+  missionId: string,
+  itemId: string,
+): Promise<{ missionId: string; itemId: string; xpAwarded: number }> {
+  const res = await fetch(`${API_BASE}/missions/${missionId}/learn/${itemId}`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to use learn more");
+  return res.json();
+}
+
+export async function getChatHistory(
+  missionId: string,
+): Promise<{ messages: ChatMessage[] }> {
+  const res = await fetch(`${API_BASE}/missions/${missionId}/chat`);
+  if (!res.ok) throw new Error("Failed to fetch chat history");
+  return res.json();
+}
+
+export async function sendChatMessage(
+  missionId: string,
+  message: string,
+): Promise<ChatMessage> {
+  const res = await fetch(`${API_BASE}/missions/${missionId}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) throw new Error("Failed to send chat message");
   return res.json();
 }
 

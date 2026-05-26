@@ -1,6 +1,3 @@
-from app.db import get_session
-from app.models import Profile, MissionProgress, HintUsage
-from sqlmodel import select
 from datetime import datetime
 
 from sqlmodel import select
@@ -252,8 +249,22 @@ def use_hint(session, mission_id: str, hint_id: str, penalty_xp: int) -> dict:
             "penaltyXp": penalty_xp,
             "isUsed": True,
         },
-    return {
-        "missionId": mission_id,
-        "hint": {"id": hint_id, "title": "", "text": "", "penaltyXp": penalty_xp, "isUsed": True},
         "possibleXp": possible_xp,
     }
+
+
+def use_learn_more(session, mission_id: str, item_id: str, xp: int) -> dict:
+    profile = ensure_local_profile(session)
+
+    existing = session.get(LearnMoreUsage, ("local", mission_id, item_id))
+    if existing:
+        return {"missionId": mission_id, "itemId": item_id, "xpAwarded": 0}
+
+    usage = LearnMoreUsage(
+        profile_id="local", mission_id=mission_id, item_id=item_id, xp_awarded=xp
+    )
+    session.add(usage)
+    profile.total_xp += xp
+    session.commit()
+
+    return {"missionId": mission_id, "itemId": item_id, "xpAwarded": xp}

@@ -10,6 +10,9 @@ import ResourceProofBoard from "./ResourceProofBoard";
 import HintPanel from "./HintPanel";
 import ResetControl from "./ResetControl";
 import ValidationPanel from "./ValidationPanel";
+import MissionWebTerminal from "./MissionWebTerminal";
+import LearnMorePanel from "./LearnMorePanel";
+import MissionChatPanel from "./MissionChatPanel";
 
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
   sns: "push-based messaging for pub/sub and mobile notifications",
@@ -92,6 +95,7 @@ interface Props {
   onValidateStep: (stepId: string) => Promise<ValidationResult | null>;
   onReset: (mode: string) => void;
   onUseHint: (hintId: string) => void;
+  onUseLearnMore: (itemId: string) => Promise<void>;
 }
 
 export default function MissionWorkbench({
@@ -103,6 +107,7 @@ export default function MissionWorkbench({
   onValidateStep,
   onReset,
   onUseHint,
+  onUseLearnMore,
 }: Props) {
   const mission = data.mission;
   const steps = mission.steps ?? [];
@@ -154,7 +159,7 @@ export default function MissionWorkbench({
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-emerald-100/45">
             <span className="rounded-md border border-white/10 bg-black/20 px-2.5 py-1">
-              Endpoint localhost:4566
+              Endpoint floci:4566
             </span>
             <span className="rounded-md border border-lime-300/20 bg-lime-300/10 px-2.5 py-1 text-lime-100">
               No real AWS
@@ -184,6 +189,10 @@ export default function MissionWorkbench({
               />
             )}
 
+            <div className="mt-6">
+              <MissionWebTerminal />
+            </div>
+
             {(mission.hints ?? []).length > 0 && (
               <div className="mt-5">
                 <HintPanel
@@ -193,6 +202,19 @@ export default function MissionWorkbench({
                 />
               </div>
             )}
+
+            {(mission.learnMore ?? []).length > 0 && (
+              <div className="mt-5">
+                <LearnMorePanel
+                  items={mission.learnMore ?? []}
+                  onUse={onUseLearnMore}
+                />
+              </div>
+            )}
+
+            <div className="mt-8">
+              <MissionChatPanel missionId={mission.id} />
+            </div>
           </main>
 
           <aside className="space-y-4 p-4 xl:sticky xl:top-24 xl:self-start">

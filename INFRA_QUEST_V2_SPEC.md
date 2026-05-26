@@ -36,7 +36,7 @@ Current missions define:
 commands:
   - id: create-bucket
     label: Create bucket
-    command: aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket
+    command: aws --endpoint-url http://floci:4566 s3 mb s3://starter-bucket
 
 checks:
   - id: bucket-exists

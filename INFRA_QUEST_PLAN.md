@@ -241,8 +241,8 @@ Learner creates a bucket and uploads a file:
 
 ```bash
 echo "Hello from local AWS" > hello.txt
-aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket
-aws --endpoint-url http://localhost:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
+aws --endpoint-url http://floci:4566 s3 mb s3://starter-bucket
+aws --endpoint-url http://floci:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
 ```
 
 ### Checks
@@ -313,9 +313,9 @@ Learner creates an SQS queue, sends a message, receives it, and understands queu
 Example commands:
 
 ```bash
-aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-queue
-aws --endpoint-url http://localhost:4566 sqs send-message \
-  --queue-url http://localhost:4566/000000000000/starter-queue \
+aws --endpoint-url http://floci:4566 sqs create-queue --queue-name starter-queue
+aws --endpoint-url http://floci:4566 sqs send-message \
+  --queue-url http://floci:4566/000000000000/starter-queue \
   --message-body "first local queue message"
 ```
 
@@ -490,7 +490,7 @@ And this warning:
 ```text
 This project does not use real AWS.
 Do not configure real AWS credentials.
-All commands must use --endpoint-url http://localhost:4566.
+All commands must use --endpoint-url http://floci:4566.
 ```
 
 ### Mission Authoring Guide Must Include
@@ -1400,10 +1400,10 @@ prerequisites: [sqs-first-message]
 Required learner commands:
 
 ```bash
-aws --endpoint-url http://localhost:4566 sns create-topic --name starter-topic
-aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-fanout-queue
-aws --endpoint-url http://localhost:4566 sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:starter-topic --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:000000000000:starter-fanout-queue
-aws --endpoint-url http://localhost:4566 sns publish --topic-arn arn:aws:sns:us-east-1:000000000000:starter-topic --message "local fanout works"
+aws --endpoint-url http://floci:4566 sns create-topic --name starter-topic
+aws --endpoint-url http://floci:4566 sqs create-queue --queue-name starter-fanout-queue
+aws --endpoint-url http://floci:4566 sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:starter-topic --protocol sqs --notification-endpoint arn:aws:sqs:us-east-1:000000000000:starter-fanout-queue
+aws --endpoint-url http://floci:4566 sns publish --topic-arn arn:aws:sns:us-east-1:000000000000:starter-topic --message "local fanout works"
 ```
 
 Required checks:
@@ -1477,9 +1477,9 @@ prerequisites: [sns-fanout]
 Required learner commands:
 
 ```bash
-aws --endpoint-url http://localhost:4566 dynamodb create-table --table-name starter-table --attribute-definitions AttributeName=pk,AttributeType=S --key-schema AttributeName=pk,KeyType=HASH --billing-mode PAY_PER_REQUEST
-aws --endpoint-url http://localhost:4566 dynamodb put-item --table-name starter-table --item '{"pk":{"S":"learner#1"},"name":{"S":"Local Learner"},"level":{"N":"1"}}'
-aws --endpoint-url http://localhost:4566 dynamodb get-item --table-name starter-table --key '{"pk":{"S":"learner#1"}}'
+aws --endpoint-url http://floci:4566 dynamodb create-table --table-name starter-table --attribute-definitions AttributeName=pk,AttributeType=S --key-schema AttributeName=pk,KeyType=HASH --billing-mode PAY_PER_REQUEST
+aws --endpoint-url http://floci:4566 dynamodb put-item --table-name starter-table --item '{"pk":{"S":"learner#1"},"name":{"S":"Local Learner"},"level":{"N":"1"}}'
+aws --endpoint-url http://floci:4566 dynamodb get-item --table-name starter-table --key '{"pk":{"S":"learner#1"}}'
 ```
 
 Required checks:
@@ -1574,8 +1574,8 @@ Required learner commands:
 ```bash
 cd missions/lambda-tiny-function/function
 zip -r function.zip index.mjs
-aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
-aws --endpoint-url http://localhost:4566 lambda invoke --function-name starter-function --payload '{"name":"Local Learner"}' response.json
+aws --endpoint-url http://floci:4566 lambda create-function --function-name starter-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+aws --endpoint-url http://floci:4566 lambda invoke --function-name starter-function --payload '{"name":"Local Learner"}' response.json
 cat response.json
 ```
 

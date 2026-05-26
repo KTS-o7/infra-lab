@@ -158,7 +158,7 @@ Acceptance criteria:
 
 - user sees the mission map without manual configuration
 - no real AWS credentials are requested
-- no command examples omit `--endpoint-url http://localhost:4566`
+- no command examples omit `--endpoint-url http://floci:4566`
 
 ### Flow 2: Runtime Unhealthy on Launch
 
@@ -274,7 +274,7 @@ User actions:
 System behavior:
 
 1. UI copies the exact command.
-2. Command targets `http://localhost:4566`.
+2. Command targets `http://floci:4566`.
 3. User-created resources appear in Floci.
 
 Expected UI:
@@ -285,7 +285,7 @@ Expected UI:
 
 Acceptance criteria:
 
-- every AWS CLI command includes `--endpoint-url http://localhost:4566`
+- every AWS CLI command includes `--endpoint-url http://floci:4566`
 - command copy state does not shift layout
 - commands are shell-safe and deterministic
 
@@ -649,7 +649,7 @@ This lab runs locally. It does not use real AWS.
 Required CLI note:
 
 ```text
-Every AWS CLI command in this lab must include --endpoint-url http://localhost:4566.
+Every AWS CLI command in this lab must include --endpoint-url http://floci:4566.
 ```
 
 Forbidden copy:

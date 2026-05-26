@@ -42,7 +42,7 @@ def base_mission_yaml(extra: str = "") -> str:
     commands:
       - id: create-bucket
         label: Create bucket
-        command: aws --endpoint-url http://localhost:4566 s3 mb s3://demo
+        command: aws --endpoint-url http://floci:4566 s3 mb s3://demo
     hints: []
     checks:
       - id: bucket-exists

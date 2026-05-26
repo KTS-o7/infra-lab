@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ClipboardCheck, Copy, Loader2, Lock, Terminal } from "lucide-react";
+import {
+  Check,
+  ClipboardCheck,
+  Copy,
+  Loader2,
+  Lock,
+  Terminal,
+} from "lucide-react";
 import { clsx } from "clsx";
 
 interface Props {
@@ -11,9 +18,15 @@ interface Props {
   onCheck: () => void;
 }
 
-export default function MissionTerminalPanel({ command, canCheck, checking, onCheck }: Props) {
+export default function MissionTerminalPanel({
+  command,
+  canCheck,
+  checking,
+  onCheck,
+}: Props) {
   const [copied, setCopied] = useState(false);
-  const commandText = command?.command ?? "# No CLI command is attached to this step yet.";
+  const commandText =
+    command?.command ?? "# No CLI command is attached to this step yet.";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(commandText).then(() => {
@@ -28,8 +41,12 @@ export default function MissionTerminalPanel({ command, canCheck, checking, onCh
         <div className="flex min-w-0 items-center gap-2">
           <Terminal className="h-4 w-4 shrink-0 text-lime-300" />
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Local terminal</p>
-            <p className="truncate text-sm text-emerald-100/60">{command?.label ?? "Guided command"}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">
+              Local terminal
+            </p>
+            <p className="truncate text-sm text-emerald-100/60">
+              {command?.label ?? "Guided command"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -42,7 +59,11 @@ export default function MissionTerminalPanel({ command, canCheck, checking, onCh
                 : "border-white/10 bg-white/[0.04] text-emerald-100/70 hover:bg-white/[0.08] hover:text-emerald-50",
             )}
           >
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
@@ -55,7 +76,7 @@ export default function MissionTerminalPanel({ command, canCheck, checking, onCh
               <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-300/80" />
               <span className="h-2.5 w-2.5 rounded-full bg-lime-300/80" />
-              <span className="ml-2 font-mono">localhost:4566</span>
+              <span className="ml-2 font-mono">floci:4566</span>
             </div>
             <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-sm leading-6 text-lime-100">
               <span className="select-none text-emerald-100/35">$ </span>
@@ -65,9 +86,12 @@ export default function MissionTerminalPanel({ command, canCheck, checking, onCh
         </div>
 
         <div className="border-t border-white/10 p-4 lg:border-l lg:border-t-0">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-100/38">Execution model</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-100/38">
+            Execution model
+          </p>
           <p className="mt-2 text-sm leading-6 text-emerald-100/60">
-            Run this in your machine terminal. Infra Quest checks the local sandbox state after the command changes resources.
+            Run this in your machine terminal. Infra Quest checks the local
+            sandbox state after the command changes resources.
           </p>
           <button
             onClick={onCheck}

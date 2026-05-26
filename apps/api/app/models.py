@@ -57,3 +57,24 @@ class Badge(SQLModel, table=True):
     badge_id: str = Field(primary_key=True)
     title: str = Field(nullable=False)
     awarded_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class LearnMoreUsage(SQLModel, table=True):
+    __tablename__ = "learn_more_usages"
+
+    profile_id: str = Field(primary_key=True)
+    mission_id: str = Field(primary_key=True)
+    item_id: str = Field(primary_key=True)
+    xp_awarded: int = Field(nullable=False)
+    used_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ChatMessage(SQLModel, table=True):
+    __tablename__ = "chat_messages"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    profile_id: str = Field(index=True)
+    mission_id: str = Field(index=True)
+    role: str = Field(nullable=False)  # "user" or "ai"
+    content: str = Field(nullable=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)

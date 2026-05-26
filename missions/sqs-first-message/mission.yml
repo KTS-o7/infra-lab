@@ -20,16 +20,16 @@ learning_objectives:
 commands:
   - id: create-queue
     label: Create queue
-    command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-queue --attributes VisibilityTimeout=0
+    command: aws --endpoint-url http://floci:4566 sqs create-queue --queue-name starter-queue --attributes VisibilityTimeout=0
   - id: get-queue-url
     label: Get queue URL
-    command: aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue
+    command: aws --endpoint-url http://floci:4566 sqs get-queue-url --queue-name starter-queue
   - id: send-message
     label: Send message
-    command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs send-message --queue-url "$QUEUE_URL" --message-body "first local queue message"
+    command: QUEUE_URL=$(aws --endpoint-url http://floci:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://floci:4566 sqs send-message --queue-url "$QUEUE_URL" --message-body "first local queue message"
   - id: receive-message
     label: Receive message
-    command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs receive-message --queue-url "$QUEUE_URL" --visibility-timeout 0 --max-number-of-messages 10 --wait-time-seconds 1
+    command: QUEUE_URL=$(aws --endpoint-url http://floci:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://floci:4566 sqs receive-message --queue-url "$QUEUE_URL" --visibility-timeout 0 --max-number-of-messages 10 --wait-time-seconds 1
 steps:
   - id: create-work-queue
     title: Create the work queue
@@ -90,7 +90,7 @@ hints:
     penalty_xp: 5
   - id: endpoint
     title: Local endpoint
-    text: Use --endpoint-url http://localhost:4566 for all AWS CLI commands.
+    text: Use --endpoint-url http://floci:4566 for all AWS CLI commands.
     penalty_xp: 5
 checks:
   - id: queue-exists

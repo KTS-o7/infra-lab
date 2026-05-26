@@ -7,6 +7,7 @@ import {
   validateMission,
   resetMission,
   useHint as useHintApi,
+  useLearnMore,
   type MissionDetail,
   type ValidationResult,
 } from "@/lib/api";
@@ -102,6 +103,15 @@ export default function MissionDetail({ missionId }: Props) {
     }
   };
 
+  const handleUseLearnMore = async (itemId: string) => {
+    try {
+      await useLearnMore(missionId, itemId);
+      await load();
+    } catch {
+      // ignore
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] py-24">
@@ -162,6 +172,7 @@ export default function MissionDetail({ missionId }: Props) {
         onValidateStep={handleValidateStep}
         onReset={handleReset}
         onUseHint={handleUseHint}
+        onUseLearnMore={handleUseLearnMore}
       />
     </div>
   );

@@ -6,7 +6,7 @@ services:
     volumes:
       - ./data/floci:/app/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566/"]
+      test: ["CMD", "curl", "-f", "http://floci:4566/"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -17,19 +17,24 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8001:8001"
+    env_file: .env
     environment:
-      AWS_ENDPOINT_URL: http://floci:4566
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
-      AWS_DEFAULT_REGION: us-east-1
-      DATABASE_URL: sqlite:////app/data/lab.db
-      MISSIONS_DIR: /app/missions
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-http://floci:4566}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/lab.db}
+      MISSIONS_DIR: ${MISSIONS_DIR:-/app/missions}
+      AI_AGENT_CMD: ${AI_AGENT_CMD:-}
+      AMA_HOST_BRIDGE: ${AMA_HOST_BRIDGE:-}
     volumes:
       - ./data/api:/app/data
       - ./missions:/app/missions:ro
     depends_on:
       floci:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   web:
     build:

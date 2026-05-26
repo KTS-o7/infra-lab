@@ -61,6 +61,13 @@ class HintSpec(BaseModel):
     penalty_xp: int = 0
 
 
+class LearnMoreItem(BaseModel):
+    id: str
+    question: str
+    answer: str
+    docs_url: Optional[str] = None
+    xp: int = 0
+
 
 class OwnedResource(BaseModel):
     type: str
@@ -89,6 +96,7 @@ class MissionDefinition(BaseModel):
     checks: List[CheckSpec]
     steps: List[StepSpec] = []
     hints: List[HintSpec]
+    learn_more: List[LearnMoreItem] = []
     owned_resources: List[OwnedResource]
 
     @model_validator(mode="after")

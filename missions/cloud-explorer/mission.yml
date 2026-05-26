@@ -20,10 +20,10 @@ learning_objectives:
 commands:
   - id: check-floci
     label: Check Floci health
-    command: aws --endpoint-url http://localhost:4566 sts get-caller-identity
+    command: aws --endpoint-url http://floci:4566 sts get-caller-identity
   - id: list-buckets
     label: List S3 buckets
-    command: aws --endpoint-url http://localhost:4566 s3 ls
+    command: aws --endpoint-url http://floci:4566 s3 ls
 steps:
   - id: confirm-sandbox
     title: Confirm the sandbox boundary
@@ -31,7 +31,7 @@ steps:
     why: Production cloud accounts are risky places to learn. This lab keeps practice isolated by routing all AWS-style traffic to a local endpoint.
     target_state:
       - label: Endpoint
-        value: http://localhost:4566
+        value: http://floci:4566
       - label: Credentials
         value: fake local credentials
     action: Ask the local endpoint who you are. The response proves the CLI is speaking to the sandbox.
@@ -56,7 +56,7 @@ steps:
 hints:
   - id: local-only
     title: Local only lab
-    text: This lab does not use real AWS. All commands point to http://localhost:4566.
+    text: This lab does not use real AWS. All commands point to http://floci:4566.
     penalty_xp: 5
   - id: fake-creds
     title: Fake credentials
