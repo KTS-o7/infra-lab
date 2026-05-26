@@ -12,7 +12,7 @@ Recorded: 2026-05-26
 | Storage | Complete first storage mission | Yes | `e2e-local-flow.py` | Passed | S3 bucket and object are created and validated in Floci |
 | Failed check recovery | Incorrect state repair path | Yes | Mission hints, failed proof rows, and reset controls reviewed in code and build | Passed | UI exposes nudge, diagnosis, repair, and failed proof messages |
 | Resume | Return to started lesson | Yes | Persisted step progress tests and workbench resume logic | Passed | Active step selects first incomplete persisted step |
-| Reset | Reset flow | Yes | API reset tests and workbench reset controls | Passed | Completed XP/history is preserved; proof can become stale |
+| Reset | Reset flow | Yes | API reset tests and visible workbench reset summary | Passed | Completed XP/history is preserved; proof can become stale; cleanup failures are shown |
 | Runtime degraded | API/Floci/DB issue display | Yes | App shell/settings degraded states and `/runtime/status` diagnostics | Passed | Runtime issue is separated from lesson proof failure |
 | Keyboard | Course/workbench controls | Yes | Semantic links/buttons and visible focus styles in build | Passed | Primary controls are reachable as links or buttons |
 | Mobile | Narrow workbench order | Yes | Mobile DOM order in `MissionWorkbench` | Passed | Brief, active step, proof/coach/continuity, then step list |

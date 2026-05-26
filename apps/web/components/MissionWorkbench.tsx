@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Loader2, ArrowRight, BookOpen, Lock } from "lucide-react";
-import type { MissionDetail, MissionHint, ResetMode, StepProgress, ValidationResult } from "@/lib/api";
+import { CheckCircle2, Loader2, ArrowRight, BookOpen, Lock, RotateCcw, TriangleAlert } from "lucide-react";
+import type { MissionDetail, MissionHint, ResetMode, ResetResult, StepProgress, ValidationResult } from "@/lib/api";
 import MissionBrief from "./MissionBrief";
 import MissionStepList from "./MissionStepList";
 import MissionStepCard from "./MissionStepCard";
@@ -74,6 +74,7 @@ interface Props {
   data: MissionDetail;
   actionLoading: boolean;
   validationResult: ValidationResult | null;
+  resetResult: ResetResult | null;
   onStart: () => void;
   onValidateMission: () => void;
   onValidateStep: (stepId: string) => Promise<ValidationResult | null>;
@@ -86,6 +87,7 @@ export default function MissionWorkbench({
   data,
   actionLoading,
   validationResult,
+  resetResult,
   onStart,
   onValidateMission,
   onValidateStep,
@@ -292,6 +294,8 @@ export default function MissionWorkbench({
 
           {validationResult && <ValidationPanel result={validationResult} />}
 
+          {resetResult && <ResetResultPanel result={resetResult} />}
+
           {isCapstone && !validationResult?.capstoneScore ? (
             <CapstoneScorePanel score={mission.progress.capstoneScore} />
           ) : null}
@@ -348,4 +352,56 @@ function buildResultsFromProgress(missionId: string, stepProgress: StepProgress[
 function firstIncompleteStepId(steps: MissionDetail["mission"]["steps"], progressByStep: Record<string, StepProgress>) {
   const firstIncomplete = steps.find((step) => progressByStep[step.id]?.status !== "passed");
   return firstIncomplete?.id ?? steps[0]?.id ?? null;
+}
+
+function ResetResultPanel({ result }: { result: ResetResult }) {
+  const hasFailures = result.failed.length > 0;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={`rounded-lg border p-5 shadow-xl shadow-black/10 ${
+        hasFailures
+          ? "border-amber-300/25 bg-amber-300/10"
+          : "border-lime-300/20 bg-lime-300/10"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {hasFailures ? (
+          <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-200" />
+        ) : (
+          <RotateCcw className="mt-0.5 h-5 w-5 shrink-0 text-lime-200" />
+        )}
+        <div className="min-w-0 flex-1">
+          <h2 className={`font-semibold ${hasFailures ? "text-amber-50" : "text-lime-50"}`}>
+            {hasFailures ? "Reset completed with cleanup issues" : "Reset complete"}
+          </h2>
+          <p className={`mt-1 text-sm leading-6 ${hasFailures ? "text-amber-100/75" : "text-lime-100/75"}`}>
+            Mode: {result.mode.replaceAll("_", " ")}. Deleted {result.deleted.length} owned resource{result.deleted.length === 1 ? "" : "s"}.
+          </p>
+          {result.deleted.length > 0 ? (
+            <div className="mt-3 space-y-1">
+              {result.deleted.map((item) => (
+                <p key={`${item.type}-${item.id}`} className="font-mono text-xs text-emerald-50/75">
+                  deleted {item.type}: {item.id}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {hasFailures ? (
+            <div className="mt-3 space-y-2">
+              {result.failed.map((item) => (
+                <div key={`${item.type}-${item.id}`} className="rounded-md border border-amber-200/20 bg-black/15 p-3">
+                  <p className="font-mono text-xs text-amber-50">{item.type}: {item.id}</p>
+                  <p className="mt-1 text-xs leading-5 text-amber-100/75">{item.message}</p>
+                </div>
+              ))}
+              <p className="text-sm text-amber-100/75">Retry reset after the local runtime is healthy.</p>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
 }

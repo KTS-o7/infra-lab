@@ -10,6 +10,7 @@ import {
   useHint as useHintApi,
   type MissionDetail,
   type ResetMode,
+  type ResetResult,
   type RuntimeStatus,
   type ValidationResult,
 } from "@/lib/api";
@@ -28,6 +29,7 @@ export default function MissionDetail({ missionId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [resetResult, setResetResult] = useState<ResetResult | null>(null);
   const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
   const runtimeReady = !runtimeStatus || (
     runtimeStatus.api.status === "online" &&
@@ -69,6 +71,7 @@ export default function MissionDetail({ missionId }: Props) {
     try {
       const result = await validateMission(missionId);
       setValidationResult(result);
+      setResetResult(null);
       await load();
     } catch {
       setError("Failed to validate mission");
@@ -94,8 +97,9 @@ export default function MissionDetail({ missionId }: Props) {
   const handleReset = async (mode: ResetMode) => {
     setActionLoading(true);
     try {
-      await resetMission(missionId, mode);
+      const result = await resetMission(missionId, mode);
       setValidationResult(null);
+      setResetResult(result);
       await load();
     } catch {
       setError("Failed to reset mission");
@@ -153,6 +157,7 @@ export default function MissionDetail({ missionId }: Props) {
         data={data}
         actionLoading={actionLoading}
         validationResult={validationResult}
+        resetResult={resetResult}
         onStart={handleStart}
         onValidateMission={handleValidate}
         onValidateStep={handleValidateStep}
