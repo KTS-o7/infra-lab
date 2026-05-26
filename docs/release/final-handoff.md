@@ -3,13 +3,14 @@
 Release branch: `implement-infra-quest-plan`
 PR: https://github.com/KTS-o7/infra-lab/pull/3
 Recorded: 2026-05-26
-Commit basis: `5fbc717`
+Latest full local gate: 2026-05-26 after nitpick fixes
+Current PR head: see PR #3
 
 ## Release State
 
 This branch is PR-ready for the target local AWS learning course release.
 
-The product code iteration is complete. After commit `c2b0ce0`, only release documentation, PRD, spec, and plan updates were made to clarify evidence and handoff state.
+The substantive product code iteration completed at commit `c2b0ce0`. Later changes were limited to release documentation, PRD/spec/plan handoff updates, release verifier hardening, and smoke-test harness nitpicks.
 
 ## Product Scope Verified
 
@@ -63,6 +64,16 @@ Before a public marketing tag, record:
 1. Three human beginner sessions using `docs/release/beginner-usability-gate.md`.
 2. Physical browser notes for Chrome or Chromium, Safari on macOS, and Firefox when available.
 3. Narrow viewport and keyboard-only navigation notes for the course map and mission workbench.
+
+## Release Artifact Index
+
+- `docs/release/beginner-usability-gate.md`
+- `docs/release/clean-machine-checklist.md`
+- `docs/release/end-to-end-acceptance-matrix.md`
+- `docs/release/final-handoff.md`
+- `docs/release/known-issues-template.md`
+- `docs/privacy/local-data-and-privacy.md`
+- `docs/design/embedded-terminal-security.md`
 
 ## Handoff Notes For Next Agent
 

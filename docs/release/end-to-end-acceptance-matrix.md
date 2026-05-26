@@ -2,7 +2,7 @@
 
 Release branch: `implement-infra-quest-plan`
 Recorded: 2026-05-26
-Commit: `c2b0ce0`
+Latest full local gate: 2026-05-26 after nitpick fixes
 
 | Area | Scenario | Required | Evidence | Status | Notes |
 | --- | --- | --- | --- | --- | --- |

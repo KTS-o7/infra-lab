@@ -5,7 +5,6 @@ echo "=== Infra Quest Smoke Test ==="
 
 MAX_WAIT=60
 INTERVAL=2
-ELAPSED=0
 WEB_URL="${WEB_URL:-http://localhost:3000}"
 API_URL="${API_URL:-http://localhost:8000}"
 FLOCI_URL="${FLOCI_URL:-http://localhost:4566}"
@@ -13,13 +12,14 @@ FLOCI_URL="${FLOCI_URL:-http://localhost:4566}"
 check_service() {
     local url=$1
     local name=$2
+    local elapsed=0
     while ! curl -sf "$url" > /dev/null 2>&1; do
-        if [ $ELAPSED -ge $MAX_WAIT ]; then
+        if [ "$elapsed" -ge "$MAX_WAIT" ]; then
             echo "FAIL: $name did not become available within ${MAX_WAIT}s"
             exit 1
         fi
-        sleep $INTERVAL
-        ELAPSED=$((ELAPSED + INTERVAL))
+        sleep "$INTERVAL"
+        elapsed=$((elapsed + INTERVAL))
     done
     echo "OK: $name is available at $url"
 }

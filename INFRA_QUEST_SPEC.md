@@ -139,8 +139,6 @@ infra-lab/
   docker-compose.yml
   README.md
   Makefile
-  package.json
-  bun.lock
   INFRA_QUEST_PRD.md
   INFRA_QUEST_SPEC.md
   INFRA_QUEST_PLAN.md
@@ -151,6 +149,7 @@ infra-lab/
       components/
       lib/
       package.json
+      bun.lock
       Dockerfile
 
     api/
@@ -165,6 +164,7 @@ infra-lab/
         routes/
         services/
       pyproject.toml
+      uv.lock
       Dockerfile
 
   missions/

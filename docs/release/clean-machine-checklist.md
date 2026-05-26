@@ -17,14 +17,15 @@ Recorded: 2026-05-26
 | Item | Value |
 | --- | --- |
 | Branch | `implement-infra-quest-plan` |
-| Commit | `c2b0ce0` |
+| Latest full local gate | 2026-05-26 after nitpick fixes |
+| Current PR head | See PR #3 |
 | OS | macOS 26.5 |
 | Docker engine | `28.2.2` |
 | Verification command | `make verify` |
 | API test result | `44 passed, 1 skipped` |
 | Web checks | `bun run typecheck`, `NEXT_TELEMETRY_DISABLED=1 bun run build` |
 | Runtime ports | API `18000`, web `13000`, Floci `14566` during verification |
-| GitHub PR checks | PR #3 `verify` checks passed for commit `c2b0ce0` |
+| GitHub PR checks | PR #3 `verify` checks passed for the current pushed branch |
 
 ## Operator Notes
 
