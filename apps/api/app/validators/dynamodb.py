@@ -28,8 +28,10 @@ def dynamodb_key_schema_equals(table_name: str, partition_key: dict, sort_key: d
 def dynamodb_item_exists(table_name: str, key: dict) -> dict:
     client = get_dynamodb_client()
     try:
-        client.get_item(TableName=table_name, Key=key)
-        return {"id": "item-exists", "type": "dynamodb_item_exists", "passed": True, "message": f"Item exists in table {table_name}."}
+        response = client.get_item(TableName=table_name, Key=key)
+        if response.get("Item"):
+            return {"id": "item-exists", "type": "dynamodb_item_exists", "passed": True, "message": f"Item exists in table {table_name}."}
+        return {"id": "item-exists", "type": "dynamodb_item_exists", "passed": False, "message": f"Item was not found in table {table_name}."}
     except Exception:
         return {"id": "item-exists", "type": "dynamodb_item_exists", "passed": False, "message": f"Item was not found in table {table_name}."}
 

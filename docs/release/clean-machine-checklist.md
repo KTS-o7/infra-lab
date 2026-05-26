@@ -18,10 +18,10 @@ Recorded: 2026-05-26
 | --- | --- |
 | Branch | `implement-infra-quest-plan` |
 | Verification command | `make verify` |
-| API test result | `30 passed, 1 skipped` |
+| API test result | `38 passed, 1 skipped` |
 | Web checks | `bun run typecheck`, `NEXT_TELEMETRY_DISABLED=1 bun run build` |
 | Runtime ports | API `18000`, web `13000`, Floci `14566` during verification |
 
 ## Operator Notes
 
-The release gate exercises a clean local learner database before starting Docker Compose, then validates the first learner slice through the browserless local e2e. A separate physical clean-machine/browser pass is tracked in the end-to-end matrix.
+The release gate exercises a clean local learner database before starting Docker Compose, then validates all required target-release lessons through the browserless local e2e. A separate physical clean-machine/browser pass is tracked in the end-to-end matrix.

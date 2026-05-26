@@ -1054,7 +1054,7 @@ Deliverables:
 
 Tasks:
 
-- Run setup, Module 0, first storage lesson, failed-check recovery, restart/resume.
+- Run setup, all required target-release lessons, failed-check recovery, restart/resume.
 - Record where learners hesitate or misunderstand.
 - Fix blocking copy, UX, validation, and layout issues.
 - Re-run affected flow after fixes.
@@ -1136,19 +1136,18 @@ Manual learner-flow verification:
 1. Start with `docker compose up --build`.
 2. Open `http://localhost:3000`.
 3. Confirm course map shows modules, capstones, and next recommended mission.
-4. Complete Module 0.
-5. Complete the S3 storage mission.
-6. Confirm proof board updates.
-7. Confirm continuity panel shows the new storage capability.
-8. Trigger a failed step and recover without reset.
-9. If the target release includes a required capstone, complete it with fewer hints.
-10. Reset and verify local resources are cleaned up.
-11. Restart the API and confirm progress resumes.
-12. Test runtime offline UI by stopping Floci.
-13. Test keyboard navigation through the course map and workbench.
-14. Test mobile layout at a narrow viewport.
-15. Confirm help escalation reaches a repair path.
-16. Confirm course completion state after required lessons and any required capstones in the target release.
+4. Complete all required target-release lessons.
+5. Confirm proof board updates for each required service workflow.
+6. Confirm continuity panel shows the new capabilities.
+7. Trigger a failed step and recover without reset.
+8. If the target release includes a required capstone, complete it with fewer hints.
+9. Reset and verify local resources are cleaned up.
+10. Restart the API and confirm progress resumes.
+11. Test runtime offline UI by stopping Floci.
+12. Test keyboard navigation through the course map and workbench.
+13. Test mobile layout at a narrow viewport.
+14. Confirm help escalation reaches a repair path.
+15. Confirm course completion state after required lessons and any required capstones in the target release.
 
 ## First Execution Slice
 

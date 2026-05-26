@@ -64,7 +64,7 @@ The implementation is not releasable if any of these are true:
 - reset deletes resources not owned by the mission
 - XP can be awarded twice for the same mission completion
 - a locked mission can be completed by bypassing prerequisites
-- a beginner cannot complete Module 0 and the first storage lesson with the browser-guided flow and local terminal commands
+- a beginner cannot complete all required target-release lessons with the browser-guided flow and local terminal commands
 - failed validation gives no actionable recovery path
 - mobile layout hides primary actions or overlaps text
 - keyboard users cannot reach primary controls

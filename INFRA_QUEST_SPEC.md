@@ -2187,11 +2187,10 @@ Before the course is considered polished, run at least three beginner usability 
 Minimum script:
 
 1. Start the lab from README.
-2. Complete Module 0.
-3. Complete the first storage lesson.
-4. Trigger and recover from one failed check.
-5. Stop and restart the lab.
-6. Resume from persisted progress.
+2. Complete all required target-release lessons.
+3. Trigger and recover from one failed check.
+4. Stop and restart the lab.
+5. Resume from persisted progress.
 
 Pass criteria:
 
@@ -2254,7 +2253,7 @@ The release candidate must pass these manual/browser flows:
 | Clean setup | `docker compose up --build` starts web, API, and Floci |
 | Runtime degraded | stopping Floci disables validation and shows local troubleshooting |
 | Course map | modules, capstones, next mission, and progress render correctly |
-| Guided lesson | Module 0 and first storage lesson complete with browser-guided flow and local terminal commands |
+| Guided lessons | All required target-release lessons complete with browser-guided flow and local terminal commands |
 | Failed check | learner can recover from one failed step without reset |
 | Reset | resource reset deletes only owned resources and marks proof stale |
 | Restart/resume | progress and step state survive API restart |

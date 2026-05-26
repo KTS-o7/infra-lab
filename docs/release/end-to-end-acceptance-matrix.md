@@ -8,8 +8,7 @@ Recorded: 2026-05-26
 | Startup | Start with Compose on alternate ports | Yes | `make verify` Compose stage | Passed | Web, API, and Floci became reachable |
 | Local-only boundary | Safety scan and runtime status | Yes | `verify-local-only.sh`, `/runtime/status` smoke output | Passed | No real AWS endpoint or credential path is used |
 | Course map | Fetch course and module state | Yes | `smoke-test.sh` `/course` output | Passed | Modules, capabilities, progress, and next mission returned |
-| Orientation | Complete Module 0 | Yes | `e2e-local-flow.py` | Passed | Orientation validates runtime locally |
-| Storage | Complete first storage mission | Yes | `e2e-local-flow.py` | Passed | S3 bucket and object are created and validated in Floci |
+| Required lessons | Complete all required target-release lessons | Yes | `e2e-local-flow.py` | Passed | Orientation, S3, Lambda, API Gateway, DynamoDB, SQS, SNS, and operations recovery complete against Floci |
 | Failed check recovery | Incorrect state repair path | Yes | Mission hints, failed proof rows, and reset controls reviewed in code and build | Passed | UI exposes nudge, diagnosis, repair, and failed proof messages |
 | Resume | Return to started lesson | Yes | Persisted step progress tests and workbench resume logic | Passed | Active step selects first incomplete persisted step |
 | Reset | Reset flow | Yes | API reset tests and visible workbench reset summary | Passed | Completed XP/history is preserved; proof can become stale; cleanup failures are shown |

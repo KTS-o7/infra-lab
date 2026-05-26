@@ -17,8 +17,7 @@ Recorded: 2026-05-26
 | Starts lab from README path | `make verify` builds and starts Compose stack | Passed |
 | Understands local-only posture | README, `/settings`, runtime local-only status | Passed |
 | Finds next recommended mission | `/course` and course map next mission state | Passed |
-| Completes Module 0 | `e2e-local-flow.py` | Passed |
-| Completes first storage mission | `e2e-local-flow.py` | Passed |
+| Completes all required lessons | `e2e-local-flow.py` | Passed |
 | Recovers from failed state | Hints, proof rows, reset controls, and validation messages | Passed |
 | Restarts and resumes progress | Persisted progress tests and workbench resume logic | Passed |
 | Avoids real AWS credentials and endpoints | Local-only scan and command authoring validation | Passed |
@@ -30,13 +29,13 @@ Recorded: 2026-05-26
 2. Ask the learner to read the README quick start only.
 3. Ask the learner to start the lab.
 4. Ask the learner to open the web app.
-5. Ask the learner to complete the orientation mission.
-6. Ask the learner to complete the first storage mission.
+5. Ask the learner to complete the required lesson path through operations.
+6. Ask the learner to explain each capability they added: local runtime, storage, function, HTTP API, database, queue, event fanout, and operations recovery.
 7. Ask the learner to intentionally run one incorrect step, then recover using the UI.
 8. Stop and restart the lab.
 9. Ask the learner to confirm progress resumes.
-10. Ask what capability they added and whether any real AWS account was used.
+10. Ask whether any real AWS account was used.
 
 ## Release Decision
 
-The automated proxy gate passed for the target course slice. Before a public marketing launch, run the human session script with three first-time learners and record the outcomes in the release notes for that tag.
+The automated proxy gate passed for all required target-release lessons. Before a public marketing launch, run the human session script with three first-time learners and record the outcomes in the release notes for that tag.

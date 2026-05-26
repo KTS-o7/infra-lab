@@ -44,10 +44,10 @@ commands:
     command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello"
   - id: integrate
     label: Integrate Lambda
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:starter-api-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello" --target "$INTEGRATION_ID"
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:starter-api-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello" --target "integrations/$INTEGRATION_ID"
   - id: invoke
     label: Call HTTP endpoint
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://localhost:4566/$API_ID/hello"
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://localhost:4566/restapis/$API_ID/default/_user_request_/hello"
 steps:
   - id: deploy-api-function
     title: Deploy the function
@@ -75,7 +75,7 @@ steps:
     action: Create the HTTP API in your local API Gateway.
     command_id: create-api
     check_ids:
-      - route-exists
+      - api-exists
     success: The starter-api HTTP API exists.
   - id: add-hello-route
     title: Add the route
@@ -103,7 +103,7 @@ steps:
     action: Integrate the route with the Lambda function.
     command_id: integrate
     check_ids:
-      - http-response
+      - integrated-route
     success: The route is wired to the Lambda.
   - id: call-and-verify
     title: Call the HTTP endpoint
@@ -111,7 +111,7 @@ steps:
     why: Testing the full HTTP path confirms the integration works end-to-end. API Gateway receives the request, invokes Lambda, and returns the function's response.
     target_state:
       - label: Endpoint
-        value: http://localhost:4566/{apiId}/hello
+        value: http://localhost:4566/restapis/{apiId}/default/_user_request_/hello
       - label: Status
         value: "200"
       - label: Response
@@ -149,10 +149,18 @@ checks:
   - id: function-exists
     type: lambda_function_exists
     function_name: starter-api-function
+  - id: api-exists
+    type: apigateway_api_exists
+    api_name: starter-api
   - id: route-exists
     type: apigateway_route_exists
     api_name: starter-api
     route: GET /hello
+  - id: integrated-route
+    type: apigateway_route_exists
+    api_name: starter-api
+    route: GET /hello
+    target_prefix: integrations/
   - id: http-response
     type: apigateway_http_returns
     api_name: starter-api

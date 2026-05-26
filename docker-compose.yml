@@ -3,8 +3,11 @@ services:
     image: floci/floci:1.5.13
     ports:
       - "${FLOCI_PORT:-4566}:4566"
+    environment:
+      FLOCI_SERVICES_DOCKER_NETWORK: infra-lab_default
     volumes:
       - ./data/floci:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/"]
       interval: 10s
