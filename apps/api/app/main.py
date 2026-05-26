@@ -1,10 +1,12 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 from sqlmodel import Session
 
 from app.db import create_db_and_tables, engine
 from app.routes import health, runtime, missions, floci
+from app.routes import terminal
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -12,6 +14,7 @@ async def lifespan(app: FastAPI):
     with Session(engine) as session:
         missions._course_payload(session)
     yield
+
 
 app = FastAPI(title="infra-quest-api", lifespan=lifespan)
 
@@ -27,3 +30,4 @@ app.include_router(health.router)
 app.include_router(runtime.router)
 app.include_router(missions.router)
 app.include_router(floci.router)
+app.include_router(terminal.router)

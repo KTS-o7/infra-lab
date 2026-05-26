@@ -1,8 +1,11 @@
-from pydantic import BaseModel, model_validator
-from typing import List, Optional, Dict, Any
-import yaml
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
+from pydantic import BaseModel, model_validator
+
 import app.config as config
+
 
 class CheckSpec(BaseModel):
     id: str
@@ -28,14 +31,17 @@ class CheckSpec(BaseModel):
     expected_body_contains: Optional[str] = None
     topic_name: Optional[str] = None
 
+
 class CommandSpec(BaseModel):
     id: str
     label: str
     command: str
 
+
 class TargetStateItem(BaseModel):
     label: str
     value: str
+
 
 class StepSpec(BaseModel):
     id: str
@@ -48,6 +54,7 @@ class StepSpec(BaseModel):
     check_ids: List[str] = []
     success: Optional[str] = None
     notes: Optional[str] = None
+
 
 class HintSpec(BaseModel):
     id: str
@@ -68,6 +75,7 @@ class CourseModule(BaseModel):
     capstone_mission_id: Optional[str] = None
     capstone_required: bool = False
 
+
 class CourseDefinition(BaseModel):
     id: str
     title: str
@@ -83,6 +91,7 @@ class OwnedResource(BaseModel):
     table_name: Optional[str] = None
     function_name: Optional[str] = None
     api_name: Optional[str] = None
+
 
 class MissionDefinition(BaseModel):
     id: str
@@ -127,9 +136,12 @@ class MissionDefinition(BaseModel):
 
             for check_id in step.check_ids:
                 if check_id not in check_ids:
-                    raise ValueError(f"Step {step.id} references unknown check_id: {check_id}")
+                    raise ValueError(
+                        f"Step {step.id} references unknown check_id: {check_id}"
+                    )
 
         return self
+
 
 class MissionLoader:
     _instances: Dict[str, MissionDefinition] = {}

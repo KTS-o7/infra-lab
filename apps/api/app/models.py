@@ -6,6 +6,7 @@ from uuid import uuid4
 def utc_now() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
+
 class Profile(SQLModel, table=True):
     __tablename__ = "profile"
 
@@ -14,6 +15,7 @@ class Profile(SQLModel, table=True):
     total_xp: int = Field(default=0)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
 
 class MissionProgress(SQLModel, table=True):
     __tablename__ = "mission_progress"
@@ -29,6 +31,7 @@ class MissionProgress(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
+
 class ValidationAttempt(SQLModel, table=True):
     __tablename__ = "validation_attempt"
 
@@ -39,6 +42,7 @@ class ValidationAttempt(SQLModel, table=True):
     passed: bool = Field(nullable=False)
     checks_json: str = Field(nullable=False)
     created_at: datetime = Field(default_factory=utc_now)
+
 
 class StepProgress(SQLModel, table=True):
     __tablename__ = "step_progress"
@@ -53,6 +57,7 @@ class StepProgress(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
+
 class HintUsage(SQLModel, table=True):
     __tablename__ = "hint_usage"
 
@@ -62,6 +67,29 @@ class HintUsage(SQLModel, table=True):
     level: str = Field(default="nudge")
     penalty_xp: int = Field(default=0)
     used_at: datetime = Field(default_factory=utc_now)
+
+
+class LearnMoreUsage(SQLModel, table=True):
+    __tablename__ = "learn_more_usage"
+
+    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
+    profile_id: str = Field(default="local", index=True)
+    mission_id: str = Field(index=True)
+    item_id: str = Field(index=True)
+    xp: int = Field(default=0)
+    used_at: datetime = Field(default_factory=utc_now)
+
+
+class ChatMessage(SQLModel, table=True):
+    __tablename__ = "chat_message"
+
+    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
+    profile_id: str = Field(default="local", index=True)
+    mission_id: str = Field(index=True)
+    role: str = Field(nullable=False)  # "user" | "ai"
+    content: str = Field(nullable=False)
+    created_at: datetime = Field(default_factory=utc_now)
+
 
 class CapstoneScore(SQLModel, table=True):
     __tablename__ = "capstone_score"
@@ -77,6 +105,7 @@ class CapstoneScore(SQLModel, table=True):
     best_local_safety_passed: Optional[bool] = Field(default=None)
     updated_at: datetime = Field(default_factory=utc_now)
 
+
 class CourseCompletion(SQLModel, table=True):
     __tablename__ = "course_completion"
 
@@ -90,6 +119,7 @@ class CourseCompletion(SQLModel, table=True):
     course_yml_hash: Optional[str] = Field(default=None)
     completed_at: Optional[datetime] = Field(default=None)
     updated_at: datetime = Field(default_factory=utc_now)
+
 
 class SchemaMigration(SQLModel, table=True):
     __tablename__ = "schema_migration"

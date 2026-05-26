@@ -45,4 +45,11 @@ echo "=== Course Map ==="
 curl -s "$API_URL/course" | python3 -m json.tool || echo "JSON parse failed"
 
 echo ""
+echo "=== S3 API Test (create bucket via Floci) ==="
+BUCKET="smoke-test-bucket-$(date +%s)"
+curl -s -X POST "$API_URL/floci/s3/bucket" \
+    -H "Content-Type: application/json" \
+    -d "{\"bucket\": \"$BUCKET\"}" | python3 -m json.tool || echo "S3 bucket create failed"
+
+echo ""
 echo "=== Smoke Test Complete ==="

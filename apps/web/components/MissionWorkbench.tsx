@@ -13,6 +13,8 @@ import ResetControl from "./ResetControl";
 import ValidationPanel from "./ValidationPanel";
 import CapstoneScorePanel from "./CapstoneScorePanel";
 import CourseContinuityPanel from "./CourseContinuityPanel";
+import MissionWebTerminal from "./MissionWebTerminal";
+import MissionChatPanel from "./MissionChatPanel";
 
 const SERVICE_DESCRIPTIONS: Record<string, string> = {
   sns: "push-based messaging for pub/sub and mobile notifications",
@@ -320,6 +322,10 @@ export default function MissionWorkbench({
           </aside>
         </div>
       </div>
+
+      <MissionWebTerminal />
+
+      <MissionChatPanel missionId={mission.id} />
     </div>
   );
 }
