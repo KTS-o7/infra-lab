@@ -84,7 +84,7 @@ No product copy, command, hint, error, or troubleshooting step may ask the learn
 
 ## Pinned Stack
 
-Version basis checked on May 23, 2026. These version numbers are forward-projected targets reflecting the expected stable release versions at implementation time. If a listed version is not yet published, resolve to the nearest available stable release and update the pin in the lockfile. Do not use pre-release or alpha versions.
+Version basis checked for the PR release on May 26, 2026. These are the pinned release versions reflected in Dockerfiles, package manifests, and lockfiles where applicable. Do not use pre-release or alpha versions.
 
 | Layer | Technology | Version |
 | --- | --- | --- |
@@ -2252,7 +2252,12 @@ Local-only scan must fail on:
 
 ## End-To-End Acceptance Matrix
 
-The release candidate must pass these manual/browser flows:
+The release candidate has two evidence levels:
+
+- PR-ready gate: automated/local evidence from `make verify`, source review, and release docs.
+- Public-tag gate: physical clean-machine, browser, responsive, keyboard, and beginner-session notes recorded before public launch.
+
+The target release must cover these flows. Rows marked source/build verified in release docs remain public-tag evidence gaps until the physical browser notes are recorded.
 
 | Flow | Required result |
 | --- | --- |
@@ -2266,8 +2271,8 @@ The release candidate must pass these manual/browser flows:
 | Locked lesson | direct locked route shows prerequisites |
 | Capstone | if target release includes a required capstone, integrated capstone returns completion and mastery level |
 | Replay | lower replay score does not erase best score |
-| Mobile | 320px layout has no overlap and primary actions are reachable |
-| Keyboard | primary course and workbench controls are keyboard reachable |
+| Mobile | 320px layout has no overlap and primary actions are reachable; source/build evidence is acceptable for PR readiness, physical browser evidence is required for public tag |
+| Keyboard | primary course and workbench controls are keyboard reachable; source/build evidence is acceptable for PR readiness, physical browser evidence is required for public tag |
 | Privacy | logs contain no credentials and no remote telemetry is sent |
 
 ## Definition Of Done
@@ -2279,8 +2284,8 @@ Implementation is done only when:
 - backend tests pass directly
 - frontend typecheck and build pass directly
 - local-only scan passes
-- clean-machine setup passes
-- end-to-end acceptance matrix passes
+- clean-machine setup passes for the PR-ready gate, with physical clean-machine evidence recorded before public tag
+- end-to-end acceptance matrix passes at the evidence level declared for the release gate
 - beginner usability gate passes or is explicitly marked pending for pre-release
 - no release-blocking bugs remain
 - README matches the actual setup and verification path
@@ -2301,7 +2306,7 @@ Implementation is done only when:
 - Proof board maps known check types and shows generic rows for unknown checks.
 - Reset removes owned local resources only.
 - Frontend implements explicit runtime, mission, step, command, proof, and hint states.
-- Course map and mission workbench meet accessibility and responsive rules.
+- Course map and mission workbench implement accessibility and responsive rules; physical browser evidence is required before public tag.
 - Mission content passes the content quality gates before release.
 - Step progress and help usage persist across restarts.
 - Setup diagnostics distinguish local runtime failures from lesson failures.

@@ -93,3 +93,8 @@ The embedded terminal implementation plan is documented in [Embedded Terminal Se
 make verify-release-artifacts
 make verify
 ```
+
+`make verify-release-artifacts` checks that required release files exist and
+are non-empty. `make verify` is the full local gate for safety scan,
+authoring validation, backend tests, API lint, web typecheck/build, smoke, and
+browserless learner e2e.

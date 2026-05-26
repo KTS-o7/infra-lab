@@ -2,6 +2,7 @@
 
 Release branch: `implement-infra-quest-plan`
 Recorded: 2026-05-26
+Commit: `c2b0ce0`
 
 ## Target Learner
 
@@ -14,7 +15,7 @@ Recorded: 2026-05-26
 
 | Check | Evidence | Result |
 | --- | --- | --- |
-| Starts lab from README path | `make verify` builds and starts Compose stack | Passed |
+| Starts lab through Compose gate | `make verify` builds and starts the same Compose stack on alternate ports | Passed |
 | Understands local-only posture | README, `/settings`, runtime local-only status | Passed |
 | Finds next recommended mission | `/course` and course map next mission state | Passed |
 | Completes all required lessons | `e2e-local-flow.py` | Passed |
@@ -39,4 +40,4 @@ Recorded: 2026-05-26
 
 ## Release Decision
 
-The automated proxy gate passed for all required target-release lessons. Before a public marketing launch, run the human session script with three first-time learners and record the outcomes in the release notes for that tag.
+The automated proxy gate passed for all required target-release lessons and the optional composition capstone workflow. Before a public marketing launch, run the human session script with three first-time learners and record the outcomes in the release notes for that tag.

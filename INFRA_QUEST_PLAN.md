@@ -1061,7 +1061,8 @@ Tasks:
 
 Acceptance:
 
-- Three beginners complete the gate without source-code help.
+- For PR readiness, the automated proxy gate in `docs/release/beginner-usability-gate.md` passes and the human-session gap is recorded.
+- For public launch polish, three beginners complete the gate without source-code help.
 - Each learner can explain what capability they added.
 - No learner thinks real AWS is being used.
 
@@ -1150,21 +1151,17 @@ Manual learner-flow verification:
 14. Confirm help escalation reaches a repair path.
 15. Confirm course completion state after required lessons and any required capstones in the target release.
 
-## First Execution Slice
+## Current Handoff State
 
-The next practical implementation slice should follow phase order — persistence must come before the course map and workbench, both of which depend on it.
+The first execution slice has been implemented. The current branch is in PR-ready state for the target release:
 
-1. Keep this file as the canonical plan.
-2. Keep one canonical PRD, one canonical spec, and one canonical plan.
-3. Add `missions/course.yml` and curriculum metadata to mission schema (Phase 2).
-4. Add all 8 persistence tables via schema migration: `schema_migration` (bootstrapped first), then `profile`, `mission_progress`, `validation_attempt`, `step_progress`, `hint_usage`, `capstone_score`, `course_completion` (Phase 3 — required before all following steps).
-5. Add persisted scoped validation attempts and `stepProgress` in mission detail (Phase 3 continued).
-6. Add `GET /course` backed by persisted completion state (Phase 4).
-7. Add a basic module course map rendering `GET /course` (Phase 4 continued — complete Phase 4 before starting Phase 5).
-8. Update the first three missions with motivation, theory, thought process, and debrief (Phase 6 partial).
-9. Render curriculum fields and explicit workbench UX states in the mission workbench (Phase 5 — depends on Phase 3).
-10. Run backend tests and frontend build.
+1. Canonical PRD, spec, and plan are present.
+2. `missions/course.yml` and curriculum metadata are implemented.
+3. Persistence tables, migrations, scoped validation attempts, step progress, hint usage, capstone score, and course completion are implemented.
+4. `GET /course` and the frontend course map render modules, capabilities, progress, and capstone grouping.
+5. Required missions include motivation, theory, thought process, target state, proof checks, staged hints, and debrief.
+6. Mission workbench renders explicit runtime, mission, step, command, proof, hint, reset, and completion states.
+7. Required course slice and optional composition capstone workflow pass the automated local gate.
+8. Remaining public-launch evidence gaps are documented in `docs/release/known-issues-template.md`: three human learner sessions and physical browser/device accessibility notes.
 
-This slice proves the new teaching model without waiting for embedded terminal execution or final capstones. Persistence (step 4) must be completed before all later steps. Phase 4 work (steps 6–7) must be complete before Phase 5 work (step 9).
-
-The first execution slice is not the final handoff. Final handoff requires the release candidate gate for the selected target release, including any required capstones declared in `missions/course.yml`.
+After the final code iteration, only PRD/spec/plan/release-doc updates should be made on this branch unless a new explicit code-change request supersedes this handoff constraint.
