@@ -1,9 +1,5 @@
 id: s3-first-bucket
 order: 2
-module: storage
-submodule: create-storage-boundary
-mission_type: lesson
-required: true
 title: First Bucket
 summary: Create your first object storage bucket and upload a file.
 difficulty: beginner
@@ -21,25 +17,16 @@ learning_objectives:
   - Understand what an S3 bucket is
   - Create a bucket locally
   - Upload and inspect an object
-capability: durable_file_storage
-motivation: |
-  LaunchDesk needs onboarding files and generated assets to survive app restarts. Container disk is tied to the running process, so files need durable object storage.
-theory: |
-  Object storage keeps file-like data in buckets. A bucket is the storage boundary, and each object is addressed by a key inside that bucket.
-thought_process: |
-  Use object storage when the app needs durable blobs rather than structured queries. Create a named bucket, write one known object, and verify both existence and content.
-debrief: |
-  This is the same pattern production systems use for uploads, exports, reports, media, and static assets. LaunchDesk now has its first durable file boundary.
 commands:
   - id: create-bucket
     label: Create bucket
-    command: aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket
+    command: aws --endpoint-url http://floci:4566 s3 mb s3://starter-bucket
   - id: upload-file
     label: Upload file
-    command: echo "Hello from local AWS" > hello.txt && aws --endpoint-url http://localhost:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
+    command: echo "Hello from local AWS" > hello.txt && aws --endpoint-url http://floci:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
   - id: verify-upload
     label: Verify upload
-    command: aws --endpoint-url http://localhost:4566 s3 ls s3://starter-bucket/
+    command: aws --endpoint-url http://floci:4566 s3 ls s3://starter-bucket/
 steps:
   - id: create-storage-boundary
     title: Create the storage boundary
@@ -85,28 +72,12 @@ steps:
 hints:
   - id: endpoint-required
     title: Check the endpoint
-    level: nudge
-    applies_to_checks:
-      - bucket-exists
-      - object-exists
-    text: Every AWS CLI command in this lab needs --endpoint-url http://localhost:4566.
+    text: Every AWS CLI command in this lab needs --endpoint-url http://floci:4566.
     penalty_xp: 5
   - id: bucket-names
     title: Bucket naming
-    level: diagnosis
-    applies_to_checks:
-      - bucket-exists
     text: Bucket names are global in real AWS, but local here. You can use any name.
     penalty_xp: 5
-  - id: recreate-storage
-    title: Recreate storage
-    level: repair
-    applies_to_checks:
-      - bucket-exists
-      - object-exists
-      - object-body
-    text: Re-run the create bucket command, then re-run the upload command so the bucket, key, and object body all match the target state.
-    penalty_xp: 10
 checks:
   - id: bucket-exists
     type: s3_bucket_exists

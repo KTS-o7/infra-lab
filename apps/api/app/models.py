@@ -1,129 +1,80 @@
-from sqlmodel import SQLModel, Field
+from datetime import datetime
 from typing import Optional
-from datetime import UTC, datetime
-from uuid import uuid4
 
-def utc_now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
+from sqlmodel import Field, SQLModel
 
 
 class Profile(SQLModel, table=True):
-    __tablename__ = "profile"
+    __tablename__ = "profiles"
 
     id: str = Field(primary_key=True, default="local")
     display_name: str = Field(default="Local Learner")
     total_xp: int = Field(default=0)
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class MissionProgress(SQLModel, table=True):
     __tablename__ = "mission_progress"
 
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
-    profile_id: str = Field(default="local")
-    mission_id: str = Field(index=True, unique=True)
-    status: str = Field(default="not_started")
+    profile_id: str = Field(primary_key=True)
+    mission_id: str = Field(primary_key=True)
+    status: str = Field(default="available")
     attempts: int = Field(default=0)
     xp_awarded: int = Field(default=0)
     started_at: Optional[datetime] = Field(default=None)
     completed_at: Optional[datetime] = Field(default=None)
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class ValidationAttempt(SQLModel, table=True):
-    __tablename__ = "validation_attempt"
+    __tablename__ = "validation_attempts"
 
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
+    id: str = Field(primary_key=True)
+    profile_id: str = Field(nullable=False)
     mission_id: str = Field(nullable=False)
-    scope: str = Field(nullable=False)
-    step_id: Optional[str] = Field(default=None)
+    attempt_number: int = Field(nullable=False)
     passed: bool = Field(nullable=False)
     checks_json: str = Field(nullable=False)
-    created_at: datetime = Field(default_factory=utc_now)
-
-
-class StepProgress(SQLModel, table=True):
-    __tablename__ = "step_progress"
-
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
-    mission_id: str = Field(index=True)
-    step_id: str = Field(index=True)
-    status: str = Field(default="not_started")
-    attempts: int = Field(default=0)
-    latest_checks_json: Optional[str] = Field(default=None)
-    last_validated_at: Optional[datetime] = Field(default=None)
-    created_at: datetime = Field(default_factory=utc_now)
-    updated_at: datetime = Field(default_factory=utc_now)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class HintUsage(SQLModel, table=True):
-    __tablename__ = "hint_usage"
+    __tablename__ = "hint_usages"
 
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
-    mission_id: str = Field(index=True)
-    hint_id: str = Field(index=True)
-    level: str = Field(default="nudge")
-    penalty_xp: int = Field(default=0)
-    used_at: datetime = Field(default_factory=utc_now)
+    profile_id: str = Field(primary_key=True)
+    mission_id: str = Field(primary_key=True)
+    hint_id: str = Field(primary_key=True)
+    penalty_xp: int = Field(nullable=False)
+    used_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Badge(SQLModel, table=True):
+    __tablename__ = "badges"
+
+    profile_id: str = Field(primary_key=True)
+    badge_id: str = Field(primary_key=True)
+    title: str = Field(nullable=False)
+    awarded_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class LearnMoreUsage(SQLModel, table=True):
-    __tablename__ = "learn_more_usage"
+    __tablename__ = "learn_more_usages"
 
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
-    profile_id: str = Field(default="local", index=True)
-    mission_id: str = Field(index=True)
-    item_id: str = Field(index=True)
-    xp: int = Field(default=0)
-    used_at: datetime = Field(default_factory=utc_now)
+    profile_id: str = Field(primary_key=True)
+    mission_id: str = Field(primary_key=True)
+    item_id: str = Field(primary_key=True)
+    xp_awarded: int = Field(nullable=False)
+    used_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class ChatMessage(SQLModel, table=True):
-    __tablename__ = "chat_message"
+    __tablename__ = "chat_messages"
 
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
-    profile_id: str = Field(default="local", index=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
+    profile_id: str = Field(index=True)
     mission_id: str = Field(index=True)
-    role: str = Field(nullable=False)  # "user" | "ai"
+    role: str = Field(nullable=False)  # "user" or "ai"
     content: str = Field(nullable=False)
-    created_at: datetime = Field(default_factory=utc_now)
-
-
-class CapstoneScore(SQLModel, table=True):
-    __tablename__ = "capstone_score"
-
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
-    mission_id: str = Field(index=True, unique=True)
-    latest_score: Optional[int] = Field(default=None)
-    best_score: Optional[int] = Field(default=None)
-    latest_level: Optional[str] = Field(default=None)
-    best_level: Optional[str] = Field(default=None)
-    dimensions_json: Optional[str] = Field(default=None)
-    latest_local_safety_passed: Optional[bool] = Field(default=None)
-    best_local_safety_passed: Optional[bool] = Field(default=None)
-    updated_at: datetime = Field(default_factory=utc_now)
-
-
-class CourseCompletion(SQLModel, table=True):
-    __tablename__ = "course_completion"
-
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
-    course_id: str = Field(index=True, unique=True)
-    status: str = Field(default="not_started")
-    required_lessons_completed: int = Field(default=0)
-    required_lessons_total: int = Field(default=0)
-    required_capstones_completed: int = Field(default=0)
-    required_capstones_total: int = Field(default=0)
-    course_yml_hash: Optional[str] = Field(default=None)
-    completed_at: Optional[datetime] = Field(default=None)
-    updated_at: datetime = Field(default_factory=utc_now)
-
-
-class SchemaMigration(SQLModel, table=True):
-    __tablename__ = "schema_migration"
-
-    version: str = Field(primary_key=True)
-    applied_at: datetime = Field(default_factory=utc_now)
-    description: str = Field(nullable=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)

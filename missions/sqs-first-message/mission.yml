@@ -1,9 +1,5 @@
 id: sqs-first-message
 order: 3
-module: async_processing
-submodule: queue-background-work
-mission_type: lesson
-required: true
 title: Queue the Message
 summary: Create an SQS queue and send a message that can be received later.
 difficulty: beginner
@@ -12,7 +8,7 @@ services:
 xp: 100
 estimated_minutes: 10
 prerequisites:
-  - dynamodb-first-table
+  - s3-first-bucket
 story: |
   The platform has work that should happen after a user request returns. Instead
   of blocking the app, send a message into a queue so a worker can pick it up
@@ -21,28 +17,19 @@ learning_objectives:
   - Understand SQS queue semantics
   - Create and configure queues
   - Send and receive messages
-capability: async_work
-motivation: |
-  LaunchDesk should not make users wait while slow work runs. A queue lets the app record work quickly and let a worker handle it later.
-theory: |
-  A queue stores messages durably between producers and consumers. Producers enqueue work, and consumers receive messages when they are ready to process them.
-thought_process: |
-  When work can happen after the request returns, put a small message on a queue instead of doing slow work inline. Verify the queue exists, then verify the expected work message is available.
-debrief: |
-  Queue-based handoff is the foundation for async jobs, retries, and worker fleets. LaunchDesk can now separate request handling from background processing.
 commands:
   - id: create-queue
     label: Create queue
-    command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name starter-queue --attributes VisibilityTimeout=0
+    command: aws --endpoint-url http://floci:4566 sqs create-queue --queue-name starter-queue --attributes VisibilityTimeout=0
   - id: get-queue-url
     label: Get queue URL
-    command: aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue
+    command: aws --endpoint-url http://floci:4566 sqs get-queue-url --queue-name starter-queue
   - id: send-message
     label: Send message
-    command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs send-message --queue-url "$QUEUE_URL" --message-body "first local queue message"
+    command: QUEUE_URL=$(aws --endpoint-url http://floci:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://floci:4566 sqs send-message --queue-url "$QUEUE_URL" --message-body "first local queue message"
   - id: receive-message
     label: Receive message
-    command: QUEUE_URL=$(aws --endpoint-url http://localhost:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://localhost:4566 sqs receive-message --queue-url "$QUEUE_URL" --visibility-timeout 0 --max-number-of-messages 10 --wait-time-seconds 1
+    command: QUEUE_URL=$(aws --endpoint-url http://floci:4566 sqs get-queue-url --queue-name starter-queue --query QueueUrl --output text) && aws --endpoint-url http://floci:4566 sqs receive-message --queue-url "$QUEUE_URL" --visibility-timeout 0 --max-number-of-messages 10 --wait-time-seconds 1
 steps:
   - id: create-work-queue
     title: Create the work queue
@@ -99,26 +86,12 @@ steps:
 hints:
   - id: queue-name
     title: Queue name
-    level: nudge
-    applies_to_checks:
-      - queue-exists
     text: The queue name is starter-queue. Queue names are local in this lab.
     penalty_xp: 5
   - id: endpoint
     title: Local endpoint
-    level: diagnosis
-    applies_to_checks:
-      - queue-exists
-      - message-available
-    text: Use --endpoint-url http://localhost:4566 for all AWS CLI commands.
+    text: Use --endpoint-url http://floci:4566 for all AWS CLI commands.
     penalty_xp: 5
-  - id: resend-message
-    title: Resend the message
-    level: repair
-    applies_to_checks:
-      - message-available
-    text: If the queue exists but validation cannot find the message, re-run the send message command and keep VisibilityTimeout at 0 for inspection.
-    penalty_xp: 10
 checks:
   - id: queue-exists
     type: sqs_queue_exists

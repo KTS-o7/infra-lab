@@ -75,6 +75,13 @@ class CourseModule(BaseModel):
     capstone_mission_id: Optional[str] = None
     capstone_required: bool = False
 
+class LearnMoreItem(BaseModel):
+    id: str
+    question: str
+    answer: str
+    docs_url: Optional[str] = None
+    xp: int = 0
+
 
 class CourseDefinition(BaseModel):
     id: str
@@ -118,6 +125,7 @@ class MissionDefinition(BaseModel):
     checks: List[CheckSpec]
     steps: List[StepSpec] = []
     hints: List[HintSpec]
+    learn_more: List[LearnMoreItem] = []
     owned_resources: List[OwnedResource]
 
     @model_validator(mode="after")
