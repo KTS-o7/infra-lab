@@ -2,9 +2,12 @@ services:
   floci:
     image: floci/floci:1.5.13
     ports:
-      - "4566:4566"
+      - "${FLOCI_PORT:-4566}:4566"
+    environment:
+      FLOCI_SERVICES_DOCKER_NETWORK: infra-lab_default
     volumes:
       - ./data/floci:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/"]
       interval: 10s
@@ -16,7 +19,7 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     environment:
       AWS_ENDPOINT_URL: http://floci:4566
       AWS_ACCESS_KEY_ID: test
@@ -36,10 +39,11 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:8000
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3000}:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_TELEMETRY_DISABLED: "1"
     depends_on:
       - api

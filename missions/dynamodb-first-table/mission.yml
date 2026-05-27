@@ -1,5 +1,9 @@
 id: dynamodb-first-table
 order: 5
+module: database
+submodule: persist-application-records
+mission_type: lesson
+required: true
 title: Key-Value Store
 summary: Create a DynamoDB table and store an item with a partition key.
 difficulty: beginner
@@ -8,7 +12,7 @@ services:
 xp: 150
 estimated_minutes: 15
 prerequisites:
-  - sns-fanout
+  - apigateway-http-trigger
 story: |
   You need to store key-value data that can be retrieved quickly.
   In AWS, this is done with DynamoDB, a managed NoSQL database.
@@ -17,6 +21,15 @@ learning_objectives:
   - Understand DynamoDB table structure
   - Create tables with partition keys
   - Put and get items
+capability: persisted_records
+motivation: |
+  LaunchDesk needs structured records that survive restarts, such as requests, tenants, or order state. Files alone are not enough for queryable application data.
+theory: |
+  DynamoDB stores items in tables. A partition key identifies where each item lives and gives the application a stable way to retrieve records.
+thought_process: |
+  Model the smallest useful record first instead of designing a broad schema too early. Define the table boundary, choose a simple partition key, write one known item, and verify its attributes.
+debrief: |
+  Durable records are how SaaS platforms remember user actions and workflow state. LaunchDesk now has a place for structured application data.
 commands:
   - id: create-table
     label: Create DynamoDB table
@@ -83,12 +96,27 @@ steps:
 hints:
   - id: partition-key
     title: Partition key
+    level: nudge
+    applies_to_checks:
+      - key-schema
     text: The partition key is named "pk" and stores strings (S). DynamoDB uses this to distribute data.
     penalty_xp: 5
   - id: local-endpoint
     title: Local endpoint
+    level: diagnosis
+    applies_to_checks:
+      - table-exists
+      - item-exists
     text: Use --endpoint-url http://localhost:4566 for all DynamoDB CLI commands.
     penalty_xp: 5
+  - id: rewrite-item
+    title: Rewrite the item
+    level: repair
+    applies_to_checks:
+      - item-exists
+      - item-name
+    text: If the table exists but the item check fails, re-run the put item command exactly so pk, name, and level match the expected record.
+    penalty_xp: 10
 checks:
   - id: table-exists
     type: dynamodb_table_exists

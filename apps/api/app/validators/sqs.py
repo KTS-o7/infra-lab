@@ -5,7 +5,7 @@ def sqs_queue_exists(queue_name: str) -> dict:
     try:
         client.get_queue_url(QueueName=queue_name)
         return {"id": "queue-exists", "type": "sqs_queue_exists", "passed": True, "message": f"Queue {queue_name} exists."}
-    except Exception as e:
+    except Exception:
         return {"id": "queue-exists", "type": "sqs_queue_exists", "passed": False, "message": f"Queue {queue_name} was not found."}
 
 def sqs_message_available(queue_name: str, body: str) -> dict:
@@ -18,5 +18,5 @@ def sqs_message_available(queue_name: str, body: str) -> dict:
             if msg["Body"] == body:
                 return {"id": "message-available", "type": "sqs_message_available", "passed": True, "message": f"Queue {queue_name} contains the expected message."}
         return {"id": "message-available", "type": "sqs_message_available", "passed": False, "message": f"Queue {queue_name} does not contain the expected message."}
-    except Exception as e:
+    except Exception:
         return {"id": "message-available", "type": "sqs_message_available", "passed": False, "message": f"Queue {queue_name} does not contain the expected message."}

@@ -1,13 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from sqlmodel import Session
 
-from app.db import create_db_and_tables
+from app.db import create_db_and_tables, engine
 from app.routes import health, runtime, missions, floci
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    with Session(engine) as session:
+        missions._course_payload(session)
     yield
 
 app = FastAPI(title="infra-quest-api", lifespan=lifespan)

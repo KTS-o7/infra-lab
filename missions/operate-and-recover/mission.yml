@@ -1,0 +1,141 @@
+id: operate-and-recover
+order: 9
+module: operations
+submodule: inspect-and-repair-proof
+mission_type: lesson
+required: true
+title: Operate and Recover
+summary: Inspect local runtime health and use proof failures to repair LaunchDesk state.
+difficulty: beginner
+services:
+  - local
+xp: 125
+estimated_minutes: 15
+prerequisites:
+  - sns-fanout
+story: |
+  LaunchDesk has several local cloud capabilities online. Now you need to act like
+  the operator: verify the runtime boundary, inspect the app's proof surface, and
+  recover from missing state without reaching for a real AWS account.
+learning_objectives:
+  - Distinguish setup failures from lesson failures
+  - Use local diagnostics before changing resources
+  - Choose repair before full reset when state is recoverable
+capability: operational_debugging
+motivation: |
+  Building resources is not enough. A production-minded engineer needs to know
+  whether a failure comes from the local runtime, a missing resource, or a wrong
+  value, because each cause needs a different repair path.
+theory: |
+  Operations starts with observable state. Health checks prove dependencies are
+  reachable, proof boards show resource-specific gaps, and reset is reserved for
+  owned local resources when repair is slower than rebuilding.
+thought_process: |
+  Inspect runtime health rather than guessing. If the runtime is healthy, repair
+  the specific missing resource instead of resetting everything; avoid broad
+  cleanup when a targeted command can restore the expected state.
+debrief: |
+  Real cloud teams use the same loop: observe, isolate, repair, and re-validate.
+  LaunchDesk now has an operational workflow for safely recovering local systems.
+commands:
+  - id: check-runtime
+    label: Check runtime
+    command: aws --endpoint-url http://localhost:4566 sts get-caller-identity
+  - id: inspect-storage
+    label: Inspect storage
+    command: aws --endpoint-url http://localhost:4566 s3 ls
+  - id: repair-storage
+    label: Create storage repair
+    command: aws --endpoint-url http://localhost:4566 s3 mb s3://starter-bucket || true && printf "Hello from local AWS" > hello.txt && aws --endpoint-url http://localhost:4566 s3 cp hello.txt s3://starter-bucket/hello.txt
+steps:
+  - id: confirm-runtime-health
+    title: Confirm runtime health
+    goal: Prove the local AWS-compatible endpoint is reachable before diagnosing lesson state.
+    why: If Floci is unavailable, resource checks will fail even when the learner's commands are correct. Runtime health separates setup failures from lesson failures.
+    target_state:
+      - label: Runtime
+        value: http://localhost:4566 responds to AWS-style calls
+      - label: Credentials
+        value: fake local identity is accepted
+    action: Check the local runtime endpoint and confirm the lab is still isolated from real AWS.
+    command_id: check-runtime
+    check_ids:
+      - floci-available
+    success: The local AWS emulator is reachable.
+  - id: inspect-existing-proof
+    title: Inspect existing proof
+    goal: Inspect local S3 state before deciding whether to repair or reset.
+    why: Operators look at current state before changing it. This prevents unnecessary broad reset when a single missing object is the real problem.
+    target_state:
+      - label: Bucket
+        value: starter-bucket should be visible when storage proof is healthy
+      - label: Object
+        value: hello.txt should exist after repair
+    action: List local buckets and compare what exists with the proof board's expected storage state.
+    command_id: inspect-storage
+    check_ids:
+      - bucket-exists
+      - object-exists
+    success: The owned storage boundary and object can be inspected locally.
+  - id: repair-targeted-state
+    title: Repair targeted state
+    goal: Restore starter-bucket and hello.txt without resetting unrelated resources.
+    why: Targeted repair keeps useful state intact. Reset is useful, but it should not be the first move when the missing state is narrow and known.
+    target_state:
+      - label: Bucket
+        value: starter-bucket exists
+      - label: Object body
+        value: Hello from local AWS
+    action: Recreate the owned storage state and validate the exact bucket, object, and content.
+    command_id: repair-storage
+    check_ids:
+      - bucket-exists
+      - object-exists
+      - object-body
+    success: Storage proof is healthy again after targeted repair.
+hints:
+  - id: inspect-before-reset
+    title: Inspect before reset
+    level: nudge
+    applies_to_checks:
+      - bucket-exists
+      - object-exists
+    text: Start by listing local resources. If only one object is missing, repair that object instead of resetting the whole lab.
+    penalty_xp: 5
+  - id: runtime-vs-resource
+    title: Runtime versus resource
+    level: diagnosis
+    applies_to_checks:
+      - floci-available
+      - bucket-exists
+      - object-exists
+    text: If the runtime check fails, inspect Docker services. If runtime passes but a resource check fails, repair the named resource.
+    penalty_xp: 5
+  - id: repair-command
+    title: Repair command
+    level: repair
+    applies_to_checks:
+      - object-body
+    text: Recreate starter-bucket if needed, then upload hello.txt with the expected body through the local endpoint.
+    penalty_xp: 10
+checks:
+  - id: floci-available
+    type: runtime_floci_available
+  - id: bucket-exists
+    type: s3_bucket_exists
+    bucket: starter-bucket
+  - id: object-exists
+    type: s3_object_exists
+    bucket: starter-bucket
+    key: hello.txt
+  - id: object-body
+    type: s3_object_body_equals
+    bucket: starter-bucket
+    key: hello.txt
+    value: Hello from local AWS
+owned_resources:
+  - type: s3_object
+    bucket: starter-bucket
+    key: hello.txt
+  - type: s3_bucket
+    bucket: starter-bucket

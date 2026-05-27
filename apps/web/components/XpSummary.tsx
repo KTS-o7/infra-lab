@@ -15,7 +15,13 @@ export default function XpSummary() {
 
   if (!profile) return null;
 
-  const completedCount = (profile.completedMissionIds ?? []).length;
+  const progress = profile.courseProgress;
+  const completedCount = progress
+    ? progress.requiredLessonsCompleted + progress.requiredCapstonesCompleted
+    : (profile.completedMissionIds ?? []).length;
+  const requiredCount = progress
+    ? progress.requiredLessonsTotal + progress.requiredCapstonesTotal
+    : null;
 
   return (
     <aside className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-2xl shadow-black/20 backdrop-blur lg:sticky lg:top-24">
@@ -42,11 +48,21 @@ export default function XpSummary() {
             <Gauge className="h-4 w-4" />
             <span className="text-xs uppercase tracking-[0.12em]">Done</span>
           </div>
-          <p className="text-2xl font-semibold text-emerald-50">{completedCount}</p>
+          <p className="text-2xl font-semibold text-emerald-50">
+            {requiredCount === null ? completedCount : `${completedCount}/${requiredCount}`}
+          </p>
         </div>
       </div>
 
-      {completedCount > 0 ? (
+      {progress ? (
+        <div className="mt-5 border-t border-white/10 pt-4">
+          <p className="mb-2 text-xs uppercase tracking-[0.14em] text-emerald-100/42">Course state</p>
+          <p className="text-sm text-emerald-100/62">
+            {progress.status.replace("_", " ")}
+            {progress.nextMissionId ? <span className="mt-1 block text-emerald-100/45">Next: {progress.nextMissionId}</span> : null}
+          </p>
+        </div>
+      ) : completedCount > 0 ? (
         <div className="mt-5 border-t border-white/10 pt-4">
           <p className="mb-3 text-xs uppercase tracking-[0.14em] text-emerald-100/42">Completed missions</p>
           <div className="flex flex-wrap gap-2">

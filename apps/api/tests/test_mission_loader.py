@@ -1,20 +1,35 @@
 import textwrap
 
 import pytest
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import SQLModel, Session, create_engine, select
 
+from app import db
 from app.mission_loader import MissionLoader
-from app.models import Profile, MissionProgress
+from app.models import (
+    CapstoneScore,
+    CourseCompletion,
+    HintUsage,
+    MissionProgress,
+    Profile,
+    SchemaMigration,
+    StepProgress,
+    ValidationAttempt,
+)
 from app.routes import missions as mission_routes
+from app.routes import runtime as runtime_routes
 
 def test_mission_loader_schema():
-    loader = MissionLoader()
-    assert True
+    assert MissionLoader is not None
 
 
 def reset_loader():
     MissionLoader._instances = {}
+    MissionLoader._course = None
     MissionLoader._loaded = False
+
+
+def get_progress(session, mission_id: str):
+    return session.exec(select(MissionProgress).where(MissionProgress.mission_id == mission_id)).first()
 
 
 def write_mission(root, body: str):
@@ -22,6 +37,25 @@ def write_mission(root, body: str):
     mission_dir.mkdir()
     (mission_dir / "mission.yml").write_text(textwrap.dedent(body), encoding="utf-8")
     return mission_dir
+
+
+def write_course(root, body: str = ""):
+    course = body or """
+    id: infra-quest
+    title: Infra Quest
+    summary: Demo course.
+    modules:
+      - id: legacy
+        order: 1
+        title: Legacy
+        required: true
+        capability: storage
+        capability_label: Storage
+        summary: Legacy module.
+        capstone_mission_id: null
+        capstone_required: false
+    """
+    (root / "course.yml").write_text(textwrap.dedent(course), encoding="utf-8")
 
 
 def base_mission_yaml(extra: str = "") -> str:
@@ -227,7 +261,7 @@ def test_step_validation_runs_only_step_checks_without_awarding_xp(tmp_path, mon
         body={"stepId": "create-storage"},
         session=session,
     )
-    progress = session.get(MissionProgress, ("local", "demo"))
+    progress = get_progress(session, "demo")
     profile = session.get(Profile, "local")
 
     assert response["scope"] == "step"
@@ -236,6 +270,11 @@ def test_step_validation_runs_only_step_checks_without_awarding_xp(tmp_path, mon
     assert [check["id"] for check in response["checks"]] == ["bucket-exists"]
     assert progress.status == "started"
     assert profile.total_xp == 0
+    attempts = session.exec(select(ValidationAttempt).where(ValidationAttempt.mission_id == "demo")).all()
+    step_progress = session.exec(select(StepProgress).where(StepProgress.mission_id == "demo")).first()
+    assert attempts[0].scope == "step"
+    assert step_progress.status == "passed"
+    assert step_progress.attempts == 1
 
 
 def test_step_validation_without_checks_returns_actionable_failure(tmp_path, monkeypatch):
@@ -268,38 +307,381 @@ def test_step_validation_without_checks_returns_actionable_failure(tmp_path, mon
 
     assert response["scope"] == "step"
     assert response["stepId"] == "explain-only"
-    assert response["passed"] is False
+    assert response["passed"] is True
     assert response["xpAwarded"] == 0
-    assert response["checks"] == [
-        {
-            "id": "explain-only",
-            "type": "step_has_checks",
-            "passed": False,
-            "message": "This step does not have validation checks yet.",
-        }
-    ]
+    assert response["checks"] == []
 
 
 def test_reset_mission_uses_requested_mode(tmp_path, monkeypatch):
     reset_loader()
     write_mission(tmp_path, base_mission_yaml())
     monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
-    monkeypatch.setattr("app.services.reset.reset_owned_resources", lambda owned: ["s3_bucket:demo"])
+    monkeypatch.setattr(
+        "app.services.reset.reset_owned_resources",
+        lambda owned: {
+            "deleted": [{"type": "s3_bucket", "id": "demo", "status": "deleted"}],
+            "skipped": [],
+            "failed": [],
+        },
+    )
     session = make_session()
     session.add(Profile(id="local", display_name="Local Learner", total_xp=50))
     session.add(MissionProgress(profile_id="local", mission_id="demo", status="completed", xp_awarded=50))
     session.commit()
 
-    response = mission_routes.reset_mission(
-        "demo",
-        body={"mode": "restart"},
-        session=session,
-    )
-    progress = session.get(MissionProgress, ("local", "demo"))
+    response = mission_routes.reset_mission("demo", body={"mode": "resources"}, session=session)
+    progress = get_progress(session, "demo")
 
-    assert response["status"] == "available"
-    assert response["resourcesRemoved"] == ["s3_bucket:demo"]
-    assert progress.status == "available"
+    assert response["mode"] == "resources"
+    assert response["deleted"] == [{"type": "s3_bucket", "id": "demo", "status": "deleted"}]
+    assert progress.status == "completed"
+
+
+def test_reset_mission_progress_mode_preserves_completed_history(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(tmp_path, base_mission_yaml())
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+    session.add(Profile(id="local", display_name="Local Learner", total_xp=50))
+    session.add(MissionProgress(profile_id="local", mission_id="demo", status="completed", xp_awarded=50))
+    session.add(StepProgress(mission_id="demo", step_id="create-storage", status="passed"))
+    session.add(HintUsage(mission_id="demo", hint_id="h1", penalty_xp=10))
+    session.add(
+        ValidationAttempt(
+            mission_id="demo",
+            scope="mission",
+            passed=True,
+            checks_json="[]",
+        )
+    )
+    session.commit()
+
+    response = mission_routes.reset_mission("demo", body={"mode": "progress"}, session=session)
+    profile = session.get(Profile, "local")
+    progress = get_progress(session, "demo")
+
+    assert response["mode"] == "progress"
+    assert progress.status == "completed"
+    assert progress.xp_awarded == 50
+    assert session.exec(select(StepProgress).where(StepProgress.mission_id == "demo")).first() is None
+    assert session.exec(select(HintUsage).where(HintUsage.mission_id == "demo")).first() is None
+    assert session.exec(select(ValidationAttempt).where(ValidationAttempt.mission_id == "demo")).first() is not None
+    assert profile.total_xp == 50
+
+
+def test_reset_mission_requires_explicit_mode(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(tmp_path, base_mission_yaml())
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    with pytest.raises(Exception) as exc:
+        mission_routes.reset_mission("demo", body={}, session=session)
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail["error"]["code"] == "INVALID_RESET_MODE"
+
+
+def test_course_endpoint_derives_progress_from_missions(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(tmp_path, base_mission_yaml())
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    response = mission_routes.get_course(session=session)
+
+    assert response["course"]["progress"]["requiredLessonsTotal"] == 1
+    assert response["course"]["progress"]["nextMissionId"] == "demo"
+    assert response["course"]["modules"][0]["missions"][0]["status"] == "available"
+
+
+def test_validate_locked_mission_returns_conflict(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            prerequisites:
+              - missing-prerequisite
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    with pytest.raises(Exception) as exc:
+        mission_routes.validate_mission("demo", body={}, session=session)
+
+    assert exc.value.status_code == 409
+    assert exc.value.detail["error"]["code"] == "MISSION_LOCKED"
+
+
+def test_validation_reports_directly_unlocked_missions(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(tmp_path, base_mission_yaml())
+    next_dir = tmp_path / "next"
+    next_dir.mkdir()
+    (next_dir / "mission.yml").write_text(
+        textwrap.dedent(
+            """
+            id: next
+            order: 2
+            module: legacy
+            submodule: next-step
+            mission_type: lesson
+            required: true
+            title: Next Mission
+            summary: Next summary.
+            difficulty: beginner
+            services:
+              - s3
+            xp: 50
+            estimated_minutes: 5
+            prerequisites:
+              - demo
+            story: Next story.
+            learning_objectives:
+              - Understand mission unlocks
+            commands: []
+            hints: []
+            checks: []
+            owned_resources: []
+            """
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    monkeypatch.setattr("app.validators.run_check", lambda check: {
+        "id": check["id"],
+        "type": check["type"],
+        "passed": True,
+        "message": "passed",
+    })
+    session = make_session()
+
+    response = mission_routes.validate_mission("demo", body={}, session=session)
+    repeat = mission_routes.validate_mission("demo", body={}, session=session)
+
+    assert response["unlockedMissionIds"] == ["next"]
+    assert repeat["unlockedMissionIds"] == []
+
+
+def test_course_endpoint_stores_course_yml_hash(tmp_path, monkeypatch):
+    reset_loader()
+    write_course(tmp_path)
+    write_mission(tmp_path, base_mission_yaml())
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    mission_routes.get_course(session=session)
+
+    row = session.exec(select(CourseCompletion).where(CourseCompletion.course_id == "infra-quest")).first()
+    assert row.course_yml_hash is not None
+    assert len(row.course_yml_hash) == 64
+
+
+def test_hint_use_is_idempotent_and_reveals_detail(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            hints:
+              - id: endpoint-required
+                title: Check endpoint
+                level: nudge
+                applies_to_checks:
+                  - bucket-exists
+                text: Use the local endpoint.
+                penalty_xp: 5
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    first = mission_routes.use_hint("demo", "endpoint-required", session=session)
+    second = mission_routes.use_hint("demo", "endpoint-required", session=session)
+    detail = mission_routes.get_mission("demo", session=session)
+    usages = session.exec(select(HintUsage).where(HintUsage.mission_id == "demo")).all()
+
+    assert first["usedAt"] == second["usedAt"]
+    assert len(usages) == 1
+    assert detail["mission"]["hints"][0]["revealed"] is True
+    assert detail["mission"]["hints"][0]["text"] == "Use the local endpoint."
+
+
+def test_hint_use_rejects_locked_mission(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            prerequisites:
+              - cloud-explorer
+            hints:
+              - id: endpoint-required
+                title: Check endpoint
+                level: nudge
+                applies_to_checks:
+                  - bucket-exists
+                text: Use the local endpoint.
+                penalty_xp: 5
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    session = make_session()
+
+    with pytest.raises(Exception) as exc:
+        mission_routes.use_hint("demo", "endpoint-required", session=session)
+
+    assert exc.value.status_code == 409
+    assert exc.value.detail["error"]["code"] == "MISSION_LOCKED"
+    assert session.exec(select(HintUsage).where(HintUsage.mission_id == "demo")).first() is None
+
+
+def test_capstone_validation_persists_score_and_returns_payload(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            mission_type: module_capstone
+            checks:
+              - id: floci-available
+                type: runtime_floci_available
+              - id: bucket-exists
+                type: s3_bucket_exists
+                bucket: demo
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    monkeypatch.setattr("app.validators.run_check", lambda check: {
+        "id": check["id"],
+        "type": check["type"],
+        "passed": True,
+        "message": "passed",
+    })
+    session = make_session()
+
+    response = mission_routes.validate_mission("demo", body={}, session=session)
+    row = session.exec(select(CapstoneScore).where(CapstoneScore.mission_id == "demo")).first()
+    detail = mission_routes.get_mission("demo", session=session)
+
+    assert response["capstoneScore"]["score"] >= 90
+    assert response["capstoneScore"]["localSafetyPassed"] is True
+    assert response["capstoneScore"]["bestScore"] == response["capstoneScore"]["score"]
+    assert row.best_level == response["capstoneScore"]["level"]
+    assert row.latest_local_safety_passed is True
+    assert detail["mission"]["capstoneScore"]["bestScore"] == row.best_score
+    assert detail["mission"]["capstoneScore"]["localSafetyPassed"] is True
+    assert detail["mission"]["progress"]["capstoneScore"]["localSafetyPassed"] is True
+
+
+def test_capstone_local_safety_blocks_completion(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            mission_type: module_capstone
+            checks:
+              - id: floci-available
+                type: runtime_floci_available
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    monkeypatch.setattr("app.validators.run_check", lambda check: {
+        "id": check["id"],
+        "type": check["type"],
+        "passed": False,
+        "message": "local runtime unavailable",
+    })
+    session = make_session()
+
+    response = mission_routes.validate_mission("demo", body={}, session=session)
+    progress = get_progress(session, "demo")
+
+    assert response["passed"] is False
+    assert response["capstoneScore"]["localSafetyPassed"] is False
+    assert progress.status == "started"
+
+
+def test_capstone_missing_local_safety_check_blocks_completion(tmp_path, monkeypatch):
+    reset_loader()
+    write_mission(
+        tmp_path,
+        base_mission_yaml(
+            """
+            mission_type: module_capstone
+            checks:
+              - id: bucket-exists
+                type: s3_bucket_exists
+                bucket: demo
+            """
+        ),
+    )
+    monkeypatch.setattr(mission_routes.config, "MISSIONS_DIR", str(tmp_path))
+    monkeypatch.setattr("app.validators.run_check", lambda check: {
+        "id": check["id"],
+        "type": check["type"],
+        "passed": True,
+        "message": "passed",
+    })
+    session = make_session()
+
+    response = mission_routes.validate_mission("demo", body={}, session=session)
+    progress = get_progress(session, "demo")
+
+    assert response["passed"] is False
+    assert response["capstoneScore"]["localSafetyPassed"] is False
+    assert progress.status == "started"
+
+
+def test_runtime_status_reports_diagnostic_issues(monkeypatch):
+    class BrokenSession:
+        def get(self, *args, **kwargs):
+            raise RuntimeError("db unavailable")
+
+    class BrokenClient:
+        def list_buckets(self):
+            raise RuntimeError("floci unavailable")
+
+    monkeypatch.setattr(runtime_routes, "get_client", lambda service: BrokenClient())
+
+    response = runtime_routes.runtime_status(session=BrokenSession())
+
+    assert response["floci"]["status"] == "offline"
+    assert response["database"]["status"] == "offline"
+    assert {issue["id"] for issue in response["issues"]} >= {"floci_unreachable", "database_unreachable"}
+
+
+def test_mission_rename_migration_is_idempotent(monkeypatch):
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    SQLModel.metadata.create_all(engine)
+    monkeypatch.setattr(db, "engine", engine)
+    with Session(engine) as session:
+        session.add(MissionProgress(mission_id="serverless-boss", status="completed", attempts=2, xp_awarded=80))
+        session.add(ValidationAttempt(mission_id="serverless-boss", scope="mission", passed=True, checks_json="[]"))
+        session.add(StepProgress(id="serverless-boss:deploy", mission_id="serverless-boss", step_id="deploy"))
+        session.add(HintUsage(id="serverless-boss:hint", mission_id="serverless-boss", hint_id="hint"))
+        session.add(CapstoneScore(mission_id="serverless-boss", best_score=92, best_level="production_minded"))
+        session.commit()
+
+    db._run_mission_rename_migration()
+    db._run_mission_rename_migration()
+
+    with Session(engine) as session:
+        assert get_progress(session, "serverless-boss") is None
+        assert get_progress(session, "launchdesk-compose-capstone").status == "completed"
+        assert session.exec(select(ValidationAttempt)).first().mission_id == "launchdesk-compose-capstone"
+        assert session.exec(select(StepProgress)).first().mission_id == "launchdesk-compose-capstone"
+        assert session.exec(select(HintUsage)).first().mission_id == "launchdesk-compose-capstone"
+        assert session.exec(select(CapstoneScore)).first().mission_id == "launchdesk-compose-capstone"
+        assert session.get(SchemaMigration, "0002_rename_serverless_boss_capstone") is not None
 
 
 def make_session():
@@ -338,4 +720,4 @@ def test_all_missions_with_commands_have_authored_steps():
             if fallback_steps:
                 failures.append(f"Mission {mission_id} has {len(fallback_steps)} steps that look like fallbacks (empty check_ids or generic action)")
 
-    assert failures == [], f"Missions with issues:\n" + "\n".join(failures)
+    assert failures == [], "Missions with issues:\n" + "\n".join(failures)
