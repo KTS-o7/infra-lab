@@ -14,15 +14,6 @@ COPY pyproject.toml uv.lock ./
 
 RUN pip install uv && uv sync --frozen
 
-# Install aws wrapper so mission commands using --endpoint-url http://localhost:4566
-# work transparently inside the container (rewrites to http://floci:4566 internally).
-# We replace the venv's aws binary directly so PATH ordering doesn't matter.
-COPY aws-wrapper.sh /usr/local/bin/aws-real-install-wrapper
-RUN chmod +x /usr/local/bin/aws-real-install-wrapper \
-    && mv /app/.venv/bin/aws /app/.venv/bin/aws-real \
-    && cp /usr/local/bin/aws-real-install-wrapper /app/.venv/bin/aws \
-    && chmod +x /app/.venv/bin/aws
-
 COPY . .
 
 EXPOSE 8001
