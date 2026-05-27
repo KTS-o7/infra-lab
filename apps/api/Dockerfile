@@ -2,14 +2,11 @@ FROM python:3.14.5-slim
 
 WORKDIR /app
 
-# Install system dependencies including AWS CLI
+# Install system dependencies
+# zip is required for Lambda function packaging in mission commands
+# awscli installed via pip so it works on both amd64 and arm64 (no standalone binary)
 RUN apt-get update && apt-get install -y \
-    curl \
-    unzip \
-    && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
-    && unzip awscliv2.zip \
-    && ./aws/install \
-    && rm -rf awscliv2.zip ./aws \
+    zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
