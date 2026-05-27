@@ -14,6 +14,11 @@ COPY pyproject.toml uv.lock ./
 
 RUN pip install uv && uv sync --frozen
 
+# Install aws wrapper so mission commands using --endpoint-url http://localhost:4566
+# work transparently inside the container (rewrites to http://floci:4566 internally)
+COPY aws-wrapper.sh /usr/local/bin/aws
+RUN chmod +x /usr/local/bin/aws
+
 COPY . .
 
 EXPOSE 8001
