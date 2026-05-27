@@ -23,7 +23,7 @@ check_service() {
 
 check_service "http://localhost:3000" "Web"
 check_service "http://localhost:8001/health" "API"
-check_service "http://floci:4566/" "Floci"
+check_service "http://localhost:4566/" "Floci"
 
 echo ""
 echo "=== API Runtime Status ==="

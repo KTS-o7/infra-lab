@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
-import type { MissionDetail, ValidationResult } from "@/lib/api";
+import type { MissionDetail, ResetMode, ValidationResult } from "@/lib/api";
 import MissionBrief from "./MissionBrief";
 import MissionStepList from "./MissionStepList";
 import MissionStepCard from "./MissionStepCard";
@@ -93,7 +93,7 @@ interface Props {
   onStart: () => void;
   onValidateMission: () => void;
   onValidateStep: (stepId: string) => Promise<ValidationResult | null>;
-  onReset: (mode: string) => void;
+  onReset: (mode: ResetMode) => void;
   onUseHint: (hintId: string) => void;
   onUseLearnMore: (itemId: string) => Promise<void>;
 }

@@ -9,6 +9,7 @@ import {
   useHint as useHintApi,
   useLearnMore,
   type MissionDetail,
+  type ResetMode,
   type ValidationResult,
 } from "@/lib/api";
 import RuntimeBanner from "./RuntimeBanner";
@@ -81,7 +82,7 @@ export default function MissionDetail({ missionId }: Props) {
     }
   };
 
-  const handleReset = async (mode: string) => {
+  const handleReset = async (mode: ResetMode) => {
     setActionLoading(true);
     try {
       await resetMission(missionId, mode);

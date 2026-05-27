@@ -15,6 +15,7 @@ interface Props {
   command?: { id: string; label: string; command: string };
   canCheck: boolean;
   checking: boolean;
+  disabledReason?: string;
   onCheck: () => void;
 }
 
@@ -22,6 +23,7 @@ export default function MissionTerminalPanel({
   command,
   canCheck,
   checking,
+  disabledReason,
   onCheck,
 }: Props) {
   const [copied, setCopied] = useState(false);

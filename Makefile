@@ -1,4 +1,4 @@
-.PHONY: dev down reset verify verify-release-artifacts logs test-api test-web build-web smoke e2e-local
+.PHONY: dev down reset verify ci verify-release-artifacts logs test-api test-web build-web smoke e2e-local
 
 dev:
 	docker compose up --build
@@ -44,3 +44,11 @@ e2e-local:
 
 verify-release-artifacts:
 	./scripts/verify-release-artifacts.sh
+
+# ci: run the same checks as the GitHub Actions workflow, entirely locally.
+# Requires: uv, bun, ripgrep. Does NOT need Docker or GitHub minutes.
+ci:
+	./scripts/verify-local-only.sh
+	cd apps/api && AWS_ENDPOINT_URL=http://localhost:4566 uv run pytest -v
+	cd apps/web && bun install --frozen-lockfile
+	cd apps/web && NEXT_TELEMETRY_DISABLED=1 bun run build
