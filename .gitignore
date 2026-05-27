@@ -21,3 +21,4 @@ build/
 *.key
 awscliv2.zip
 package-lock.json
+.worktrees/
