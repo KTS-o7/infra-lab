@@ -697,13 +697,16 @@ def test_all_missions_with_commands_have_authored_steps():
     learner anything meaningful.
     """
     import pathlib
-    missions_dir = pathlib.Path("missions")
+    # Anchor to repo root so the test passes regardless of cwd (e.g. pytest run from apps/api/)
+    repo_root = pathlib.Path(__file__).resolve().parents[3]
+    missions_dir = repo_root / "missions"
     if not missions_dir.exists():
         pytest.skip("missions directory not found")
 
     loader = MissionLoader()
-    loader._loaded = False
-    loader._instances = {}
+    MissionLoader._loaded = False
+    MissionLoader._instances = {}
+    MissionLoader._course = None
 
     loaded = loader.load_missions(str(missions_dir))
 
