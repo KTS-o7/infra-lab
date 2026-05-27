@@ -7,6 +7,7 @@ import {
   Copy,
   Loader2,
   Lock,
+  Monitor,
   Terminal,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -27,8 +28,14 @@ export default function MissionTerminalPanel({
   onCheck,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const [target, setTarget] = useState<"host" | "browser">("host");
+
+  const rawCommand = command?.command ?? "# No CLI command is attached to this step yet.";
+  const hasBothVariants = rawCommand.includes("localhost:4566");
   const commandText =
-    command?.command ?? "# No CLI command is attached to this step yet.";
+    hasBothVariants && target === "browser"
+      ? rawCommand.replaceAll("localhost:4566", "floci:4566")
+      : rawCommand;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(commandText).then(() => {
@@ -44,7 +51,9 @@ export default function MissionTerminalPanel({
           <Terminal className="h-4 w-4 shrink-0 text-lime-300" />
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">
-              Local terminal
+              {hasBothVariants
+                ? target === "host" ? "Local terminal" : "In-browser terminal"
+                : "Local terminal"}
             </p>
             <p className="truncate text-sm text-emerald-100/60">
               {command?.label ?? "Guided command"}
@@ -52,6 +61,36 @@ export default function MissionTerminalPanel({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {hasBothVariants && (
+            <div className="flex rounded-md border border-white/10 text-xs font-medium overflow-hidden">
+              <button
+                onClick={() => setTarget("host")}
+                className={clsx(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 transition-colors",
+                  target === "host"
+                    ? "bg-emerald-900/50 text-emerald-100"
+                    : "bg-transparent text-emerald-100/40 hover:text-emerald-100/70"
+                )}
+                title="Command for your local terminal"
+              >
+                <Monitor className="h-3 w-3" />
+                Host
+              </button>
+              <button
+                onClick={() => setTarget("browser")}
+                className={clsx(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 transition-colors border-l border-white/10",
+                  target === "browser"
+                    ? "bg-emerald-900/50 text-emerald-100"
+                    : "bg-transparent text-emerald-100/40 hover:text-emerald-100/70"
+                )}
+                title="Command for the in-browser terminal"
+              >
+                <Terminal className="h-3 w-3" />
+                Browser
+              </button>
+            </div>
+          )}
           <button
             onClick={handleCopy}
             className={clsx(
@@ -78,7 +117,9 @@ export default function MissionTerminalPanel({
               <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-300/80" />
               <span className="h-2.5 w-2.5 rounded-full bg-lime-300/80" />
-              <span className="ml-2 font-mono">floci:4566</span>
+              <span className="ml-2 font-mono">
+                {target === "browser" ? "floci:4566" : "localhost:4566"}
+              </span>
             </div>
             <pre className="overflow-x-auto whitespace-pre-wrap break-words font-mono text-sm leading-6 text-lime-100">
               <span className="select-none text-emerald-100/35">$ </span>
@@ -92,8 +133,9 @@ export default function MissionTerminalPanel({
             Execution model
           </p>
           <p className="mt-2 text-sm leading-6 text-emerald-100/60">
-            Run this in your machine terminal. Infra Quest checks the local
-            sandbox state after the command changes resources.
+            {target === "browser"
+              ? "Run this in the in-browser terminal below. It connects directly to the lab sandbox."
+              : "Run this in your machine terminal. Infra Quest checks the local sandbox state after the command changes resources."}
           </p>
           <button
             onClick={onCheck}
