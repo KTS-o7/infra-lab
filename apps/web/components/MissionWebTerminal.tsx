@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
@@ -9,6 +9,14 @@ export default function MissionWebTerminal() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+
+  // REVIEW FIX (Sarang): Track connection state so we can show a reconnect button
+  // when the socket closes, rather than leaving the user with a dead terminal.
+  const [connected, setConnected] = useState(true);
+
+  // REVIEW FIX (Sarang): Incrementing this key re-triggers the useEffect, which
+  // tears down the old terminal/socket and boots a fresh one — clean reconnect.
+  const [reconnectKey, setReconnectKey] = useState(0);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -34,9 +42,12 @@ export default function MissionWebTerminal() {
 
     xtermRef.current = term;
 
-    let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+    // REVIEW FIX (Sarang): Changed fallback port from 8001 to 8000 to match lib/api.ts
+    // and the actual server port. The old value caused WebSocket connections to fail
+    // when NEXT_PUBLIC_API_URL was not set.
+    let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-    // If we're accessing the UI remotely, localhost:8001 in the browser will fail.
+    // If we're accessing the UI remotely, localhost:8000 in the browser will fail.
     // We attempt to infer the API host from the current window location if the configured URL is localhost.
     if (
       typeof window !== "undefined" &&
@@ -55,6 +66,7 @@ export default function MissionWebTerminal() {
     socketRef.current = socket;
 
     socket.onopen = () => {
+      setConnected(true);
       term.write("\r\n\x1b[32mCONNECTED TO INFRA-LAB SHELL\x1b[0m\r\n");
       const { cols, rows } = term;
       socket.send(JSON.stringify({ type: "resize", cols, rows }));
@@ -69,8 +81,12 @@ export default function MissionWebTerminal() {
       }
     };
 
+    // REVIEW FIX (Sarang): On close, flip `connected` to false so the reconnect
+    // button overlay renders. Previously only a text message was written to the
+    // terminal, leaving no actionable way for the user to recover the session.
     socket.onclose = () => {
       term.write("\r\n\x1b[31mDISCONNECTED FROM SHELL\x1b[0m\r\n");
+      setConnected(false);
     };
 
     term.onData((data) => {
@@ -89,8 +105,19 @@ export default function MissionWebTerminal() {
 
     window.addEventListener("resize", handleResize);
 
+    // REVIEW FIX (Sarang): Also observe container size changes via ResizeObserver.
+    // window resize alone misses cases where the terminal container resizes due to
+    // panel toggles or sidebar collapse — the observer fires for those too.
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    if (terminalRef.current) {
+      resizeObserver.observe(terminalRef.current);
+    }
+
     return () => {
       window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       if (
         socket.readyState === WebSocket.OPEN ||
         socket.readyState === WebSocket.CONNECTING
@@ -99,7 +126,7 @@ export default function MissionWebTerminal() {
       }
       term.dispose();
     };
-  }, []);
+  }, [reconnectKey]);
 
   return (
     <div className="flex h-[450px] flex-col overflow-hidden rounded-lg border border-lime-300/20 bg-[#050a08] shadow-2xl">
@@ -113,8 +140,21 @@ export default function MissionWebTerminal() {
           Interactive Terminal
         </span>
       </div>
-      <div className="flex-1 p-2">
+      <div className="relative flex-1 p-2">
         <div ref={terminalRef} className="h-full w-full overflow-hidden" />
+        {/* REVIEW FIX (Sarang): Reconnect button overlay — shown only when the
+            WebSocket has closed. Incrementing reconnectKey re-runs the useEffect
+            which tears down the dead socket/terminal and creates a fresh pair. */}
+        {!connected && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#050a08]/80">
+            <button
+              onClick={() => setReconnectKey((k) => k + 1)}
+              className="rounded border border-lime-300/40 bg-lime-300/10 px-4 py-2 text-sm font-medium text-lime-300 transition hover:bg-lime-300/20"
+            >
+              Reconnect
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

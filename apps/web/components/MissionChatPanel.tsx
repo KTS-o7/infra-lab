@@ -16,12 +16,15 @@ export default function MissionChatPanel({ missionId }: Props) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  // REVIEW FIX (Sarang): Add error state for initial load failure
+  const [loadError, setLoadError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getChatHistory(missionId)
       .then((data) => setMessages(data.messages))
-      .catch(console.error)
+      // REVIEW FIX (Sarang): Replace bare console.error with UI error state
+      .catch(() => { setLoadError("Failed to load chat history"); })
       .finally(() => setInitialLoading(false));
   }, [missionId]);
 
@@ -48,8 +51,8 @@ export default function MissionChatPanel({ missionId }: Props) {
     try {
       const aiMsg = await sendChatMessage(missionId, input);
       setMessages((prev) => [...prev, aiMsg]);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // REVIEW FIX (Sarang): Remove console.error; UI feedback via error message is sufficient
       setMessages((prev) => [
         ...prev,
         {
@@ -80,15 +83,21 @@ export default function MissionChatPanel({ missionId }: Props) {
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
             <Bot className="h-10 w-10 text-lime-300/20 mb-3" />
-            <p className="text-sm text-emerald-100/40">
-              Need help with this mission? Ask a question about the services,
-              commands, or concepts.
-            </p>
+            {/* REVIEW FIX (Sarang): Render load error in empty state if set */}
+            {loadError ? (
+              <p className="text-sm text-red-400/70">{loadError}</p>
+            ) : (
+              <p className="text-sm text-emerald-100/40">
+                Need help with this mission? Ask a question about the services,
+                commands, or concepts.
+              </p>
+            )}
           </div>
         ) : (
           messages.map((msg, i) => (
             <div
-              key={i}
+              // REVIEW FIX (Sarang): Use stable key (createdAt + role) instead of array index
+              key={msg.createdAt + msg.role}
               className={clsx(
                 "flex gap-3",
                 msg.role === "user"

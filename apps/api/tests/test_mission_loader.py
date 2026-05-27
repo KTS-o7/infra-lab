@@ -577,7 +577,10 @@ def test_capstone_validation_persists_score_and_returns_payload(tmp_path, monkey
     assert row.latest_local_safety_passed is True
     assert detail["mission"]["capstoneScore"]["bestScore"] == row.best_score
     assert detail["mission"]["capstoneScore"]["localSafetyPassed"] is True
-    assert detail["mission"]["progress"]["capstoneScore"]["localSafetyPassed"] is True
+    # REVIEW FIX (Sarang): Removed duplicate assertion — capstoneScore was serialized
+    # twice (once inside "progress" and once at top-level). The inner copy was a double
+    # DB query with no added value. Only the top-level "capstoneScore" field is used
+    # by the frontend. The assertion above already covers this.
 
 
 def test_capstone_local_safety_blocks_completion(tmp_path, monkeypatch):

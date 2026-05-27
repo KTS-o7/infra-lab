@@ -24,6 +24,11 @@ async def terminal_websocket(websocket: WebSocket):
 
     master_fd = None
     p = None
+    # REVIEW FIX (Sarang): Initialize loop=None here alongside master_fd so the
+    # finally block can safely guard with `if loop is not None`. If loop were
+    # only assigned inside the try block and an exception fired before that line,
+    # the finally would raise NameError when it tried to call loop.remove_reader().
+    loop = None
 
     try:
         # Spawn shell in pty
@@ -39,29 +44,44 @@ async def terminal_websocket(websocket: WebSocket):
         env["AWS_ENDPOINT_URL"] = os.getenv("AWS_ENDPOINT_URL", "http://floci:4566")
         cwd = os.getcwd()
 
-        p = subprocess.Popen(
-            ["/bin/bash"],
-            preexec_fn=os.setsid,
-            stdin=slave_fd,
-            stdout=slave_fd,
-            stderr=slave_fd,
-            env=env,
-            cwd=cwd,
-        )
-
-        # Close slave_fd in parent process
-        os.close(slave_fd)
+        # REVIEW FIX (Sarang): Wrap Popen + slave_fd close in try/finally so
+        # slave_fd is never leaked if Popen raises (e.g. /bin/bash not found).
+        # Without this, the open slave_fd would persist until garbage collection,
+        # blocking the PTY from ever receiving EOF.
+        try:
+            p = subprocess.Popen(
+                ["/bin/bash"],
+                preexec_fn=os.setsid,
+                stdin=slave_fd,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                env=env,
+                cwd=cwd,
+            )
+        finally:
+            # Close slave_fd in parent process — must happen even if Popen fails
+            os.close(slave_fd)
 
         # Set master_fd to non-blocking
         fl = fcntl.fcntl(master_fd, fcntl.F_GETFL)
         fcntl.fcntl(master_fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
-        loop = asyncio.get_event_loop()
+        # REVIEW FIX (Sarang): Use get_running_loop() instead of get_event_loop().
+        # get_event_loop() is deprecated in Python 3.10+ and emits a DeprecationWarning
+        # when there is no current event loop set in the thread. Inside an async
+        # function we are always running inside a loop, so get_running_loop() is
+        # both correct and explicit.
+        loop = asyncio.get_running_loop()
         output_queue = asyncio.Queue()
 
         def on_pty_read():
             try:
-                data = os.read(master_fd, 1024)
+                # REVIEW FIX (Sarang): Increase read buffer from 1024 to 65536 bytes.
+                # A 1 KB buffer means high-throughput output (e.g. `cat large_file`)
+                # requires hundreds of syscalls and read-loop iterations per second,
+                # adding latency and CPU overhead. 64 KB matches common pipe/socket
+                # buffer sizes and amortises that cost significantly.
+                data = os.read(master_fd, 65536)
                 if data:
                     output_queue.put_nowait(data)
                 else:
@@ -117,7 +137,9 @@ async def terminal_websocket(websocket: WebSocket):
         logger.error(f"Terminal backend error: {e}")
     finally:
         if master_fd is not None:
-            loop.remove_reader(master_fd)
+            # Guard with `if loop is not None` — see initialization comment above.
+            if loop is not None:
+                loop.remove_reader(master_fd)
             try:
                 os.close(master_fd)
             except OSError:

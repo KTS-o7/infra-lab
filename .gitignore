@@ -20,3 +20,4 @@ build/
 *.pem
 *.key
 awscliv2.zip
+package-lock.json

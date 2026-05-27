@@ -165,6 +165,12 @@ def hint_usage_for_mission(session, mission_id: str) -> list[HintUsage]:
     return list(session.exec(select(HintUsage).where(HintUsage.mission_id == mission_id)).all())
 
 
+# REVIEW FIX (Sarang): Added learn_more_usage_for_mission to mirror hint_usage_for_mission;
+# used by get_mission to populate isUsed flags without duplicating the query inline.
+def learn_more_usage_for_mission(session, mission_id: str) -> list[LearnMoreUsage]:
+    return list(session.exec(select(LearnMoreUsage).where(LearnMoreUsage.mission_id == mission_id)).all())
+
+
 def start_mission(session, mission) -> dict:
     ensure_local_profile(session)
     completed = completed_mission_ids(session)
