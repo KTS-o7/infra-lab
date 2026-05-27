@@ -27,6 +27,11 @@ services:
       MISSIONS_DIR: ${MISSIONS_DIR:-/app/missions}
       AI_AGENT_CMD: ${AI_AGENT_CMD:-}
       AMA_HOST_BRIDGE: ${AMA_HOST_BRIDGE:-}
+      AMA_API_KEY: ${AMA_API_KEY:-}
+      AMA_API_BASE: ${AMA_API_BASE:-}
+      AMA_MODEL: ${AMA_MODEL:-}
+      AMA_MAX_TOKENS: ${AMA_MAX_TOKENS:-}
+      AMA_SYSTEM: ${AMA_SYSTEM:-}
     volumes:
       - ./data/api:/app/data
       - ./missions:/app/missions:ro
