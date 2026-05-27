@@ -10,12 +10,8 @@ export default function MissionWebTerminal() {
   const xtermRef = useRef<Terminal | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
 
-  // REVIEW FIX (Sarang): Track connection state so we can show a reconnect button
-  // when the socket closes, rather than leaving the user with a dead terminal.
   const [connected, setConnected] = useState(true);
 
-  // REVIEW FIX (Sarang): Incrementing this key re-triggers the useEffect, which
-  // tears down the old terminal/socket and boots a fresh one — clean reconnect.
   const [reconnectKey, setReconnectKey] = useState(0);
 
   useEffect(() => {
@@ -42,9 +38,6 @@ export default function MissionWebTerminal() {
 
     xtermRef.current = term;
 
-    // REVIEW FIX (Sarang): Changed fallback port from 8001 to 8000 to match lib/api.ts
-    // and the actual server port. The old value caused WebSocket connections to fail
-    // when NEXT_PUBLIC_API_URL was not set.
     let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     // If we're accessing the UI remotely, localhost:8000 in the browser will fail.
@@ -81,9 +74,6 @@ export default function MissionWebTerminal() {
       }
     };
 
-    // REVIEW FIX (Sarang): On close, flip `connected` to false so the reconnect
-    // button overlay renders. Previously only a text message was written to the
-    // terminal, leaving no actionable way for the user to recover the session.
     socket.onclose = () => {
       term.write("\r\n\x1b[31mDISCONNECTED FROM SHELL\x1b[0m\r\n");
       setConnected(false);
@@ -105,9 +95,6 @@ export default function MissionWebTerminal() {
 
     window.addEventListener("resize", handleResize);
 
-    // REVIEW FIX (Sarang): Also observe container size changes via ResizeObserver.
-    // window resize alone misses cases where the terminal container resizes due to
-    // panel toggles or sidebar collapse — the observer fires for those too.
     const resizeObserver = new ResizeObserver(() => {
       handleResize();
     });
@@ -142,9 +129,6 @@ export default function MissionWebTerminal() {
       </div>
       <div className="relative flex-1 p-2">
         <div ref={terminalRef} className="h-full w-full overflow-hidden" />
-        {/* REVIEW FIX (Sarang): Reconnect button overlay — shown only when the
-            WebSocket has closed. Incrementing reconnectKey re-runs the useEffect
-            which tears down the dead socket/terminal and creates a fresh pair. */}
         {!connected && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#050a08]/80">
             <button

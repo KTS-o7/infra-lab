@@ -5,9 +5,6 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlmodel import Session, select
 import logging
 
-# REVIEW FIX (Sarang): Moved `import requests` from a lazy inline import inside the function
-# body to a guarded top-level import. Inline imports inside hot paths are hard to audit and
-# can silently shadow errors; the try/except here makes the optional dependency explicit.
 try:
     import requests as _requests
 except ImportError:
@@ -277,8 +274,6 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
     usages = progress_service.hint_usage_for_mission(session, mission_id)
     used_hint_ids = {usage.hint_id for usage in usages}
 
-    # REVIEW FIX (Sarang): Query learn_more usage up-front so we can populate isUsed
-    # flags without a per-item DB hit inside the list comprehension below.
     learn_more_usages = progress_service.learn_more_usage_for_mission(session, mission_id)
     used_learn_more_ids = {u.item_id for u in learn_more_usages}
 
@@ -313,9 +308,6 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
                 {"hintId": usage.hint_id, "level": usage.level, "usedAt": usage.used_at.isoformat() + "Z"}
                 for usage in usages
             ],
-            # REVIEW FIX (Sarang): Expose learnMore items in the mission detail payload so the
-            # frontend can render them with their isUsed state. Uses the usage set queried above
-            # to avoid an extra DB call per item. Fields mirror LearnMoreItem (mission_loader.py).
             "learnMore": [
                 {
                     "id": item.id,
@@ -333,9 +325,6 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
                 "xpAwarded": prog.xp_awarded if prog else 0,
                 "startedAt": prog.started_at.isoformat() + "Z" if prog and prog.started_at else None,
                 "completedAt": prog.completed_at.isoformat() + "Z" if prog and prog.completed_at else None,
-                # REVIEW FIX (Sarang): Removed the inner capstoneScore from inside "progress".
-                # It was a duplicate of the outer top-level "capstoneScore" field added below,
-                # causing two identical DB queries for the same row on every GET /missions/{id}.
             },
             "capstoneScore": progress_service.capstone_score_payload(session, mission_id)
             if mission.mission_type in {"module_capstone", "final_capstone"}
@@ -492,9 +481,6 @@ def use_learn_more(mission_id: str, item_id: str, session: Session = Depends(get
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
     mission = instances[mission_id]
-    # REVIEW FIX (Sarang): Removed `hasattr(mission, "learn_more")` guard — learn_more is
-    # declared with a default of [] in MissionDefinition, so it always exists; the hasattr
-    # branch was dead code that would silently skip the lookup on any valid mission object.
     item = next((i for i in mission.learn_more if i.id == item_id), None)
     if not item:
         raise HTTPException(status_code=404, detail=_error_response("LEARN_MORE_NOT_FOUND", "Learn more item not found."))
@@ -506,16 +492,9 @@ def use_learn_more(mission_id: str, item_id: str, session: Session = Depends(get
 
 @router.get("/missions/{mission_id}/chat")
 def get_chat_history(mission_id: str, session: Session = Depends(get_session)):
-    # REVIEW FIX (Sarang): Added mission existence check before querying chat history.
-    # Without this, the endpoint would return an empty list for any arbitrary mission_id
-    # string, leaking that the table exists and masking typos in client calls.
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
-    # REVIEW FIX (Sarang): Replaced session.query() (SQLAlchemy legacy ORM pattern) with
-    # session.exec(select(...)) which is the correct SQLModel API. Also removed the lazy
-    # `from sqlalchemy import asc` inline import — .order_by() accepts column expressions
-    # directly via SQLModel's select, so the explicit asc() import is unnecessary.
     messages = session.exec(
         select(ChatMessage)
         .where(ChatMessage.profile_id == "local", ChatMessage.mission_id == mission_id)
@@ -523,9 +502,6 @@ def get_chat_history(mission_id: str, session: Session = Depends(get_session)):
     ).all()
     return {
         "messages": [
-            # REVIEW FIX (Sarang): Changed str(m.created_at) to .isoformat() + "Z" to produce
-            # a consistent ISO-8601 UTC timestamp (matching every other date field in the API)
-            # instead of Python's default datetime str() which omits the timezone suffix.
             {"role": m.role, "content": m.content, "createdAt": m.created_at.isoformat() + "Z"}
             for m in messages
         ]
@@ -540,18 +516,10 @@ def send_chat_message(
     if not content:
         raise HTTPException(status_code=400, detail="Message is required")
 
-    # REVIEW FIX (Sarang): Added mission existence check after validating the message body.
-    # Matches the guard in GET /chat — prevents writing orphan ChatMessage rows for
-    # non-existent mission IDs and returns a consistent 404 error shape.
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)
     if mission_id not in instances:
         raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
 
-    # REVIEW FIX (Sarang): Removed early session.add(user_msg) + session.commit() before the
-    # AI call. If the AI call raises or the process crashes, the user message would be
-    # persisted without a corresponding AI reply, leaving the conversation in an inconsistent
-    # state. Both messages are now committed together in a single transaction after the AI
-    # call completes, so the DB either has both rows or neither.
     user_msg = ChatMessage(
         profile_id="local", mission_id=mission_id, role="user", content=content
     )
@@ -561,8 +529,6 @@ def send_chat_message(
         try:
             host_bridge = os.getenv("AMA_HOST_BRIDGE")
             if host_bridge:
-                # REVIEW FIX (Sarang): Use top-level _requests instead of the lazy
-                # `import requests` that was inside the function body (see Fix 1).
                 if _requests is None:
                     raise RuntimeError("requests library is not installed")
                 resp = _requests.post(
@@ -575,10 +541,6 @@ def send_chat_message(
                 else:
                     ai_response = f"Bridge Error: {resp.text}"
             else:
-                # REVIEW FIX (Sarang): Replaced shell=True with shell=False and split the
-                # command into a list [cmd, arg]. shell=True with user-supplied `content`
-                # interpolated via f-string/repr is a command-injection vulnerability —
-                # an attacker controlling `content` can execute arbitrary shell commands.
                 result = subprocess.run(
                     [config.AI_AGENT_CMD, content],
                     shell=False,
@@ -603,8 +565,6 @@ def send_chat_message(
     session.add(ai_msg)
     session.commit()
 
-    # REVIEW FIX (Sarang): Changed str(ai_msg.created_at) to .isoformat() + "Z" to match
-    # ISO-8601 UTC format used by every other timestamp field in the API.
     return {"role": "ai", "content": ai_response, "createdAt": ai_msg.created_at.isoformat() + "Z"}
 
 

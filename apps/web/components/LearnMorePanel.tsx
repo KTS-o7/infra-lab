@@ -8,7 +8,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { clsx } from "clsx";
-// REVIEW FIX (Sarang): Import ReactMarkdown and remarkGfm for Markdown answer rendering
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -36,7 +35,6 @@ export default function LearnMorePanel({ items, onUse }: Props) {
       setExpandedId(id);
       const item = items.find((i) => i.id === id);
       if (item && !item.isUsed) {
-        // REVIEW FIX (Sarang): Wrap onUse in try/catch; reset expandedId on error to avoid stale open state
         try {
           await onUse(id);
         } catch {
@@ -102,7 +100,6 @@ export default function LearnMorePanel({ items, onUse }: Props) {
 
             {expandedId === item.id && (
               <div className="border-t border-white/5 px-4 pb-4 pt-3">
-                {/* REVIEW FIX (Sarang): Render answer as Markdown instead of plain <p> text */}
                 <div className="text-sm leading-relaxed text-emerald-100/75 prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-headings:text-lime-300 prose-ul:list-disc prose-li:my-1">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {item.answer}
