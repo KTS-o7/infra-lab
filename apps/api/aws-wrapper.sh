@@ -10,8 +10,8 @@
 # to http://floci:4566 before delegating to the real aws CLI, making
 # copy-pasted mission commands work transparently in the in-browser terminal.
 #
-# The real aws binary is installed by uv into the venv at a known path.
-REAL_AWS=/app/.venv/bin/aws
+# The real aws binary is renamed to aws-real in the venv by the Dockerfile.
+REAL_AWS=/app/.venv/bin/aws-real
 
 args=()
 for arg in "$@"; do
