@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 
@@ -542,13 +543,26 @@ def send_chat_message(
     ai_response = "I'm sorry, I couldn't process that right now."
     if config.AI_AGENT_CMD:
         try:
+            # Fetch last 4 turns (8 messages) for context — fits within ~6900 token window
+            HISTORY_TURNS = 4
+            history = session.exec(
+                select(ChatMessage)
+                .where(ChatMessage.profile_id == "local", ChatMessage.mission_id == mission_id)
+                .order_by(ChatMessage.created_at.desc())
+                .limit(HISTORY_TURNS * 2)
+            ).all()
+            history_payload = json.dumps([
+                {"role": m.role, "content": m.content}
+                for m in reversed(history)
+            ])
+
             host_bridge = os.getenv("AMA_HOST_BRIDGE")
             if host_bridge:
                 if _requests is None:
                     raise RuntimeError("requests library is not installed")
                 resp = _requests.post(
                     f"{host_bridge}/run",
-                    json={"command": config.AI_AGENT_CMD, "prompt": content},
+                    json={"command": config.AI_AGENT_CMD, "prompt": content, "history": json.loads(history_payload)},
                     timeout=100,
                 )
                 if resp.status_code == 200:
@@ -557,7 +571,7 @@ def send_chat_message(
                     ai_response = f"Bridge Error: {resp.text}"
             else:
                 result = subprocess.run(
-                    [config.AI_AGENT_CMD, content],
+                    [config.AI_AGENT_CMD, content, history_payload],
                     shell=False,
                     capture_output=True,
                     text=True,

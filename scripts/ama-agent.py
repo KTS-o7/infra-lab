@@ -64,10 +64,23 @@ Answer:\
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: ama-agent.py <prompt>", file=sys.stderr)
+        print("Usage: ama-agent.py <prompt> [history_json]", file=sys.stderr)
         sys.exit(1)
 
     prompt = sys.argv[1]
+
+    # Optional second arg: JSON array of {"role": "user"|"ai", "content": "..."} 
+    # representing the last N turns of conversation history.
+    history = []
+    if len(sys.argv) >= 3:
+        try:
+            raw = json.loads(sys.argv[2])
+            for m in raw:
+                # DB stores role as "ai" but the API expects "assistant"
+                role = "assistant" if m["role"] == "ai" else m["role"]
+                history.append({"role": role, "content": m["content"]})
+        except (json.JSONDecodeError, KeyError):
+            pass  # bad history arg — proceed without context
 
     if not API_KEY:
         print(
@@ -76,14 +89,15 @@ def main():
         )
         sys.exit(1)
 
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.extend(history)
+    messages.append({"role": "user", "content": prompt})
+
     payload = json.dumps({
         "model": MODEL,
         "max_tokens": MAX_TOKENS,
         "stream": False,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
+        "messages": messages,
     }).encode()
 
     req = urllib.request.Request(
