@@ -4,8 +4,8 @@ module: storage
 submodule: create-storage-boundary
 mission_type: lesson
 required: true
-title: First Bucket
-summary: Create your first object storage bucket and upload a file.
+title: User Uploads Are Broken
+summary: Create an S3 bucket so Orbiton has a place to store user-uploaded files that survive container restarts.
 difficulty: beginner
 services:
   - s3
@@ -14,22 +14,32 @@ estimated_minutes: 10
 prerequisites:
   - cloud-explorer
 story: |
-  The platform needs durable storage for onboarding files. Server disks disappear
-  when containers restart, so the app needs an object store boundary where files
-  can live independently from the application process.
+  Priya pings you at 9am: "Support just flagged it — users can't find their
+  uploaded onboarding files after a container restart. The app is writing to
+  local disk inside the container. We need durable object storage. Create a
+  bucket called starter-bucket and upload a test file. I'll verify it survives
+  a restart once you've got it in there."
 learning_objectives:
   - Understand what an S3 bucket is
   - Create a bucket locally
   - Upload and inspect an object
 capability: durable_file_storage
 motivation: |
-  LaunchDesk needs onboarding files and generated assets to survive app restarts. Container disk is tied to the running process, so files need durable object storage.
+  Orbiton users upload onboarding docs and generated reports. Container disk is
+  ephemeral — it disappears on every deploy. Customers are losing files. S3 is
+  the fix: buckets live outside the application process and survive any restart.
 theory: |
-  Object storage keeps file-like data in buckets. A bucket is the storage boundary, and each object is addressed by a key inside that bucket.
+  Object storage keeps file-like data in named buckets. Each object is addressed
+  by a key — a path-like string that applications use to store and retrieve it.
+  Buckets and objects persist independently of any running process.
 thought_process: |
-  Use object storage when the app needs durable blobs rather than structured queries. Create a named bucket, write one known object, and verify both existence and content.
+  Fix the most immediate data-loss path first: create the bucket boundary, upload
+  one known file, then verify it exists. If the listing shows the object, the fix
+  is real and can be replicated for production.
 debrief: |
-  This is the same pattern production systems use for uploads, exports, reports, media, and static assets. LaunchDesk now has its first durable file boundary.
+  Orbiton's user files are now safe across restarts. This is the same pattern
+  production systems use for every durable asset — uploads, exports, reports,
+  generated PDFs, profile pictures. The bucket boundary is live.
 commands:
   - id: create-bucket
     label: Create bucket

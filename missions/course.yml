@@ -1,6 +1,6 @@
 id: launchdesk-cloud-apprenticeship
-title: LaunchDesk Cloud Apprenticeship
-summary: Build a local SaaS-style platform while learning cloud fundamentals.
+title: Orbiton Infrastructure Bootcamp
+summary: "You just joined Orbiton as a backend infrastructure engineer. The product is live, customers are paying, and Priya — your tech lead — has a backlog of cloud tasks with your name on them. Each mission is a real task. Build it, prove it works, and ship it."
 modules:
   - id: orientation
     order: 0
@@ -8,7 +8,7 @@ modules:
     required: true
     capability: safe_local_sandbox
     capability_label: Safe local sandbox
-    summary: Prove every cloud call stays inside the local lab.
+    summary: Get your local lab running and prove you are not touching production.
     capstone_mission_id: null
     capstone_required: false
   - id: storage
@@ -17,7 +17,7 @@ modules:
     required: true
     capability: durable_file_storage
     capability_label: Durable file storage
-    summary: Add object storage for LaunchDesk assets.
+    summary: Give the platform a place to keep files that survive container restarts.
     capstone_mission_id: null
     capstone_required: false
   - id: api
@@ -26,7 +26,7 @@ modules:
     required: true
     capability: http_api
     capability_label: HTTP backend API
-    summary: Create a serverless HTTP entrypoint for LaunchDesk.
+    summary: Build a serverless HTTP entrypoint that clients can call.
     capstone_mission_id: null
     capstone_required: false
   - id: database
@@ -35,7 +35,7 @@ modules:
     required: true
     capability: persisted_records
     capability_label: Persisted application records
-    summary: Store structured LaunchDesk records in a NoSQL table.
+    summary: Give the platform structured records that survive restarts and support queries.
     capstone_mission_id: null
     capstone_required: false
   - id: async_processing
@@ -44,7 +44,7 @@ modules:
     required: true
     capability: async_work
     capability_label: Async background work
-    summary: Add queue-based async processing to LaunchDesk.
+    summary: Stop blocking user requests on slow work — hand it off to a queue.
     capstone_mission_id: null
     capstone_required: false
   - id: events
@@ -53,7 +53,7 @@ modules:
     required: true
     capability: event_fanout
     capability_label: Platform event fanout
-    summary: Notify multiple consumers when important things happen.
+    summary: Let one event reach many consumers without hard-coding every receiver.
     capstone_mission_id: null
     capstone_required: false
   - id: composition
@@ -62,7 +62,7 @@ modules:
     required: true
     capability: composed_platform
     capability_label: Composed end-to-end platform
-    summary: Wire all services into one working LaunchDesk flow.
+    summary: Wire storage, compute, database, and queue into one end-to-end flow.
     capstone_mission_id: launchdesk-compose-capstone
     capstone_required: false
   - id: operations
@@ -71,6 +71,6 @@ modules:
     required: true
     capability: operational_debugging
     capability_label: Operational debugging
-    summary: Reason about and recover from cloud system failures.
+    summary: Diagnose failures, isolate root cause, and repair without blowing everything up.
     capstone_mission_id: null
     capstone_required: false

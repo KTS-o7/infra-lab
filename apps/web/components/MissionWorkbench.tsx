@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
+import { CheckCircle2, Loader2, ArrowRight, Map as MapIcon } from "lucide-react";
+import Link from "next/link";
 import type { MissionDetail, ResetMode, ValidationResult } from "@/lib/api";
 import MissionBrief from "./MissionBrief";
 import MissionStepList from "./MissionStepList";
@@ -68,17 +69,31 @@ function MissionDebrief({ mission, nextMissionId }: MissionDebriefProps) {
           </p>
         </div>
 
-        {nextMissionId && (
+        {nextMissionId ? (
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">
               What&apos;s next
             </p>
-            <div className="mt-2 flex items-center gap-2 rounded border border-white/10 bg-white/5 p-3">
-              <ArrowRight className="h-4 w-4 flex-shrink-0 text-lime-300" />
-              <span className="text-sm text-emerald-50/80">
-                Mission unlock: {nextMissionId}
-              </span>
-            </div>
+            <Link
+              href={`/missions/${nextMissionId}`}
+              className="mt-2 flex w-full items-center justify-between gap-3 rounded-md border border-lime-300/25 bg-lime-300/10 px-4 py-3 text-sm font-semibold text-lime-100 transition hover:border-lime-300/50 hover:bg-lime-300/20 hover:text-lime-200"
+            >
+              <span>Start next mission</span>
+              <ArrowRight className="h-4 w-4 shrink-0" />
+            </Link>
+          </div>
+        ) : (
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.1em] text-emerald-100/55">
+              What&apos;s next
+            </p>
+            <Link
+              href="/"
+              className="mt-2 flex w-full items-center justify-between gap-3 rounded-md border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-medium text-emerald-100 transition hover:border-lime-300/30 hover:bg-white/[0.10] hover:text-lime-200"
+            >
+              <span>Back to mission map</span>
+              <MapIcon className="h-4 w-4 shrink-0" />
+            </Link>
           </div>
         )}
       </div>
