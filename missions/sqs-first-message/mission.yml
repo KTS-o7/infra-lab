@@ -12,7 +12,7 @@ services:
 xp: 100
 estimated_minutes: 10
 prerequisites:
-  - dynamodb-first-table
+  - s3-first-bucket
 story: |
   The platform has work that should happen after a user request returns. Instead
   of blocking the app, send a message into a queue so a worker can pick it up

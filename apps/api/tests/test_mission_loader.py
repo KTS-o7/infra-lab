@@ -76,7 +76,7 @@ def base_mission_yaml(extra: str = "") -> str:
     commands:
       - id: create-bucket
         label: Create bucket
-        command: aws --endpoint-url http://localhost:4566 s3 mb s3://demo
+        command: aws --endpoint-url http://floci:4566 s3 mb s3://demo
     hints: []
     checks:
       - id: bucket-exists
@@ -577,7 +577,6 @@ def test_capstone_validation_persists_score_and_returns_payload(tmp_path, monkey
     assert row.latest_local_safety_passed is True
     assert detail["mission"]["capstoneScore"]["bestScore"] == row.best_score
     assert detail["mission"]["capstoneScore"]["localSafetyPassed"] is True
-    assert detail["mission"]["progress"]["capstoneScore"]["localSafetyPassed"] is True
 
 
 def test_capstone_local_safety_blocks_completion(tmp_path, monkeypatch):
@@ -698,13 +697,16 @@ def test_all_missions_with_commands_have_authored_steps():
     learner anything meaningful.
     """
     import pathlib
-    missions_dir = pathlib.Path("missions")
+    # Anchor to repo root so the test passes regardless of cwd (e.g. pytest run from apps/api/)
+    repo_root = pathlib.Path(__file__).resolve().parents[3]
+    missions_dir = repo_root / "missions"
     if not missions_dir.exists():
         pytest.skip("missions directory not found")
 
     loader = MissionLoader()
-    loader._loaded = False
-    loader._instances = {}
+    MissionLoader._loaded = False
+    MissionLoader._instances = {}
+    MissionLoader._course = None
 
     loaded = loader.load_missions(str(missions_dir))
 

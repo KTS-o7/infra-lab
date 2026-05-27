@@ -8,8 +8,10 @@ from sqlmodel import select
 
 from app.models import (
     CapstoneScore,
+    ChatMessage,
     CourseCompletion,
     HintUsage,
+    LearnMoreUsage,
     MissionProgress,
     Profile,
     StepProgress,
@@ -161,6 +163,10 @@ def help_usage_payloads(session, mission_id: str) -> list[dict]:
 
 def hint_usage_for_mission(session, mission_id: str) -> list[HintUsage]:
     return list(session.exec(select(HintUsage).where(HintUsage.mission_id == mission_id)).all())
+
+
+def learn_more_usage_for_mission(session, mission_id: str) -> list[LearnMoreUsage]:
+    return list(session.exec(select(LearnMoreUsage).where(LearnMoreUsage.mission_id == mission_id)).all())
 
 
 def start_mission(session, mission) -> dict:
@@ -490,3 +496,25 @@ def update_course_completion_cache(session, course, progress: dict, course_hash:
     row.updated_at = _now()
     session.add(row)
     session.commit()
+
+
+def use_learn_more(session, mission_id: str, item_id: str, xp: int) -> dict:
+    ensure_local_profile(session)
+    existing = session.exec(
+        select(LearnMoreUsage).where(
+            LearnMoreUsage.mission_id == mission_id,
+            LearnMoreUsage.item_id == item_id,
+        )
+    ).first()
+    if existing:
+        return {"missionId": mission_id, "itemId": item_id, "alreadyUsed": True, "xpAwarded": 0}
+
+    usage = LearnMoreUsage(
+        profile_id="local",
+        mission_id=mission_id,
+        item_id=item_id,
+        xp=xp,
+    )
+    session.add(usage)
+    session.commit()
+    return {"missionId": mission_id, "itemId": item_id, "alreadyUsed": False, "xpAwarded": xp}

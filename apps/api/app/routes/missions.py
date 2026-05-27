@@ -1,11 +1,20 @@
+import os
+import subprocess
+
 from fastapi import APIRouter, Body, Depends, HTTPException
-from sqlmodel import Session
+from sqlmodel import Session, select
 import logging
+
+try:
+    import requests as _requests
+except ImportError:
+    _requests = None
 
 from app.db import get_session
 from app.mission_loader import MissionLoader
 from app.services import progress as progress_service
 import app.config as config
+from app.models import ChatMessage
 
 router = APIRouter()
 logger = logging.getLogger("infra_quest.missions")
@@ -265,6 +274,9 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
     usages = progress_service.hint_usage_for_mission(session, mission_id)
     used_hint_ids = {usage.hint_id for usage in usages}
 
+    learn_more_usages = progress_service.learn_more_usage_for_mission(session, mission_id)
+    used_learn_more_ids = {u.item_id for u in learn_more_usages}
+
     hints_out = []
     for hint in mission.hints:
         item = {
@@ -296,15 +308,23 @@ def get_mission(mission_id: str, session: Session = Depends(get_session)):
                 {"hintId": usage.hint_id, "level": usage.level, "usedAt": usage.used_at.isoformat() + "Z"}
                 for usage in usages
             ],
+            "learnMore": [
+                {
+                    "id": item.id,
+                    "question": item.question,
+                    "answer": item.answer,
+                    "docsUrl": getattr(item, "docs_url", None),
+                    "xp": item.xp,
+                    "isUsed": item.id in used_learn_more_ids,
+                }
+                for item in (mission.learn_more or [])
+            ],
             "progress": {
                 "status": status,
                 "attempts": prog.attempts if prog else 0,
                 "xpAwarded": prog.xp_awarded if prog else 0,
                 "startedAt": prog.started_at.isoformat() + "Z" if prog and prog.started_at else None,
                 "completedAt": prog.completed_at.isoformat() + "Z" if prog and prog.completed_at else None,
-                "capstoneScore": progress_service.capstone_score_payload(session, mission_id)
-                if mission.mission_type in {"module_capstone", "final_capstone"}
-                else None,
             },
             "capstoneScore": progress_service.capstone_score_payload(session, mission_id)
             if mission.mission_type in {"module_capstone", "final_capstone"}
@@ -453,6 +473,99 @@ def use_hint(mission_id: str, hint_id: str, session: Session = Depends(get_sessi
     if "error" in result:
         raise HTTPException(status_code=409, detail=result)
     return result
+
+
+@router.post("/missions/{mission_id}/learn/{item_id}")
+def use_learn_more(mission_id: str, item_id: str, session: Session = Depends(get_session)):
+    instances = MissionLoader.load_missions(config.MISSIONS_DIR)
+    if mission_id not in instances:
+        raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
+    mission = instances[mission_id]
+    item = next((i for i in mission.learn_more if i.id == item_id), None)
+    if not item:
+        raise HTTPException(status_code=404, detail=_error_response("LEARN_MORE_NOT_FOUND", "Learn more item not found."))
+    result = progress_service.use_learn_more(session, mission_id, item_id, item.xp)
+    if "error" in result:
+        raise HTTPException(status_code=409, detail=result)
+    return result
+
+
+@router.get("/missions/{mission_id}/chat")
+def get_chat_history(mission_id: str, session: Session = Depends(get_session)):
+    instances = MissionLoader.load_missions(config.MISSIONS_DIR)
+    if mission_id not in instances:
+        raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
+    messages = session.exec(
+        select(ChatMessage)
+        .where(ChatMessage.profile_id == "local", ChatMessage.mission_id == mission_id)
+        .order_by(ChatMessage.created_at)
+    ).all()
+    return {
+        "messages": [
+            {"role": m.role, "content": m.content, "createdAt": m.created_at.isoformat() + "Z"}
+            for m in messages
+        ]
+    }
+
+
+@router.post("/missions/{mission_id}/chat")
+def send_chat_message(
+    mission_id: str, body: dict = Body(...), session: Session = Depends(get_session)
+):
+    content = body.get("message")
+    if not content:
+        raise HTTPException(status_code=400, detail="Message is required")
+
+    instances = MissionLoader.load_missions(config.MISSIONS_DIR)
+    if mission_id not in instances:
+        raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
+
+    user_msg = ChatMessage(
+        profile_id="local", mission_id=mission_id, role="user", content=content
+    )
+
+    ai_response = "I'm sorry, I couldn't process that right now."
+    if config.AI_AGENT_CMD:
+        try:
+            host_bridge = os.getenv("AMA_HOST_BRIDGE")
+            if host_bridge:
+                if _requests is None:
+                    raise RuntimeError("requests library is not installed")
+                resp = _requests.post(
+                    f"{host_bridge}/run",
+                    json={"command": config.AI_AGENT_CMD, "prompt": content},
+                    timeout=100,
+                )
+                if resp.status_code == 200:
+                    ai_response = resp.json().get("output", ai_response)
+                else:
+                    ai_response = f"Bridge Error: {resp.text}"
+            else:
+                result = subprocess.run(
+                    [config.AI_AGENT_CMD, content],
+                    shell=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                if result.returncode == 0:
+                    ai_response = result.stdout.strip()
+                else:
+                    ai_response = f"AI Error: {result.stderr.strip()}"
+        except Exception as e:
+            ai_response = f"Failed to call AI agent: {str(e)}"
+    else:
+        ai_response = f"Echo: You said '{content}'. (No AI agent configured in AI_AGENT_CMD)"
+
+    ai_msg = ChatMessage(
+        profile_id="local", mission_id=mission_id, role="ai", content=ai_response
+    )
+    # Commit both user and AI messages together in one transaction (see note above).
+    session.add(user_msg)
+    session.add(ai_msg)
+    session.commit()
+
+    return {"role": "ai", "content": ai_response, "createdAt": ai_msg.created_at.isoformat() + "Z"}
 
 
 @router.get("/profile")

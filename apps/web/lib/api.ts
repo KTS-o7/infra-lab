@@ -124,6 +124,14 @@ export interface MissionDetail {
     hints?: MissionHint[];
     stepProgress?: StepProgress[];
     helpUsage?: HelpUsage[];
+    learnMore?: {
+      id: string;
+      question: string;
+      answer: string;
+      docsUrl?: string;
+      xp: number;
+      isUsed: boolean;
+    }[];
     capstoneScore?: CapstoneScore | null;
     progress: {
       status: string;
@@ -284,5 +292,43 @@ export async function useHint(missionId: string, hintId: string): Promise<{ miss
 export async function getProfile(): Promise<{ profile: Profile }> {
   const res = await fetch(`${API_BASE}/profile`);
   if (!res.ok) throw new Error("Failed to fetch profile");
+  return res.json();
+}
+
+export interface ChatMessage {
+  role: "user" | "ai";
+  content: string;
+  createdAt: string;
+}
+
+export async function getChatHistory(
+  missionId: string,
+): Promise<{ messages: ChatMessage[] }> {
+  const res = await fetch(`${API_BASE}/missions/${missionId}/chat`);
+  if (!res.ok) throw new Error("Failed to fetch chat history");
+  return res.json();
+}
+
+export async function sendChatMessage(
+  missionId: string,
+  message: string,
+): Promise<ChatMessage> {
+  const res = await fetch(`${API_BASE}/missions/${missionId}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) throw new Error("Failed to send chat message");
+  return res.json();
+}
+
+export async function useLearnMore(
+  missionId: string,
+  itemId: string,
+): Promise<{ missionId: string; itemId: string; alreadyUsed: boolean; xpAwarded: number }> {
+  const res = await fetch(`${API_BASE}/missions/${missionId}/learn/${itemId}`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to use learn more");
   return res.json();
 }

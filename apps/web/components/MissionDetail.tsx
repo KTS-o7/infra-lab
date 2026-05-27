@@ -3,15 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   getMission,
-  getRuntimeStatus,
   startMission,
   validateMission,
   resetMission,
   useHint as useHintApi,
+  useLearnMore,
   type MissionDetail,
   type ResetMode,
-  type ResetResult,
-  type RuntimeStatus,
   type ValidationResult,
 } from "@/lib/api";
 import RuntimeBanner from "./RuntimeBanner";
@@ -28,14 +26,8 @@ export default function MissionDetail({ missionId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  const [resetResult, setResetResult] = useState<ResetResult | null>(null);
-  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
-  const runtimeReady = !runtimeStatus || (
-    runtimeStatus.api.status === "online" &&
-    runtimeStatus.floci.status === "online" &&
-    runtimeStatus.database.status === "online"
-  );
+  const [validationResult, setValidationResult] =
+    useState<ValidationResult | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -46,12 +38,9 @@ export default function MissionDetail({ missionId }: Props) {
       .finally(() => setLoading(false));
   }, [missionId]);
 
-  useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    getRuntimeStatus()
-      .then(setRuntimeStatus)
-      .catch(() => setRuntimeStatus(null));
-  }, []);
+    load();
+  }, [load]);
 
   const handleStart = async () => {
     setActionLoading(true);
@@ -71,7 +60,6 @@ export default function MissionDetail({ missionId }: Props) {
     try {
       const result = await validateMission(missionId);
       setValidationResult(result);
-      setResetResult(null);
       await load();
     } catch {
       setError("Failed to validate mission");
@@ -97,9 +85,8 @@ export default function MissionDetail({ missionId }: Props) {
   const handleReset = async (mode: ResetMode) => {
     setActionLoading(true);
     try {
-      const result = await resetMission(missionId, mode);
+      await resetMission(missionId, mode);
       setValidationResult(null);
-      setResetResult(result);
       await load();
     } catch {
       setError("Failed to reset mission");
@@ -111,6 +98,15 @@ export default function MissionDetail({ missionId }: Props) {
   const handleUseHint = async (hintId: string) => {
     try {
       await useHintApi(missionId, hintId);
+      await load();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleUseLearnMore = async (itemId: string) => {
+    try {
+      await useLearnMore(missionId, itemId);
       await load();
     } catch {
       // ignore
@@ -129,15 +125,28 @@ export default function MissionDetail({ missionId }: Props) {
     return (
       <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
         <p className="mb-4 text-red-200">{error || "Mission not found"}</p>
-        <div className="flex flex-wrap justify-center gap-2">
-          <button onClick={load} className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
-            Retry
-          </button>
-          <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]">
-            <ArrowLeft className="h-4 w-4" />
-            Back to missions
-          </Link>
-        </div>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to missions
+        </Link>
+      </div>
+    );
+  }
+
+  if (data.mission.status === "locked") {
+    return (
+      <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
+        <p className="mb-4 text-red-200">This mission is locked.</p>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to missions
+        </Link>
       </div>
     );
   }
@@ -147,23 +156,24 @@ export default function MissionDetail({ missionId }: Props) {
       <RuntimeBanner />
 
       <div className="mb-6">
-        <Link href="/" className="mb-4 inline-flex items-center gap-2 text-sm text-emerald-100/55 hover:text-lime-200">
+        <Link
+          href="/"
+          className="mb-4 inline-flex items-center gap-2 text-sm text-emerald-100/55 hover:text-lime-200"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to mission map
         </Link>
-
       </div>
       <MissionWorkbench
         data={data}
         actionLoading={actionLoading}
         validationResult={validationResult}
-        resetResult={resetResult}
         onStart={handleStart}
         onValidateMission={handleValidate}
         onValidateStep={handleValidateStep}
         onReset={handleReset}
         onUseHint={handleUseHint}
-        runtimeReady={runtimeReady}
+        onUseLearnMore={handleUseLearnMore}
       />
     </div>
   );
