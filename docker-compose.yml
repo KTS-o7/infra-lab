@@ -35,6 +35,7 @@ services:
     volumes:
       - ./data/api:/app/data
       - ./missions:/app/missions:ro
+      - ./scripts:/app/scripts:ro
     depends_on:
       floci:
         condition: service_healthy
