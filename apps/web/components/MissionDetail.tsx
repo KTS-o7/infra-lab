@@ -38,6 +38,13 @@ export default function MissionDetail({ missionId }: Props) {
       .finally(() => setLoading(false));
   }, [missionId]);
 
+  // Refresh data silently after actions — no spinner, no scroll-to-top
+  const refresh = useCallback(() => {
+    return getMission(missionId)
+      .then(setData)
+      .catch(() => setError("Failed to load mission"));
+  }, [missionId]);
+
   useEffect(() => {
     load();
   }, [load]);
@@ -46,7 +53,7 @@ export default function MissionDetail({ missionId }: Props) {
     setActionLoading(true);
     try {
       await startMission(missionId);
-      await load();
+      await refresh();
     } catch {
       setError("Failed to start mission");
     } finally {
@@ -60,7 +67,7 @@ export default function MissionDetail({ missionId }: Props) {
     try {
       const result = await validateMission(missionId);
       setValidationResult(result);
-      await load();
+      await refresh();
     } catch {
       setError("Failed to validate mission");
     } finally {
@@ -72,7 +79,7 @@ export default function MissionDetail({ missionId }: Props) {
     setActionLoading(true);
     try {
       const result = await validateMission(missionId, stepId);
-      await load();
+      await refresh();
       return result;
     } catch {
       setError("Failed to validate step");
@@ -87,7 +94,7 @@ export default function MissionDetail({ missionId }: Props) {
     try {
       await resetMission(missionId, mode);
       setValidationResult(null);
-      await load();
+      await refresh();
     } catch {
       setError("Failed to reset mission");
     } finally {
@@ -98,7 +105,7 @@ export default function MissionDetail({ missionId }: Props) {
   const handleUseHint = async (hintId: string) => {
     try {
       await useHintApi(missionId, hintId);
-      await load();
+      await refresh();
     } catch {
       // ignore
     }
@@ -107,7 +114,7 @@ export default function MissionDetail({ missionId }: Props) {
   const handleUseLearnMore = async (itemId: string) => {
     try {
       await useLearnMore(missionId, itemId);
-      await load();
+      await refresh();
     } catch {
       // ignore
     }
