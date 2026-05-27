@@ -15,7 +15,10 @@ from app.db import get_session
 from app.mission_loader import MissionLoader
 from app.services import progress as progress_service
 import app.config as config
-from app.models import ChatMessage
+from app.models import (
+    ChatMessage, MissionProgress, ValidationAttempt, StepProgress,
+    HintUsage, LearnMoreUsage, CapstoneScore, CourseCompletion,
+)
 
 router = APIRouter()
 logger = logging.getLogger("infra_quest.missions")
@@ -632,3 +635,28 @@ def get_profile(session: Session = Depends(get_session)):
             "courseProgress": course["progress"],
         }
     }
+
+
+@router.delete("/progress")
+def clear_all_progress(session: Session = Depends(get_session)):
+    """Delete all learner progress, XP, hints, chat, and capstone scores.
+    Keeps the profile row and schema migrations intact."""
+    for model in (
+        ChatMessage,
+        HintUsage,
+        LearnMoreUsage,
+        StepProgress,
+        ValidationAttempt,
+        CapstoneScore,
+        CourseCompletion,
+        MissionProgress,
+    ):
+        rows = session.exec(select(model)).all()
+        for row in rows:
+            session.delete(row)
+
+    profile = progress_service.ensure_local_profile(session)
+    profile.total_xp = 0
+    session.add(profile)
+    session.commit()
+    return {"cleared": True}

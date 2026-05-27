@@ -339,3 +339,8 @@ export async function useLearnMore(
   if (!res.ok) throw new Error("Failed to use learn more");
   return res.json();
 }
+
+export async function clearAllProgress(): Promise<void> {
+  const res = await fetch(`${API_BASE}/progress`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to clear progress");
+}

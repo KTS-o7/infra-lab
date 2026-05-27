@@ -127,10 +127,10 @@ export default function MissionDetail({ missionId }: Props) {
         <p className="mb-4 text-red-200">{error || "Mission not found"}</p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]"
+          className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-lime-300/30 hover:bg-white/[0.10] hover:text-lime-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to missions
+          Back to mission map
         </Link>
       </div>
     );
@@ -142,10 +142,10 @@ export default function MissionDetail({ missionId }: Props) {
         <p className="mb-4 text-red-200">This mission is locked.</p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-emerald-50 hover:bg-white/[0.075]"
+          className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-lime-300/30 hover:bg-white/[0.10] hover:text-lime-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to missions
+          Back to mission map
         </Link>
       </div>
     );
@@ -158,7 +158,7 @@ export default function MissionDetail({ missionId }: Props) {
       <div className="mb-6">
         <Link
           href="/"
-          className="mb-4 inline-flex items-center gap-2 text-sm text-emerald-100/55 hover:text-lime-200"
+          className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-lime-300/30 hover:bg-white/[0.10] hover:text-lime-200"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to mission map

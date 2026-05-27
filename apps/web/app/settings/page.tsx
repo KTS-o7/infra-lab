@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
-import { getRuntimeStatus, type RuntimeStatus } from "@/lib/api";
-import { Boxes, Database, FileText, Loader2, RefreshCw, ShieldCheck, TerminalSquare, WifiOff, type LucideIcon } from "lucide-react";
+import { getRuntimeStatus, clearAllProgress, type RuntimeStatus } from "@/lib/api";
+import { Boxes, Database, FileText, Loader2, RefreshCw, ShieldCheck, TerminalSquare, Trash2, WifiOff, type LucideIcon } from "lucide-react";
 
 export default function SettingsPage() {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [clearDone, setClearDone] = useState(false);
+  const [clearError, setClearError] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -20,6 +23,23 @@ export default function SettingsPage() {
         setError(true);
       })
       .finally(() => setLoading(false));
+  };
+
+  const handleClearProgress = async () => {
+    if (!confirm("This will delete all XP, badges, mission progress, hints, chat history, and step state. This cannot be undone. Continue?")) return;
+    setClearing(true);
+    setClearDone(false);
+    setClearError(false);
+    try {
+      await clearAllProgress();
+      setClearDone(true);
+      setTimeout(() => setClearDone(false), 4000);
+    } catch {
+      setClearError(true);
+      setTimeout(() => setClearError(false), 4000);
+    } finally {
+      setClearing(false);
+    }
   };
 
   useEffect(() => {
@@ -67,6 +87,33 @@ export default function SettingsPage() {
               <RuntimeTile icon={ShieldCheck} label="Local only" value={status.localOnly.status} detail={status.localOnly.endpoint} healthy={status.localOnly.status === "enforced" || status.localOnly.status === "online"} />
             </div>
           )}
+        </section>
+
+        <section className="rounded-lg border border-red-400/10 bg-red-950/20 p-5 shadow-xl shadow-black/10">
+          <h2 className="text-lg font-semibold text-emerald-50">Danger zone</h2>
+          <p className="mt-1 text-sm leading-6 text-emerald-100/55">
+            Permanently deletes all XP, badges, mission progress, hints, step state, and chat history. The lab resources in Floci are not affected — only the progress database is cleared.
+          </p>
+          <div className="mt-4 flex items-center gap-4">
+            <button
+              onClick={handleClearProgress}
+              disabled={clearing}
+              className="inline-flex items-center gap-2 rounded-md border border-red-400/30 bg-red-950/40 px-4 py-2 text-sm font-medium text-red-300 transition hover:border-red-400/60 hover:bg-red-950/70 hover:text-red-200 disabled:opacity-50"
+            >
+              {clearing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              {clearing ? "Clearing…" : "Clear all progress"}
+            </button>
+            {clearDone && (
+              <p className="text-sm font-medium text-lime-300">Progress cleared.</p>
+            )}
+            {clearError && (
+              <p className="text-sm font-medium text-red-400">Failed to clear progress. Is the API running?</p>
+            )}
+          </div>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
