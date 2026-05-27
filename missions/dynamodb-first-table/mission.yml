@@ -12,7 +12,7 @@ services:
 xp: 150
 estimated_minutes: 15
 prerequisites:
-  - apigateway-http-trigger
+  - sns-fanout
 story: |
   You need to store key-value data that can be retrieved quickly.
   In AWS, this is done with DynamoDB, a managed NoSQL database.
