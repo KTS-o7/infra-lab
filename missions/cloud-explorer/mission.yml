@@ -1,5 +1,9 @@
 id: cloud-explorer
 order: 1
+module: orientation
+submodule: prove-local-sandbox
+mission_type: lesson
+required: true
 title: Cloud Explorer
 summary: Explore the local AWS lab environment and verify everything is working.
 difficulty: beginner
@@ -17,13 +21,22 @@ learning_objectives:
   - Verify Floci is running
   - Learn the local endpoint URL
   - Understand fake AWS credentials
+capability: safe_local_sandbox
+motivation: |
+  Real cloud accounts can cost money and expose production data. LaunchDesk starts in a local sandbox so every mistake is cheap, reversible, and isolated.
+theory: |
+  A local AWS-compatible endpoint accepts AWS-style CLI calls without contacting AWS. Fake credentials and a fixed local endpoint make the boundary explicit.
+thought_process: |
+  Before creating resources, prove where commands go instead of trusting shell defaults. Check identity through the local endpoint, then inspect an empty service namespace so later changes have a known baseline.
+debrief: |
+  Production engineers always confirm environment boundaries before operating. This mission establishes the local-only habit used throughout the LaunchDesk course.
 commands:
   - id: check-floci
     label: Check Floci health
-    command: aws --endpoint-url http://floci:4566 sts get-caller-identity
+    command: aws --endpoint-url http://localhost:4566 sts get-caller-identity
   - id: list-buckets
     label: List S3 buckets
-    command: aws --endpoint-url http://floci:4566 s3 ls
+    command: aws --endpoint-url http://localhost:4566 s3 ls
 steps:
   - id: confirm-sandbox
     title: Confirm the sandbox boundary
@@ -31,7 +44,7 @@ steps:
     why: Production cloud accounts are risky places to learn. This lab keeps practice isolated by routing all AWS-style traffic to a local endpoint.
     target_state:
       - label: Endpoint
-        value: http://floci:4566
+        value: http://localhost:4566
       - label: Credentials
         value: fake local credentials
     action: Ask the local endpoint who you are. The response proves the CLI is speaking to the sandbox.
@@ -56,12 +69,25 @@ steps:
 hints:
   - id: local-only
     title: Local only lab
-    text: This lab does not use real AWS. All commands point to http://floci:4566.
+    level: nudge
+    applies_to_checks:
+      - floci-available
+    text: This lab does not use real AWS. All commands point to http://localhost:4566.
     penalty_xp: 5
   - id: fake-creds
     title: Fake credentials
+    level: diagnosis
+    applies_to_checks:
+      - floci-available
     text: The AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are both set to "test". This is normal for local development.
     penalty_xp: 5
+  - id: restart-runtime
+    title: Restart the runtime
+    level: repair
+    applies_to_checks:
+      - floci-available
+    text: If the local endpoint is unreachable, run docker compose up --build and wait for Floci before retrying the check.
+    penalty_xp: 10
 checks:
   - id: floci-available
     type: runtime_floci_available

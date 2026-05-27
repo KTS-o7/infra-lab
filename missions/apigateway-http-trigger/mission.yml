@@ -1,5 +1,9 @@
 id: apigateway-http-trigger
 order: 7
+module: api
+submodule: expose-http-entrypoint
+mission_type: lesson
+required: true
 title: HTTP Trigger
 summary: Expose a Lambda function through an HTTP endpoint with API Gateway.
 difficulty: beginner
@@ -19,23 +23,31 @@ learning_objectives:
   - Create and configure routes
   - Integrate Lambda with HTTP endpoints
   - Test HTTP endpoints locally
+capability: http_api
+motivation: |
+  LaunchDesk needs an HTTP entrypoint so clients can call backend behavior through a stable URL instead of invoking functions directly.
+theory: |
+  API Gateway receives HTTP requests, matches routes, and forwards them to an integration such as Lambda. The route and integration together make the endpoint useful.
+thought_process: |
+  Build from the inside out instead of exposing an endpoint before compute exists: deploy the function, create the API boundary, add a route, wire the route to compute, then prove the full HTTP response.
+debrief: |
+  This pattern is a common serverless API shape. LaunchDesk now has a local HTTP backend path that can grow into product workflows.
 commands:
   - id: create-function
     label: Create Lambda function
-    command: cd missions/apigateway-http-trigger/function && zip -r function.zip index.mjs && aws --endpoint-url http://floci:4566 lambda create-function --function-name starter-api-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+    command: cd missions/apigateway-http-trigger/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-api-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
   - id: create-api
     label: Create API Gateway API
-    command: aws --endpoint-url http://floci:4566 apigatewayv2 create-api --name starter-api --protocol-type HTTP
+    command: aws --endpoint-url http://localhost:4566 apigatewayv2 create-api --name starter-api --protocol-type HTTP
   - id: add-route
     label: Add route
-    command: API_ID=$(aws --endpoint-url http://floci:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && aws --endpoint-url http://floci:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello"
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello"
   - id: integrate
     label: Integrate Lambda
-    command: API_ID=$(aws --endpoint-url http://floci:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://floci:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:starter-api-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://floci:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "GET /hello" --target "$INTEGRATION_ID"
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && ROUTE_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-routes --api-id "$API_ID" --query 'Items[?RouteKey==`GET /hello`].RouteId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:starter-api-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 update-route --api-id "$API_ID" --route-id "$ROUTE_ID" --target "integrations/$INTEGRATION_ID"
   - id: invoke
     label: Call HTTP endpoint
-    command: API_ID=$(aws --endpoint-url http://floci:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://floci:4566/$API_ID/hello"
-hints:
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`starter-api`].ApiId' --output text) && curl "http://localhost:4566/restapis/$API_ID/default/_user_request_/hello"
 steps:
   - id: deploy-api-function
     title: Deploy the function
@@ -62,7 +74,8 @@ steps:
         value: HTTP
     action: Create the HTTP API in your local API Gateway.
     command_id: create-api
-    check_ids: []
+    check_ids:
+      - api-exists
     success: The starter-api HTTP API exists.
   - id: add-hello-route
     title: Add the route
@@ -89,7 +102,8 @@ steps:
         value: GET /hello
     action: Integrate the route with the Lambda function.
     command_id: integrate
-    check_ids: []
+    check_ids:
+      - integrated-route
     success: The route is wired to the Lambda.
   - id: call-and-verify
     title: Call the HTTP endpoint
@@ -97,7 +111,7 @@ steps:
     why: Testing the full HTTP path confirms the integration works end-to-end. API Gateway receives the request, invokes Lambda, and returns the function's response.
     target_state:
       - label: Endpoint
-        value: http://floci:4566/{apiId}/hello
+        value: http://localhost:4566/restapis/{apiId}/default/_user_request_/hello
       - label: Status
         value: "200"
       - label: Response
@@ -110,20 +124,43 @@ steps:
 hints:
   - id: route-key
     title: Route key
+    level: nudge
+    applies_to_checks:
+      - route-exists
     text: The route key is "GET /hello". API Gateway routes requests based on the path and method.
     penalty_xp: 5
   - id: endpoint
     title: Local endpoint
-    text: Use --endpoint-url http://floci:4566 for all CLI commands in this lab.
+    level: diagnosis
+    applies_to_checks:
+      - function-exists
+      - http-response
+    text: Use --endpoint-url http://localhost:4566 for all CLI commands in this lab.
     penalty_xp: 5
+  - id: rewire-route
+    title: Rewire the route
+    level: repair
+    applies_to_checks:
+      - route-exists
+      - http-response
+    text: If the route exists but the HTTP check fails, re-run the integration command so GET /hello targets starter-api-function.
+    penalty_xp: 10
 checks:
   - id: function-exists
     type: lambda_function_exists
     function_name: starter-api-function
+  - id: api-exists
+    type: apigateway_api_exists
+    api_name: starter-api
   - id: route-exists
     type: apigateway_route_exists
     api_name: starter-api
     route: GET /hello
+  - id: integrated-route
+    type: apigateway_route_exists
+    api_name: starter-api
+    route: GET /hello
+    target_prefix: integrations/
   - id: http-response
     type: apigateway_http_returns
     api_name: starter-api
