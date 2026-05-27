@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Bot, User, Loader2, MessageSquare } from "lucide-react";
-import { getChatHistory, sendChatMessage, type ChatMessage } from "@/lib/api";
+import { Send, Bot, User, Loader2, MessageSquare, Trash2 } from "lucide-react";
+import { getChatHistory, sendChatMessage, clearChatHistory, type ChatMessage } from "@/lib/api";
 import { clsx } from "clsx";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -15,6 +15,7 @@ export default function MissionChatPanel({ missionId }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -63,13 +64,41 @@ export default function MissionChatPanel({ missionId }: Props) {
     }
   };
 
+  const handleClear = async () => {
+    if (clearing || loading) return;
+    setClearing(true);
+    try {
+      await clearChatHistory(missionId);
+      setMessages([]);
+    } catch {
+      // silently ignore — messages still visible if clear fails
+    } finally {
+      setClearing(false);
+    }
+  };
+
   return (
     <section className="flex h-[600px] flex-col rounded-lg border border-white/10 bg-[#0b1512]/80 shadow-2xl shadow-black/20 backdrop-blur">
       <div className="flex items-center gap-2 border-b border-white/5 bg-white/[0.02] px-4 py-3">
         <MessageSquare className="h-4 w-4 text-lime-300" />
-        <h2 className="text-sm font-semibold text-emerald-50">
+        <h2 className="flex-1 text-sm font-semibold text-emerald-50">
           Ask me anything
         </h2>
+        {messages.length > 0 && (
+          <button
+            onClick={handleClear}
+            disabled={clearing || loading}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-emerald-100/40 transition hover:bg-white/[0.04] hover:text-red-400 disabled:opacity-30"
+            title="Clear chat history"
+          >
+            {clearing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+            Clear
+          </button>
+        )}
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -90,7 +119,7 @@ export default function MissionChatPanel({ missionId }: Props) {
             )}
           </div>
         ) : (
-          messages.map((msg, i) => (
+          messages.map((msg) => (
             <div
               key={msg.createdAt + msg.role}
               className={clsx(
@@ -140,18 +169,9 @@ export default function MissionChatPanel({ missionId }: Props) {
             </div>
             <div className="bg-white/5 border border-white/5 rounded-2xl rounded-tl-none px-4 py-2.5">
               <div className="flex gap-1">
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-emerald-100/20 animate-bounce"
-                  style={{ animationDelay: "0ms" }}
-                />
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-emerald-100/20 animate-bounce"
-                  style={{ animationDelay: "150ms" }}
-                />
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-emerald-100/20 animate-bounce"
-                  style={{ animationDelay: "300ms" }}
-                />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-100/20 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-100/20 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-100/20 animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>

@@ -24,7 +24,7 @@ import urllib.error
 API_KEY  = os.environ.get("AMA_API_KEY", "")
 API_BASE = os.environ.get("AMA_API_BASE", "https://ai.shenthar.me/v1").rstrip("/")
 MODEL    = os.environ.get("AMA_MODEL", "taalas-llama3.1-8b")
-MAX_TOKENS = int(os.environ.get("AMA_MAX_TOKENS", "300"))
+MAX_TOKENS = int(os.environ.get("AMA_MAX_TOKENS") or "300")
 
 # System prompt engineered from boundary-test findings:
 #   - plain text (XML format -18pp)

@@ -490,6 +490,21 @@ def use_learn_more(mission_id: str, item_id: str, session: Session = Depends(get
     return result
 
 
+@router.delete("/missions/{mission_id}/chat")
+def clear_chat_history(mission_id: str, session: Session = Depends(get_session)):
+    instances = MissionLoader.load_missions(config.MISSIONS_DIR)
+    if mission_id not in instances:
+        raise HTTPException(status_code=404, detail=_error_response("MISSION_NOT_FOUND", "Mission not found."))
+    messages = session.exec(
+        select(ChatMessage)
+        .where(ChatMessage.profile_id == "local", ChatMessage.mission_id == mission_id)
+    ).all()
+    for m in messages:
+        session.delete(m)
+    session.commit()
+    return {"cleared": len(messages)}
+
+
 @router.get("/missions/{mission_id}/chat")
 def get_chat_history(mission_id: str, session: Session = Depends(get_session)):
     instances = MissionLoader.load_missions(config.MISSIONS_DIR)

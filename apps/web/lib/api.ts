@@ -322,6 +322,13 @@ export async function sendChatMessage(
   return res.json();
 }
 
+export async function clearChatHistory(missionId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/missions/${missionId}/chat`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to clear chat history");
+}
+
 export async function useLearnMore(
   missionId: string,
   itemId: string,
