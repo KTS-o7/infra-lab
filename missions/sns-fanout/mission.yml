@@ -4,8 +4,8 @@ module: events
 submodule: broadcast-platform-events
 mission_type: lesson
 required: true
-title: Publish and Subscribe
-summary: Create an SNS topic and fan out messages to SQS queues.
+title: Three Teams Are Waiting on One Event
+summary: Set up SNS fan-out so a single platform event reaches multiple teams without coupling the publisher to every consumer.
 difficulty: beginner
 services:
   - sns
@@ -15,22 +15,34 @@ estimated_minutes: 15
 prerequisites:
   - sqs-first-message
 story: |
-  You want to publish one message and have it delivered to multiple systems.
-  In AWS, this is done with SNS (Simple Notification Service) for pub/sub.
-  A topic receives messages and fans them out to subscribed endpoints.
+  Sprint planning just ended. Three teams — billing, analytics, and compliance —
+  all need to be notified when a new user signs up. The current code sends three
+  separate HTTP calls from the signup handler. Priya flags it in review: "This
+  is brittle. If one call fails, the user gets a partial state. Use SNS. One
+  publish, every consumer subscribes independently. Wire up a topic and prove
+  a message fans out to the subscriber queue. Billing is blocked on you."
 learning_objectives:
   - Understand SNS topic and subscription model
   - Create topics and queues
   - Configure fanout delivery
 capability: event_fanout
 motivation: |
-  LaunchDesk will have more than one downstream system interested in the same event. A publisher should not need to know every consumer.
+  Orbiton's signup handler is reaching out to three downstream systems by hand.
+  Every new consumer means more code changes to the publisher, more coupling,
+  and more failure modes. SNS lets the publisher fire one event and let every
+  consumer subscribe on their own terms — no publisher changes needed.
 theory: |
-  Pub/sub uses a topic as the event channel. Publishers send one message to the topic, and subscriptions deliver copies to each configured endpoint.
+  SNS uses a topic as the broadcast channel. Publishers send one message to the
+  topic. SNS delivers a copy to every subscribed endpoint — SQS queues, HTTP
+  webhooks, Lambda functions. Publishers and consumers are fully decoupled.
 thought_process: |
-  Use fanout when one fact should notify multiple consumers instead of hard-coding every consumer into the publisher. Build the topic, attach a queue subscription, publish a known message, and verify delivery.
+  Build the topic first, then a subscriber queue, then wire the subscription,
+  then publish a test message and verify delivery. Proving the whole pipeline
+  end-to-end is the only way to know fanout actually works.
 debrief: |
-  Event fanout lets production platforms add notification, audit, analytics, and automation consumers without rewriting the original publisher.
+  Billing, analytics, and compliance can now each subscribe independently.
+  The signup handler publishes one event and is done. Adding a fourth consumer
+  tomorrow requires zero changes to the publisher. Event-driven fanout is live.
 commands:
   - id: create-topic
     label: Create SNS topic

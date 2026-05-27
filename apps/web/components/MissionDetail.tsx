@@ -12,10 +12,10 @@ import {
   type ResetMode,
   type ValidationResult,
 } from "@/lib/api";
-import RuntimeBanner from "./RuntimeBanner";
+import AppShell from "./AppShell";
 import MissionWorkbench from "./MissionWorkbench";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 interface Props {
   missionId: string;
@@ -122,46 +122,58 @@ export default function MissionDetail({ missionId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-lime-300" />
-      </div>
+      <AppShell variant="slim">
+        <div className="flex flex-col gap-4">
+          {/* skeleton back button */}
+          <div className="h-9 w-40 animate-pulse rounded-md bg-white/[0.06]" />
+          {/* skeleton workbench */}
+          <div className="h-32 animate-pulse rounded-lg bg-white/[0.035]" />
+          <div className="grid gap-4 lg:grid-cols-[220px_1fr_320px]">
+            <div className="h-64 animate-pulse rounded-lg bg-white/[0.035]" />
+            <div className="h-64 animate-pulse rounded-lg bg-white/[0.035]" />
+            <div className="h-64 animate-pulse rounded-lg bg-white/[0.035]" />
+          </div>
+        </div>
+      </AppShell>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
-        <p className="mb-4 text-red-200">{error || "Mission not found"}</p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-lime-300/30 hover:bg-white/[0.10] hover:text-lime-200"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to mission map
-        </Link>
-      </div>
+      <AppShell variant="slim">
+        <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
+          <p className="mb-4 text-red-200">{error || "Mission not found"}</p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-lime-300/30 hover:bg-white/[0.10] hover:text-lime-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to mission map
+          </Link>
+        </div>
+      </AppShell>
     );
   }
 
   if (data.mission.status === "locked") {
     return (
-      <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
-        <p className="mb-4 text-red-200">This mission is locked.</p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-lime-300/30 hover:bg-white/[0.10] hover:text-lime-200"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to mission map
-        </Link>
-      </div>
+      <AppShell variant="slim">
+        <div className="rounded-lg border border-red-400/20 bg-red-950/45 py-24 text-center">
+          <p className="mb-4 text-red-200">This mission is locked.</p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-lime-300/30 hover:bg-white/[0.10] hover:text-lime-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to mission map
+          </Link>
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div>
-      <RuntimeBanner />
-
+    <AppShell variant="slim">
       <div className="mb-6">
         <Link
           href="/"
@@ -182,6 +194,6 @@ export default function MissionDetail({ missionId }: Props) {
         onUseHint={handleUseHint}
         onUseLearnMore={handleUseLearnMore}
       />
-    </div>
+    </AppShell>
   );
 }

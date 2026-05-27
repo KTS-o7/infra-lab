@@ -4,8 +4,8 @@ module: database
 submodule: persist-application-records
 mission_type: lesson
 required: true
-title: Key-Value Store
-summary: Create a DynamoDB table and store an item with a partition key.
+title: We Need a Real Database
+summary: Create a DynamoDB table so Orbiton can store structured application records that survive restarts and support fast lookups.
 difficulty: beginner
 services:
   - dynamodb
@@ -14,22 +14,33 @@ estimated_minutes: 15
 prerequisites:
   - sns-fanout
 story: |
-  You need to store key-value data that can be retrieved quickly.
-  In AWS, this is done with DynamoDB, a managed NoSQL database.
-  Tables have partition keys that uniquely identify each item.
+  Priya pulls up the ticket backlog: "We're storing user records in memory. Every
+  time the API pod restarts, we lose the session state and users get logged out.
+  On-call got three escalations last night. We need a database. Create a DynamoDB
+  table called starter-table, write a user record into it, and read it back.
+  If you can prove the data survives, I can start the migration planning."
 learning_objectives:
   - Understand DynamoDB table structure
   - Create tables with partition keys
   - Put and get items
 capability: persisted_records
 motivation: |
-  LaunchDesk needs structured records that survive restarts, such as requests, tenants, or order state. Files alone are not enough for queryable application data.
+  Users are being logged out on every pod restart because session state lives in
+  memory. Three on-call escalations in one night is not acceptable. Orbiton needs
+  structured records that survive restarts and can be retrieved by primary key in
+  single-digit milliseconds.
 theory: |
-  DynamoDB stores items in tables. A partition key identifies where each item lives and gives the application a stable way to retrieve records.
+  DynamoDB is a managed NoSQL database. Data is organized in tables. Every item
+  has a partition key that uniquely identifies it and controls how data is
+  distributed across storage. You write with put-item and read with get-item.
 thought_process: |
-  Model the smallest useful record first instead of designing a broad schema too early. Define the table boundary, choose a simple partition key, write one known item, and verify its attributes.
+  Define the simplest useful key model before writing code: what uniquely identifies
+  a user record? Create the table with that key, write one known record, then read
+  it back. If the attributes match, the data model is correct.
 debrief: |
-  Durable records are how SaaS platforms remember user actions and workflow state. LaunchDesk now has a place for structured application data.
+  User records are now durable. The session state loss stops here. Priya can
+  begin migrating in-memory data to the table. DynamoDB also handles the
+  indexing, replication, and scaling — Orbiton gets that for free.
 commands:
   - id: create-table
     label: Create DynamoDB table

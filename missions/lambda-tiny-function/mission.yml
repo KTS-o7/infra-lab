@@ -4,8 +4,8 @@ module: api
 submodule: run-serverless-code
 mission_type: lesson
 required: true
-title: Tiny Function
-summary: Deploy and invoke a local Lambda function.
+title: Run Logic Without a Server
+summary: Deploy a Lambda function that Orbiton can invoke on demand without provisioning or managing a long-running server.
 difficulty: beginner
 services:
   - lambda
@@ -14,22 +14,34 @@ estimated_minutes: 20
 prerequisites:
   - dynamodb-first-table
 story: |
-  You want to run code without managing servers.
-  In AWS, this is done with Lambda, a serverless compute service.
-  Lambda functions are triggered by events and return responses.
+  Priya opens the architecture doc and marks a section in yellow: "We have a
+  report-generation job that currently runs inside the main API process. It
+  blocks the event loop for 5 seconds on every run. I want to pull it out into
+  a standalone function we can invoke on demand. Deploy a Lambda called
+  starter-function, invoke it with a test payload, and show me it returns a
+  clean response. Once I see it work, I'll hand you the report logic to port."
 learning_objectives:
   - Understand Lambda function basics
   - Deploy functions locally
   - Invoke and test functions
 capability: http_api
 motivation: |
-  LaunchDesk needs backend logic that can run on demand without managing a long-lived server. A small function is the first compute building block.
+  The report job is blocking Orbiton's main API event loop for 5 seconds per
+  run. Lambda lets you extract that logic into a function that runs isolated,
+  scales independently, and never competes with request handling — without
+  provisioning or managing a separate server.
 theory: |
-  A Lambda function packages code with a runtime and handler. Invocations send events to the handler and receive structured responses.
+  A Lambda function bundles code with a runtime and a handler entrypoint.
+  Invocations send an event JSON to the handler and get a response back.
+  Lambda manages the execution environment, cold start, and scaling.
 thought_process: |
-  Before adding HTTP, prove the compute unit works by itself instead of debugging an API and function at the same time. Deploy one function, invoke it with a known payload, and validate the response.
+  Prove the function works in isolation before wiring it to an API or queue.
+  Package the code, deploy the function, invoke it with a known payload, and
+  verify the response. Debugging is much easier when there is only one moving part.
 debrief: |
-  Serverless functions are commonly used behind APIs, queues, schedules, and event streams. LaunchDesk now has a tested compute unit for later entrypoints.
+  The report job is extracted and invokable on demand. Priya can now port the
+  real report logic into this function and wire it to a queue trigger. Lambda
+  is also the compute layer behind Orbiton's upcoming HTTP API.
 commands:
   - id: create-function
     label: Create Lambda function
