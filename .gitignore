@@ -15,7 +15,7 @@ data/
 dist/
 build/
 *.log
-.env
+.env*
 .DS_Store
 *.pem
 *.key
