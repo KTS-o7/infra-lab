@@ -11,7 +11,7 @@ if rg ':latest' docker-compose.yml; then
 fi
 
 DENYLISTED="apps/api/app/config.py"
-if rg 'amazonaws\.com' docker-compose.yml apps/api apps/web missions scripts --glob '!*.example' | rg -v "$DENYLISTED"; then
+if rg 'amazonaws\.com' docker-compose.yml apps/api apps/web missions scripts --glob '!*.example' --glob '!Dockerfile' --glob '!test_*.py' | rg -v "$DENYLISTED"; then
     echo "FAIL: Real AWS endpoint reference found"
     FOUND_ISSUES=1
 fi

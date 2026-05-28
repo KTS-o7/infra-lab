@@ -1,0 +1,76 @@
+id: launchdesk-cloud-apprenticeship
+title: LaunchDesk Cloud Apprenticeship
+summary: Build a local SaaS-style platform while learning cloud fundamentals.
+modules:
+  - id: orientation
+    order: 0
+    title: Local Cloud Orientation
+    required: true
+    capability: safe_local_sandbox
+    capability_label: Safe local sandbox
+    summary: Prove every cloud call stays inside the local lab.
+    capstone_mission_id: null
+    capstone_required: false
+  - id: storage
+    order: 1
+    title: Store Files Outside The App
+    required: true
+    capability: durable_file_storage
+    capability_label: Durable file storage
+    summary: Add object storage for LaunchDesk assets.
+    capstone_mission_id: null
+    capstone_required: false
+  - id: api
+    order: 2
+    title: Expose A Backend API
+    required: true
+    capability: http_api
+    capability_label: HTTP backend API
+    summary: Create a serverless HTTP entrypoint for LaunchDesk.
+    capstone_mission_id: null
+    capstone_required: false
+  - id: database
+    order: 3
+    title: Persist Application Records
+    required: true
+    capability: persisted_records
+    capability_label: Persisted application records
+    summary: Store structured LaunchDesk records in a NoSQL table.
+    capstone_mission_id: null
+    capstone_required: false
+  - id: async_processing
+    order: 4
+    title: Move Slow Work Out Of Requests
+    required: true
+    capability: async_work
+    capability_label: Async background work
+    summary: Add queue-based async processing to LaunchDesk.
+    capstone_mission_id: null
+    capstone_required: false
+  - id: events
+    order: 5
+    title: Broadcast Platform Events
+    required: true
+    capability: event_fanout
+    capability_label: Platform event fanout
+    summary: Notify multiple consumers when important things happen.
+    capstone_mission_id: null
+    capstone_required: false
+  - id: composition
+    order: 6
+    title: Compose The Platform
+    required: true
+    capability: composed_platform
+    capability_label: Composed end-to-end platform
+    summary: Wire all services into one working LaunchDesk flow.
+    capstone_mission_id: launchdesk-compose-capstone
+    capstone_required: false
+  - id: operations
+    order: 7
+    title: Operate And Debug
+    required: true
+    capability: operational_debugging
+    capability_label: Operational debugging
+    summary: Reason about and recover from cloud system failures.
+    capstone_mission_id: null
+    capstone_required: false

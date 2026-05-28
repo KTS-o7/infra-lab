@@ -1,16 +1,17 @@
 import { CheckCircle2, CircleDashed, Database, FileText, Globe, HelpCircle, MessageSquare, Package, XCircle, Zap } from "lucide-react";
-import type { MissionStep, ValidationResult } from "@/lib/api";
+import type { MissionStep, StepProgress, ValidationResult } from "@/lib/api";
 
 interface Props {
   steps: MissionStep[];
   resultsByStep: Record<string, ValidationResult>;
+  progressByStep?: Record<string, StepProgress>;
   latestMissionResult?: ValidationResult | null;
 }
 
-type ProofState = "pending" | "passed" | "failed";
+type ProofState = "pending" | "passed" | "failed" | "stale" | "no_checks";
 
-export default function ResourceProofBoard({ steps, resultsByStep, latestMissionResult }: Props) {
-  const rows = buildProofRows(steps, resultsByStep, latestMissionResult);
+export default function ResourceProofBoard({ steps, resultsByStep, progressByStep = {}, latestMissionResult }: Props) {
+  const rows = buildProofRows(steps, resultsByStep, progressByStep, latestMissionResult);
 
   return (
     <div className="rounded-lg border border-white/10 bg-[#0b1512]/80 p-5 shadow-xl shadow-black/10 backdrop-blur">
@@ -28,8 +29,13 @@ export default function ResourceProofBoard({ steps, resultsByStep, latestMission
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-emerald-50">{row.label}</p>
                 <p className="mt-1 break-words font-mono text-xs leading-5 text-emerald-100/48">{row.value}</p>
+                {row.state === "stale" ? (
+                  <p className="mt-1 text-xs leading-5 text-amber-100/70">Proof was valid before reset. Re-check this step.</p>
+                ) : row.state === "no_checks" ? (
+                  <p className="mt-1 text-xs leading-5 text-emerald-100/55">Final mission validation proves this step.</p>
+                ) : null}
               </div>
-              <StateIcon className={`mt-0.5 h-4 w-4 shrink-0 ${row.state === "passed" ? "text-lime-300" : row.state === "failed" ? "text-amber-300" : "text-emerald-100/32"}`} />
+              <StateIcon className={`mt-0.5 h-4 w-4 shrink-0 ${row.state === "passed" ? "text-lime-300" : row.state === "failed" || row.state === "stale" ? "text-amber-300" : "text-emerald-100/32"}`} />
             </div>
           );
         })}
@@ -41,9 +47,13 @@ export default function ResourceProofBoard({ steps, resultsByStep, latestMission
 function buildProofRows(
   steps: MissionStep[],
   resultsByStep: Record<string, ValidationResult>,
+  progressByStep: Record<string, StepProgress>,
   latestMissionResult?: ValidationResult | null,
 ) {
   const checks = new Map<string, { passed: boolean }>();
+  for (const progress of Object.values(progressByStep)) {
+    for (const check of progress.latestChecks ?? []) checks.set(check.id, { passed: check.passed });
+  }
   for (const result of Object.values(resultsByStep)) {
     for (const check of result.checks) checks.set(check.id, { passed: check.passed });
   }
@@ -51,7 +61,7 @@ function buildProofRows(
 
   const rows = [];
   for (const step of steps) {
-    const state = stateFor(step.checkIds, checks);
+    const state = stateFor(step, checks, progressByStep[step.id]);
     if (step.targetState.length === 0) {
       rows.push({ id: step.id, kind: "generic", label: step.title, value: step.goal, state });
       continue;
@@ -69,9 +79,11 @@ function buildProofRows(
   return rows;
 }
 
-function stateFor(checkIds: string[], checks: Map<string, { passed: boolean }>): ProofState {
-  if (checkIds.length === 0 || !checkIds.some((id) => checks.has(id))) return "pending";
-  return checkIds.every((id) => checks.get(id)?.passed) ? "passed" : "failed";
+function stateFor(step: MissionStep, checks: Map<string, { passed: boolean }>, progress?: StepProgress): ProofState {
+  if (progress?.status === "stale") return "stale";
+  if (progress?.status === "no_checks" || step.checkIds.length === 0) return "no_checks";
+  if (!step.checkIds.some((id) => checks.has(id))) return "pending";
+  return step.checkIds.every((id) => checks.get(id)?.passed) ? "passed" : "failed";
 }
 
 function kindFor(label: string, value: string) {

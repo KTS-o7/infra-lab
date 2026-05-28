@@ -1,4 +1,3 @@
-import pytest
 from app.validators.runtime import runtime_floci_available
 
 def test_runtime_floci_available_pass(monkeypatch):
@@ -7,7 +6,7 @@ def test_runtime_floci_available_pass(monkeypatch):
             return {"Buckets": []}
     monkeypatch.setattr("app.validators.runtime.get_client", lambda svc: FakeClient())
     result = runtime_floci_available()
-    assert result["passed"] == True
+    assert result["passed"]
 
 def test_runtime_floci_available_fail(monkeypatch):
     class FakeClient:
@@ -15,4 +14,4 @@ def test_runtime_floci_available_fail(monkeypatch):
             raise Exception("Floci unavailable")
     monkeypatch.setattr("app.validators.runtime.get_client", lambda svc: FakeClient())
     result = runtime_floci_available()
-    assert result["passed"] == False
+    assert not result["passed"]

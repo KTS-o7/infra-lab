@@ -6,7 +6,7 @@ def lambda_function_exists(function_name: str) -> dict:
     try:
         client.get_function(FunctionName=function_name)
         return {"id": "function-exists", "type": "lambda_function_exists", "passed": True, "message": f"Function {function_name} exists."}
-    except Exception as e:
+    except Exception:
         return {"id": "function-exists", "type": "lambda_function_exists", "passed": False, "message": f"Function {function_name} was not found."}
 
 def lambda_invoke_returns(function_name: str, payload: dict, expected: dict) -> dict:
@@ -18,5 +18,5 @@ def lambda_invoke_returns(function_name: str, payload: dict, expected: dict) -> 
             return {"id": "invoke-result", "type": "lambda_invoke_returns", "passed": True, "message": f"Function {function_name} returned expected response."}
         else:
             return {"id": "invoke-result", "type": "lambda_invoke_returns", "passed": False, "message": f"Function {function_name} response does not match expected."}
-    except Exception as e:
+    except Exception:
         return {"id": "invoke-result", "type": "lambda_invoke_returns", "passed": False, "message": f"Function {function_name} invocation failed."}

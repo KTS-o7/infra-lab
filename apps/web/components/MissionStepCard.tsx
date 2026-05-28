@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Target, Wrench } from "lucide-react";
-import type { MissionStep, ValidationResult } from "@/lib/api";
+import { Brain, Target, Wrench } from "lucide-react";
+import type { MissionStep, StepProgress, ValidationResult } from "@/lib/api";
 import ValidationPanel from "./ValidationPanel";
 import MissionTerminalPanel from "./MissionTerminalPanel";
 
@@ -10,13 +10,23 @@ interface Props {
   step: MissionStep;
   command?: { id: string; label: string; command: string };
   result?: ValidationResult;
+  progress?: StepProgress;
   canCheck: boolean;
   checking: boolean;
+  disabledReason?: string;
   onCheck: (stepId: string) => void;
 }
 
-export default function MissionStepCard({ step, command, result, canCheck, checking, onCheck }: Props) {
+export default function MissionStepCard({ step, command, result, progress, canCheck, checking, disabledReason, onCheck }: Props) {
   const targetState = useMemo(() => step.targetState ?? [], [step.targetState]);
+  const passed = result?.passed || progress?.status === "passed";
+  const failed = result?.passed === false || progress?.status === "failed";
+  const statusLabel =
+    progress?.status === "no_checks"
+      ? "Proved by full validation"
+      : progress?.status === "stale"
+        ? "Re-check after reset"
+        : progress?.status?.replace("_", " ");
 
   return (
     <div className="space-y-4">
@@ -26,9 +36,9 @@ export default function MissionStepCard({ step, command, result, canCheck, check
           <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-lime-200/75">Active step</p>
           <h2 className="text-2xl font-semibold leading-tight text-emerald-50">{step.title}</h2>
         </div>
-        {result && (
-          <span className={`rounded-md border px-2.5 py-1 text-xs font-medium ${result.passed ? "border-lime-300/20 bg-lime-300/10 text-lime-100" : "border-amber-300/20 bg-amber-300/10 text-amber-100"}`}>
-            {result.passed ? "Passed" : "Needs work"}
+        {(result || progress?.status) && (
+          <span className={`rounded-md border px-2.5 py-1 text-xs font-medium ${passed ? "border-lime-300/20 bg-lime-300/10 text-lime-100" : failed ? "border-amber-300/20 bg-amber-300/10 text-amber-100" : "border-white/10 bg-white/[0.04] text-emerald-100/48"}`}>
+            {passed ? "Passed" : failed ? "Needs work" : statusLabel}
           </span>
         )}
       </div>
@@ -69,6 +79,15 @@ export default function MissionStepCard({ step, command, result, canCheck, check
         <h3 className="mb-2 text-sm font-semibold text-emerald-50">Try it</h3>
         <p className="text-sm leading-6 text-emerald-100/68">{step.action}</p>
         {step.notes && <p className="mt-2 text-sm leading-6 text-emerald-100/50">{step.notes}</p>}
+        {step.success && (
+          <div className="mt-3 rounded-md border border-lime-300/20 bg-lime-300/10 p-3">
+            <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-lime-100">
+              <Brain className="h-4 w-4" />
+              Success condition
+            </h3>
+            <p className="text-sm leading-6 text-lime-50/75">{step.success}</p>
+          </div>
+        )}
       </section>
 
       </div>
@@ -76,6 +95,7 @@ export default function MissionStepCard({ step, command, result, canCheck, check
         command={command}
         canCheck={canCheck}
         checking={checking}
+        disabledReason={disabledReason}
         onCheck={() => onCheck(step.id)}
       />
 

@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock3, Server, ShieldCheck, Star } from "lucide-react";
+import { CheckCircle2, Clock3, Lightbulb, Server, ShieldCheck, Star } from "lucide-react";
 import type { MissionDetail } from "@/lib/api";
 
 interface Props {
@@ -6,6 +6,12 @@ interface Props {
 }
 
 export default function MissionBrief({ mission }: Props) {
+  const curriculum = [
+    { label: "Motivation", value: mission.motivation },
+    { label: "Theory", value: mission.theory },
+    { label: "Thought process", value: mission.thoughtProcess },
+  ].filter((item) => item.value);
+
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/20 backdrop-blur sm:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -43,6 +49,20 @@ export default function MissionBrief({ mission }: Props) {
           </span>
         </div>
       </div>
+
+      {curriculum.length > 0 && (
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+          {curriculum.map((item) => (
+            <section key={item.label} className="rounded-md border border-white/10 bg-black/20 p-4">
+              <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-50">
+                <Lightbulb className="h-4 w-4 text-lime-300" />
+                {item.label}
+              </h2>
+              <p className="whitespace-pre-line text-sm leading-6 text-emerald-100/62">{item.value}</p>
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

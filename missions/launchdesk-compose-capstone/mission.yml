@@ -1,7 +1,11 @@
-id: serverless-boss
+id: launchdesk-compose-capstone
 order: 8
-title: Serverless Boss Mission
-summary: Build a complete local serverless workflow with API Gateway, Lambda, DynamoDB, and SQS.
+module: composition
+submodule: compose-launchdesk-workflow
+mission_type: module_capstone
+required: false
+title: LaunchDesk Compose Capstone
+summary: Build a complete local LaunchDesk workflow with API Gateway, Lambda, DynamoDB, and SQS.
 difficulty: boss
 services:
   - apigateway
@@ -11,9 +15,9 @@ services:
 xp: 300
 estimated_minutes: 35
 prerequisites:
-  - apigateway-http-trigger
+  - sns-fanout
 story: |
-  You are building a complete local serverless order processing system.
+  You are building a complete local LaunchDesk request processing system.
   An HTTP POST to your API creates an order.
   Your Lambda function writes the order to DynamoDB and sends a message to SQS.
   This combines everything you've learned: API Gateway, Lambda, DynamoDB, and SQS.
@@ -21,6 +25,15 @@ learning_objectives:
   - Build complete serverless workflows
   - Integrate multiple AWS services
   - Process orders and send notifications
+capability: composed_platform
+motivation: |
+  LaunchDesk is only useful when storage, compute, APIs, records, and async handoff work together. A composed workflow proves the platform can accept a request and produce durable side effects.
+theory: |
+  Service composition connects specialized cloud capabilities into one product flow. The API receives traffic, Lambda runs the business logic, DynamoDB stores state, and SQS carries downstream work.
+thought_process: |
+  Build dependencies first instead of starting with the public endpoint: create state and queue boundaries, then compute and entrypoint. Verify each resource exists, then prove the end-to-end behavior by submitting one known order and checking both persistence and queue notification.
+debrief: |
+  Production SaaS systems are made of these same boundaries: entrypoints, compute, state, and asynchronous work. This capstone proves LaunchDesk can coordinate multiple local cloud services as one platform.
 commands:
   - id: create-dynamodb-table
     label: Create DynamoDB table
@@ -30,25 +43,24 @@ commands:
     command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name orders-queue --attributes VisibilityTimeout=0
   - id: create-lambda
     label: Create Lambda function
-    command: cd missions/serverless-boss/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name orders-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+    command: cd missions/launchdesk-compose-capstone/function && zip -r function.zip index.py && aws --endpoint-url http://localhost:4566 lambda create-function --function-name orders-function --runtime python3.12 --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role --environment Variables={AWS_ENDPOINT_URL=http://floci:4566,AWS_ACCESS_KEY_ID=test,AWS_SECRET_ACCESS_KEY=test,AWS_DEFAULT_REGION=us-east-1}
   - id: create-api
     label: Create API Gateway API
     command: aws --endpoint-url http://localhost:4566 apigatewayv2 create-api --name orders-api --protocol-type HTTP
-  - id: add-route
-    label: Add POST route
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "POST /orders"
   - id: integrate
     label: Integrate Lambda
-    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:orders-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 create-route --api-id "$API_ID" --route-key "POST /orders" --target "$INTEGRATION_ID"
+    command: API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && ROUTE_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-routes --api-id "$API_ID" --query 'Items[?RouteKey==`POST /orders`].RouteId' --output text) && INTEGRATION_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 create-integration --api-id "$API_ID" --integration-type LAMBDA_PROXY --integration-uri arn:aws:lambda:us-east-1:000000000000:function:orders-function --payload-format 1.0 --query IntegrationId --output text) && aws --endpoint-url http://localhost:4566 apigatewayv2 update-route --api-id "$API_ID" --route-id "$ROUTE_ID" --target "integrations/$INTEGRATION_ID"
   - id: test-endpoint
     label: Test the endpoint
-    command: "API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==orders-api].ApiId' --output text) && curl -X POST http://localhost:4566/$API_ID/orders -H Content-Type:application/json -d orderId=order-001 -d item=notebook"
+    command: "API_ID=$(aws --endpoint-url http://localhost:4566 apigatewayv2 get-apis --query 'Items[?Name==`orders-api`].ApiId' --output text) && curl -X POST \"http://localhost:4566/restapis/$API_ID/default/_user_request_/orders\" -H \"Content-Type: application/json\" -d '{\"orderId\":\"order-001\",\"item\":\"notebook\"}'"
 steps:
   - id: create-orders-table
     title: Create the orders table
     goal: Create a DynamoDB table named orders-table to store incoming orders.
     why: Durable state is the backbone of any platform. Orders need to be stored reliably before they are processed.
     target_state:
+      - label: Runtime
+        value: local Floci endpoint reachable
       - label: Table
         value: orders-table
       - label: Partition key
@@ -56,6 +68,7 @@ steps:
     action: Create the orders-table in DynamoDB with pk as the partition key.
     command_id: create-dynamodb-table
     check_ids:
+      - floci-available
       - table-exists
     success: The orders-table exists.
   - id: create-orders-queue
@@ -80,7 +93,7 @@ steps:
       - label: Function
         value: orders-function
       - label: Runtime
-        value: nodejs22.x
+        value: python3.12
       - label: Handler
         value: index.handler
     action: Package and deploy the orders-function.
@@ -99,7 +112,8 @@ steps:
         value: HTTP
     action: Create the orders-api in API Gateway.
     command_id: create-api
-    check_ids: []
+    check_ids:
+      - orders-api-exists
     success: The orders-api exists.
   - id: add-orders-route
     title: Add the orders route
@@ -111,10 +125,10 @@ steps:
       - label: API
         value: orders-api
     action: Create the POST /orders route.
-    command_id: add-route
     check_ids:
       - api-route
     success: The POST /orders route exists.
+    notes: Capstone step. Use the API ID for orders-api and create a POST /orders route before wiring the integration.
   - id: wire-orders-integration
     title: Wire the Lambda integration
     goal: Connect the POST /orders route to the orders-function Lambda.
@@ -126,7 +140,8 @@ steps:
         value: POST /orders
     action: Integrate the route with the Lambda function.
     command_id: integrate
-    check_ids: []
+    check_ids:
+      - integrated-route
     success: The route is wired to the Lambda.
   - id: test-end-to-end
     title: Test the full flow
@@ -150,17 +165,45 @@ steps:
 hints:
   - id: workflow-order
     title: Workflow order
+    level: nudge
+    applies_to_checks:
+      - table-exists
+      - queue-exists
+      - function-exists
     text: Create DynamoDB table first, then SQS queue, then Lambda, then API Gateway.
     penalty_xp: 10
   - id: lambda-code
     title: Lambda integration
+    level: diagnosis
+    applies_to_checks:
+      - http-writes-item
+      - http-sends-message
     text: The Lambda function needs to be integrated with API Gateway to receive HTTP requests.
     penalty_xp: 10
+  - id: replay-order
+    title: Replay the order
+    level: repair
+    applies_to_checks:
+      - api-route
+      - http-writes-item
+      - http-sends-message
+    text: If the resources exist but end-to-end proof fails, re-run the integration command and submit the order-001 request again.
+    penalty_xp: 15
 checks:
+  - id: floci-available
+    type: runtime_floci_available
+  - id: orders-api-exists
+    type: apigateway_api_exists
+    api_name: orders-api
   - id: api-route
     type: apigateway_route_exists
     api_name: orders-api
     route: POST /orders
+  - id: integrated-route
+    type: apigateway_route_exists
+    api_name: orders-api
+    route: POST /orders
+    target_prefix: integrations/
   - id: function-exists
     type: lambda_function_exists
     function_name: orders-function
