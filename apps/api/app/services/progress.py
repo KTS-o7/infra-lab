@@ -8,7 +8,6 @@ from sqlmodel import select
 
 from app.models import (
     CapstoneScore,
-    ChatMessage,
     CourseCompletion,
     HintUsage,
     LearnMoreUsage,
@@ -90,7 +89,9 @@ def completed_mission_ids(session) -> set[str]:
     return {p.mission_id for p in list_progress(session) if p.status == "completed"}
 
 
-def derive_mission_status(mission, progress: MissionProgress | None, completed_ids: set[str]) -> str:
+def derive_mission_status(
+    mission, progress: MissionProgress | None, completed_ids: set[str]
+) -> str:
     if progress and progress.status == "completed":
         return "completed"
     if progress and progress.status == "started":
@@ -117,7 +118,9 @@ def step_progress_payloads(session, mission_id: str) -> list[dict]:
     ).all()
     payloads = []
     for row in rows:
-        latest_checks = json.loads(row.latest_checks_json) if row.latest_checks_json else []
+        latest_checks = (
+            json.loads(row.latest_checks_json) if row.latest_checks_json else []
+        )
         payloads.append(
             {
                 "stepId": row.step_id,
@@ -131,7 +134,9 @@ def step_progress_payloads(session, mission_id: str) -> list[dict]:
 
 
 def step_progress_for_mission(session, mission) -> list[dict]:
-    existing = {row["stepId"]: row for row in step_progress_payloads(session, mission.id)}
+    existing = {
+        row["stepId"]: row for row in step_progress_payloads(session, mission.id)
+    }
     payloads = []
     for step in mission.steps:
         if step.id in existing:
@@ -150,7 +155,9 @@ def step_progress_for_mission(session, mission) -> list[dict]:
 
 
 def help_usage_payloads(session, mission_id: str) -> list[dict]:
-    rows = session.exec(select(HintUsage).where(HintUsage.mission_id == mission_id)).all()
+    rows = session.exec(
+        select(HintUsage).where(HintUsage.mission_id == mission_id)
+    ).all()
     return [
         {
             "hintId": row.hint_id,
@@ -162,18 +169,30 @@ def help_usage_payloads(session, mission_id: str) -> list[dict]:
 
 
 def hint_usage_for_mission(session, mission_id: str) -> list[HintUsage]:
-    return list(session.exec(select(HintUsage).where(HintUsage.mission_id == mission_id)).all())
+    return list(
+        session.exec(select(HintUsage).where(HintUsage.mission_id == mission_id)).all()
+    )
 
 
 def learn_more_usage_for_mission(session, mission_id: str) -> list[LearnMoreUsage]:
-    return list(session.exec(select(LearnMoreUsage).where(LearnMoreUsage.mission_id == mission_id)).all())
+    return list(
+        session.exec(
+            select(LearnMoreUsage).where(LearnMoreUsage.mission_id == mission_id)
+        ).all()
+    )
 
 
 def start_mission(session, mission) -> dict:
     ensure_local_profile(session)
     completed = completed_mission_ids(session)
     if any(prereq not in completed for prereq in mission.prerequisites):
-        return {"error": {"code": "MISSION_LOCKED", "message": "Mission is locked.", "details": {"missionId": mission.id}}}
+        return {
+            "error": {
+                "code": "MISSION_LOCKED",
+                "message": "Mission is locked.",
+                "details": {"missionId": mission.id},
+            }
+        }
 
     progress = get_or_create_progress(session, mission.id)
     if progress.status == "completed":
@@ -189,7 +208,9 @@ def start_mission(session, mission) -> dict:
 
 def _hint_penalty(session, mission) -> int:
     penalties = {hint.id: hint.penalty_xp for hint in mission.hints}
-    rows = session.exec(select(HintUsage).where(HintUsage.mission_id == mission.id)).all()
+    rows = session.exec(
+        select(HintUsage).where(HintUsage.mission_id == mission.id)
+    ).all()
     return sum(penalties.get(row.hint_id, 0) for row in rows)
 
 
@@ -203,11 +224,25 @@ def _capstone_level(score: int) -> str:
     return "needs_repair"
 
 
-def _capstone_score(session, mission, checks: list[dict], all_passed: bool, attempt_number: int) -> dict:
+def _capstone_score(
+    session, mission, checks: list[dict], all_passed: bool, attempt_number: int
+) -> dict:
     check_count = len(checks)
     passed_count = sum(1 for check in checks if check.get("passed"))
-    completeness = 30 if all_passed else round(30 * (passed_count / check_count)) if check_count else 0
-    end_to_end = 40 if all_passed else round(40 * (passed_count / check_count)) if check_count else 0
+    completeness = (
+        30
+        if all_passed
+        else round(30 * (passed_count / check_count))
+        if check_count
+        else 0
+    )
+    end_to_end = (
+        40
+        if all_passed
+        else round(40 * (passed_count / check_count))
+        if check_count
+        else 0
+    )
     hints_used = len(hint_usage_for_mission(session, mission.id))
     independence = max(0, 15 - (hints_used * 3) - max(0, attempt_number - 1) * 2)
     prior_failures = session.exec(
@@ -218,17 +253,40 @@ def _capstone_score(session, mission, checks: list[dict], all_passed: bool, atte
         )
     ).all()
     recovery = 10 if all_passed and prior_failures else 5 if all_passed else 0
-    runtime_checks = [check for check in checks if check.get("type") == "runtime_floci_available"]
-    local_safety_passed = bool(runtime_checks) and all(check.get("passed") for check in runtime_checks)
+    runtime_checks = [
+        check for check in checks if check.get("type") == "runtime_floci_available"
+    ]
+    local_safety_passed = bool(runtime_checks) and all(
+        check.get("passed") for check in runtime_checks
+    )
 
-    score = 0 if not local_safety_passed else min(95, completeness + end_to_end + independence + recovery)
+    score = (
+        0
+        if not local_safety_passed
+        else min(95, completeness + end_to_end + independence + recovery)
+    )
     if not all_passed:
         score = min(score, 59)
     level = _capstone_level(score)
     dimensions = [
-        {"id": "infrastructure_completeness", "label": "Infrastructure completeness", "score": completeness, "maxScore": 30},
-        {"id": "end_to_end_behavior", "label": "End-to-end behavior", "score": end_to_end, "maxScore": 40},
-        {"id": "independence", "label": "Independence", "score": independence, "maxScore": 15},
+        {
+            "id": "infrastructure_completeness",
+            "label": "Infrastructure completeness",
+            "score": completeness,
+            "maxScore": 30,
+        },
+        {
+            "id": "end_to_end_behavior",
+            "label": "End-to-end behavior",
+            "score": end_to_end,
+            "maxScore": 40,
+        },
+        {
+            "id": "independence",
+            "label": "Independence",
+            "score": independence,
+            "maxScore": 15,
+        },
         {"id": "recovery", "label": "Recovery", "score": recovery, "maxScore": 10},
     ]
     return {
@@ -240,12 +298,16 @@ def _capstone_score(session, mission, checks: list[dict], all_passed: bool, atte
 
 
 def _capstone_local_safety_passed(checks: list[dict]) -> bool:
-    runtime_checks = [check for check in checks if check.get("type") == "runtime_floci_available"]
+    runtime_checks = [
+        check for check in checks if check.get("type") == "runtime_floci_available"
+    ]
     return bool(runtime_checks) and all(check.get("passed") for check in runtime_checks)
 
 
 def _persist_capstone_score(session, mission_id: str, score: dict) -> dict:
-    row = session.exec(select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)).first()
+    row = session.exec(
+        select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)
+    ).first()
     if not row:
         row = CapstoneScore(id=f"capstone:{mission_id}", mission_id=mission_id)
     row.latest_score = score["score"]
@@ -265,7 +327,9 @@ def _persist_capstone_score(session, mission_id: str, score: dict) -> dict:
 
 
 def capstone_score_payload(session, mission_id: str) -> dict | None:
-    row = session.exec(select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)).first()
+    row = session.exec(
+        select(CapstoneScore).where(CapstoneScore.mission_id == mission_id)
+    ).first()
     if not row:
         return None
     return {
@@ -338,7 +402,11 @@ def validate_mission(
     if scope == "step" and step_id:
         row = session.get(StepProgress, _step_progress_id(mission_id, step_id))
         if not row:
-            row = StepProgress(id=_step_progress_id(mission_id, step_id), mission_id=mission_id, step_id=step_id)
+            row = StepProgress(
+                id=_step_progress_id(mission_id, step_id),
+                mission_id=mission_id,
+                step_id=step_id,
+            )
         row.attempts += 1
         if checks:
             row.status = "passed" if all_passed else "failed"
@@ -367,7 +435,9 @@ def validate_mission(
         capstone_score = _persist_capstone_score(
             session,
             mission_id,
-            _capstone_score(session, mission, check_results, all_passed, attempt_number),
+            _capstone_score(
+                session, mission, check_results, all_passed, attempt_number
+            ),
         )
 
     session.add(progress)
@@ -379,7 +449,9 @@ def validate_mission(
         for candidate in sorted(all_missions, key=lambda item: (item.order, item.id)):
             if candidate.id == mission_id or candidate.id in completed_ids:
                 continue
-            if mission_id in candidate.prerequisites and all(prereq in completed_ids for prereq in candidate.prerequisites):
+            if mission_id in candidate.prerequisites and all(
+                prereq in completed_ids for prereq in candidate.prerequisites
+            ):
                 unlocked_mission_ids.append(candidate.id)
 
     return {
@@ -405,29 +477,39 @@ def reset_mission(session, mission, mode: str) -> dict:
             "error": {
                 "code": "INVALID_RESET_MODE",
                 "message": "Reset mode is invalid.",
-                "details": {"validModes": ["resources", "progress", "resources_and_progress"]},
+                "details": {
+                    "validModes": ["resources", "progress", "resources_and_progress"]
+                },
             }
         }
 
     mission_id = mission.id
     summary = {"deleted": [], "skipped": [], "failed": []}
     if mode in {"resources", "resources_and_progress"}:
-        summary = reset_owned_resources([resource.model_dump() for resource in mission.owned_resources])
-        for step in session.exec(select(StepProgress).where(StepProgress.mission_id == mission_id)).all():
+        summary = reset_owned_resources(
+            [resource.model_dump() for resource in mission.owned_resources]
+        )
+        for step in session.exec(
+            select(StepProgress).where(StepProgress.mission_id == mission_id)
+        ).all():
             if step.status == "passed":
                 step.status = "stale"
                 step.updated_at = _now()
                 session.add(step)
 
     if mode in {"progress", "resources_and_progress"}:
-        for step in session.exec(select(StepProgress).where(StepProgress.mission_id == mission_id)).all():
+        for step in session.exec(
+            select(StepProgress).where(StepProgress.mission_id == mission_id)
+        ).all():
             if mode == "progress":
                 session.delete(step)
             else:
                 step.status = "stale"
                 step.updated_at = _now()
                 session.add(step)
-        for hint in session.exec(select(HintUsage).where(HintUsage.mission_id == mission_id)).all():
+        for hint in session.exec(
+            select(HintUsage).where(HintUsage.mission_id == mission_id)
+        ).all():
             session.delete(hint)
 
     session.commit()
@@ -473,7 +555,9 @@ def get_profile_with_progress(session) -> dict:
         "id": profile.id,
         "displayName": profile.display_name,
         "totalXp": live_xp,
-        "completedMissionIds": [row.mission_id for row in progress_rows if row.status == "completed"],
+        "completedMissionIds": [
+            row.mission_id for row in progress_rows if row.status == "completed"
+        ],
         "badges": [],
     }
 
@@ -482,8 +566,12 @@ def total_xp(session) -> int:
     return sum(row.xp_awarded for row in list_progress(session))
 
 
-def update_course_completion_cache(session, course, progress: dict, course_hash: str | None = None) -> None:
-    row = session.exec(select(CourseCompletion).where(CourseCompletion.course_id == course.id)).first()
+def update_course_completion_cache(
+    session, course, progress: dict, course_hash: str | None = None
+) -> None:
+    row = session.exec(
+        select(CourseCompletion).where(CourseCompletion.course_id == course.id)
+    ).first()
     if not row:
         row = CourseCompletion(id=f"course:{course.id}", course_id=course.id)
     row.status = progress["status"]
@@ -492,7 +580,11 @@ def update_course_completion_cache(session, course, progress: dict, course_hash:
     row.required_capstones_completed = progress["requiredCapstonesCompleted"]
     row.required_capstones_total = progress["requiredCapstonesTotal"]
     row.course_yml_hash = course_hash
-    row.completed_at = datetime.fromisoformat(progress["completedAt"].replace("Z", "")) if progress["completedAt"] else None
+    row.completed_at = (
+        datetime.fromisoformat(progress["completedAt"].replace("Z", ""))
+        if progress["completedAt"]
+        else None
+    )
     row.updated_at = _now()
     session.add(row)
     session.commit()
@@ -507,7 +599,12 @@ def use_learn_more(session, mission_id: str, item_id: str, xp: int) -> dict:
         )
     ).first()
     if existing:
-        return {"missionId": mission_id, "itemId": item_id, "alreadyUsed": True, "xpAwarded": 0}
+        return {
+            "missionId": mission_id,
+            "itemId": item_id,
+            "alreadyUsed": True,
+            "xpAwarded": 0,
+        }
 
     usage = LearnMoreUsage(
         profile_id="local",
@@ -517,4 +614,9 @@ def use_learn_more(session, mission_id: str, item_id: str, xp: int) -> dict:
     )
     session.add(usage)
     session.commit()
-    return {"missionId": mission_id, "itemId": item_id, "alreadyUsed": False, "xpAwarded": xp}
+    return {
+        "missionId": mission_id,
+        "itemId": item_id,
+        "alreadyUsed": False,
+        "xpAwarded": xp,
+    }

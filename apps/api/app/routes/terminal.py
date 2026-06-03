@@ -8,7 +8,7 @@ import struct
 import subprocess
 import termios
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket
 
 # Configure logging to help diagnose container issues
 logger = logging.getLogger("terminal")
@@ -69,7 +69,7 @@ async def terminal_websocket(websocket: WebSocket):
                 else:
                     # EOF
                     output_queue.put_nowait(None)
-            except (IOError, OSError):
+            except IOError, OSError:
                 output_queue.put_nowait(None)
 
         loop.add_reader(master_fd, on_pty_read)
