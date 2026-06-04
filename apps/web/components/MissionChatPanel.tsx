@@ -18,12 +18,24 @@ export default function MissionChatPanel({ missionId }: Props) {
   const [clearing, setClearing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [amaEnabled, setAmaEnabled] = useState<boolean>(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getChatHistory(missionId)
-      .then((data) => setMessages(data.messages))
-      .catch(() => { setLoadError("Failed to load chat history"); })
+      .then((data) => {
+        setMessages(data.messages);
+        if (data.disabled) {
+          setAmaEnabled(false);
+        }
+      })
+      .catch((err) => {
+        if (err instanceof Error && /AMA|not configured/i.test(err.message)) {
+          setAmaEnabled(false);
+        } else {
+          setLoadError("Failed to load chat history");
+        }
+      })
       .finally(() => setInitialLoading(false));
   }, [missionId]);
 
@@ -84,7 +96,7 @@ export default function MissionChatPanel({ missionId }: Props) {
         <h2 className="flex-1 text-sm font-semibold text-emerald-50">
           Ask me anything
         </h2>
-        {messages.length > 0 && (
+        {messages.length > 0 && amaEnabled && (
           <button
             onClick={handleClear}
             disabled={clearing || loading}
@@ -108,14 +120,25 @@ export default function MissionChatPanel({ missionId }: Props) {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
-            <Bot className="h-10 w-10 text-lime-300/20 mb-3" />
-            {loadError ? (
-              <p className="text-sm text-red-400/70">{loadError}</p>
+            {amaEnabled ? (
+              <>
+                <Bot className="h-10 w-10 text-lime-300/20 mb-3" />
+                {loadError ? (
+                  <p className="text-sm text-red-400/70">{loadError}</p>
+                ) : (
+                  <p className="text-sm text-emerald-100/40">
+                    Need help with this mission? Ask a question about the services,
+                    commands, or concepts.
+                  </p>
+                )}
+              </>
             ) : (
-              <p className="text-sm text-emerald-100/40">
-                Need help with this mission? Ask a question about the services,
-                commands, or concepts.
-              </p>
+              <div className="max-w-xs rounded-lg border border-white/10 bg-white/[0.02] p-4">
+                <Bot className="h-8 w-8 text-lime-300/30 mb-2 mx-auto" />
+                <p className="text-sm text-emerald-100/60">
+                  AI tutor is not configured — see README → Optional AI setup
+                </p>
+              </div>
             )}
           </div>
         ) : (
@@ -178,28 +201,30 @@ export default function MissionChatPanel({ missionId }: Props) {
         )}
       </div>
 
-      <form
-        onSubmit={handleSend}
-        className="p-4 border-t border-white/5 bg-white/[0.01]"
-      >
-        <div className="relative">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question..."
-            disabled={loading}
-            className="w-full rounded-full border border-white/10 bg-black/40 py-2.5 pl-4 pr-12 text-sm text-emerald-50 placeholder:text-emerald-100/30 focus:border-lime-300/50 focus:outline-none focus:ring-1 focus:ring-lime-300/50 disabled:opacity-50"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || loading}
-            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-lime-300 text-[#08110f] transition hover:bg-lime-200 disabled:opacity-30"
-          >
-            <Send className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </form>
+      {amaEnabled && (
+        <form
+          onSubmit={handleSend}
+          className="p-4 border-t border-white/5 bg-white/[0.01]"
+        >
+          <div className="relative">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask a question..."
+              disabled={loading}
+              className="w-full rounded-full border border-white/10 bg-black/40 py-2.5 pl-4 pr-12 text-sm text-emerald-50 placeholder:text-emerald-100/30 focus:border-lime-300/50 focus:outline-none focus:ring-1 focus:ring-lime-300/50 disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || loading}
+              className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-lime-300 text-[#08110f] transition hover:bg-lime-200 disabled:opacity-30"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </form>
+      )}
     </section>
   );
 }
