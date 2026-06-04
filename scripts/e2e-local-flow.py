@@ -15,7 +15,6 @@ from pathlib import Path
 from urllib import request
 from urllib.error import URLError
 
-
 API_URL = os.environ.get("API_URL", "http://localhost:8000").rstrip("/")
 FLOCI_URL = os.environ.get("FLOCI_URL", "http://localhost:4566").rstrip("/")
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,7 +57,14 @@ def aws_cli(*args: str) -> None:
         "AWS_SECRET_ACCESS_KEY": "test",
         "AWS_DEFAULT_REGION": "us-east-1",
     }
-    subprocess.run(command, env=env, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    subprocess.run(
+        command,
+        env=env,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
 
 
 def aws_cli_output(*args: str) -> str:
@@ -69,7 +75,14 @@ def aws_cli_output(*args: str) -> str:
         "AWS_SECRET_ACCESS_KEY": "test",
         "AWS_DEFAULT_REGION": "us-east-1",
     }
-    result = subprocess.run(command, env=env, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(
+        command,
+        env=env,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
     return result.stdout.strip()
 
 
@@ -136,7 +149,9 @@ def assert_status(mission_id: str, expected: str) -> None:
 def reset_progress() -> None:
     missions = get_json("/missions")["missions"]
     for mission in reversed(missions):
-        post_json(f"/missions/{mission['id']}/reset", {"mode": "resources_and_progress"})
+        post_json(
+            f"/missions/{mission['id']}/reset", {"mode": "resources_and_progress"}
+        )
 
 
 def main() -> int:
@@ -149,17 +164,23 @@ def main() -> int:
 
     course = get_json("/course")["course"]
     if course["progress"]["nextMissionId"] != "cloud-explorer":
-        raise AssertionError(f"Unexpected first mission: {course['progress']['nextMissionId']}")
+        raise AssertionError(
+            f"Unexpected first mission: {course['progress']['nextMissionId']}"
+        )
 
+    # 1. cloud-explorer
     orientation = post_json("/missions/cloud-explorer/validate")
     if not orientation["passed"] or orientation["status"] != "completed":
         raise AssertionError(f"Orientation did not complete: {orientation}")
 
+    # 2. s3-first-bucket
     assert_status("s3-first-bucket", "available")
     post_json("/missions/s3-first-bucket/start")
 
     aws_cli("s3", "mb", "s3://starter-bucket")
-    step_one = post_json("/missions/s3-first-bucket/validate", {"stepId": "create-storage-boundary"})
+    step_one = post_json(
+        "/missions/s3-first-bucket/validate", {"stepId": "create-storage-boundary"}
+    )
     if not step_one["passed"]:
         raise AssertionError(f"S3 bucket step failed: {step_one}")
 
@@ -167,30 +188,182 @@ def main() -> int:
         f.write("Hello from local AWS")
     aws_cli("s3", "cp", "/tmp/infra-quest-hello.txt", "s3://starter-bucket/hello.txt")
 
-    step_two = post_json("/missions/s3-first-bucket/validate", {"stepId": "store-welcome-object"})
+    step_two = post_json(
+        "/missions/s3-first-bucket/validate", {"stepId": "store-welcome-object"}
+    )
     if not step_two["passed"]:
         raise AssertionError(f"S3 object step failed: {step_two}")
 
     completed = post_json("/missions/s3-first-bucket/validate")
-    if not completed["passed"] or completed["status"] != "completed" or completed["xpAwarded"] <= 0:
+    if (
+        not completed["passed"]
+        or completed["status"] != "completed"
+        or completed["xpAwarded"] <= 0
+    ):
         raise AssertionError(f"S3 mission did not complete: {completed}")
 
+    # 3. sqs-first-message
+    assert_status("sqs-first-message", "available")
+    post_json("/missions/sqs-first-message/start")
+    aws_cli(
+        "sqs",
+        "create-queue",
+        "--queue-name",
+        "starter-queue",
+        "--attributes",
+        "VisibilityTimeout=0",
+    )
+    step_validate("sqs-first-message", "create-work-queue")
+    queue_url = aws_cli_output(
+        "sqs",
+        "get-queue-url",
+        "--queue-name",
+        "starter-queue",
+        "--query",
+        "QueueUrl",
+        "--output",
+        "text",
+    )
+    aws_cli(
+        "sqs",
+        "send-message",
+        "--queue-url",
+        queue_url,
+        "--message-body",
+        "first local queue message",
+    )
+    step_validate("sqs-first-message", "enqueue-background-work")
+    mission_validate("sqs-first-message")
+
+    # 4. sns-fanout
+    assert_status("sns-fanout", "available")
+    post_json("/missions/sns-fanout/start")
+    aws_cli("sns", "create-topic", "--name", "starter-topic")
+    aws_cli(
+        "sqs",
+        "create-queue",
+        "--queue-name",
+        "starter-fanout-queue",
+        "--attributes",
+        "VisibilityTimeout=0",
+    )
+    topic_arn = aws_cli_output(
+        "sns",
+        "list-topics",
+        "--query",
+        "Topics[?contains(TopicArn,`starter-topic`)].TopicArn",
+        "--output",
+        "text",
+    )
+    queue_url = aws_cli_output(
+        "sqs",
+        "get-queue-url",
+        "--queue-name",
+        "starter-fanout-queue",
+        "--query",
+        "QueueUrl",
+        "--output",
+        "text",
+    )
+    queue_arn = aws_cli_output(
+        "sqs",
+        "get-queue-attributes",
+        "--queue-url",
+        queue_url,
+        "--attribute-names",
+        "QueueArn",
+        "--query",
+        "Attributes.QueueArn",
+        "--output",
+        "text",
+    )
+    aws_cli(
+        "sns",
+        "subscribe",
+        "--topic-arn",
+        topic_arn,
+        "--protocol",
+        "sqs",
+        "--notification-endpoint",
+        queue_arn,
+    )
+    aws_cli(
+        "sns", "publish", "--topic-arn", topic_arn, "--message", "local fanout works"
+    )
+    step_validate("sns-fanout", "create-notification-channel")
+    step_validate("sns-fanout", "create-subscriber-endpoint")
+    step_validate("sns-fanout", "wire-the-subscription")
+    mission_validate("sns-fanout")
+
+    # 5. dynamodb-first-table
+    assert_status("dynamodb-first-table", "available")
+    post_json("/missions/dynamodb-first-table/start")
+    aws_cli(
+        "dynamodb",
+        "create-table",
+        "--table-name",
+        "starter-table",
+        "--attribute-definitions",
+        "AttributeName=pk,AttributeType=S",
+        "--key-schema",
+        "AttributeName=pk,KeyType=HASH",
+        "--billing-mode",
+        "PAY_PER_REQUEST",
+    )
+    step_validate("dynamodb-first-table", "create-table")
+    aws_cli(
+        "dynamodb",
+        "put-item",
+        "--table-name",
+        "starter-table",
+        "--item",
+        '{"pk":{"S":"learner#1"},"name":{"S":"Local Learner"},"level":{"N":"1"}}',
+    )
+    step_validate("dynamodb-first-table", "store-record")
+    mission_validate("dynamodb-first-table")
+
+    # 6. lambda-tiny-function
     assert_status("lambda-tiny-function", "available")
     post_json("/missions/lambda-tiny-function/start")
-    create_lambda("starter-function", ROOT / "missions/lambda-tiny-function/function/index.mjs")
+    create_lambda(
+        "starter-function", ROOT / "missions/lambda-tiny-function/function/index.mjs"
+    )
     step_validate("lambda-tiny-function", "deploy-function")
-    aws_cli("lambda", "invoke", "--function-name", "starter-function", "--payload", '{"name":"Local Learner"}', "/tmp/infra-quest-lambda-response.json")
+    aws_cli(
+        "lambda",
+        "invoke",
+        "--function-name",
+        "starter-function",
+        "--payload",
+        '{"name":"Local Learner"}',
+        "/tmp/infra-quest-lambda-response.json",
+    )
     step_validate("lambda-tiny-function", "invoke-and-verify")
     mission_validate("lambda-tiny-function")
 
+    # 7. apigateway-http-trigger
     assert_status("apigateway-http-trigger", "available")
     post_json("/missions/apigateway-http-trigger/start")
-    create_lambda("starter-api-function", ROOT / "missions/apigateway-http-trigger/function/index.mjs")
+    create_lambda(
+        "starter-api-function",
+        ROOT / "missions/apigateway-http-trigger/function/index.mjs",
+    )
     step_validate("apigateway-http-trigger", "deploy-api-function")
-    aws_cli("apigatewayv2", "create-api", "--name", "starter-api", "--protocol-type", "HTTP")
-    api_id = aws_cli_output("apigatewayv2", "get-apis", "--query", "Items[?Name==`starter-api`].ApiId", "--output", "text")
+    aws_cli(
+        "apigatewayv2", "create-api", "--name", "starter-api", "--protocol-type", "HTTP"
+    )
+    api_id = aws_cli_output(
+        "apigatewayv2",
+        "get-apis",
+        "--query",
+        "Items[?Name==`starter-api`].ApiId",
+        "--output",
+        "text",
+    )
     step_validate("apigateway-http-trigger", "create-http-api")
-    aws_cli("apigatewayv2", "create-route", "--api-id", api_id, "--route-key", "GET /hello")
+    aws_cli(
+        "apigatewayv2", "create-route", "--api-id", api_id, "--route-key", "GET /hello"
+    )
     step_validate("apigateway-http-trigger", "add-hello-route")
     integration_id = aws_cli_output(
         "apigatewayv2",
@@ -208,63 +381,42 @@ def main() -> int:
         "--output",
         "text",
     )
-    route_id = aws_cli_output("apigatewayv2", "get-routes", "--api-id", api_id, "--query", "Items[?RouteKey==`GET /hello`].RouteId", "--output", "text")
-    aws_cli("apigatewayv2", "update-route", "--api-id", api_id, "--route-id", route_id, "--target", f"integrations/{integration_id}")
-    step_validate("apigateway-http-trigger", "wire-lambda-integration")
-    mission_validate("apigateway-http-trigger")
-
-    assert_status("dynamodb-first-table", "available")
-    post_json("/missions/dynamodb-first-table/start")
-    aws_cli(
-        "dynamodb",
-        "create-table",
-        "--table-name",
-        "starter-table",
-        "--attribute-definitions",
-        "AttributeName=pk,AttributeType=S",
-        "--key-schema",
-        "AttributeName=pk,KeyType=HASH",
-        "--billing-mode",
-        "PAY_PER_REQUEST",
-    )
-    step_validate("dynamodb-first-table", "create-table")
-    aws_cli("dynamodb", "put-item", "--table-name", "starter-table", "--item", '{"pk":{"S":"learner#1"},"name":{"S":"Local Learner"},"level":{"N":"1"}}')
-    step_validate("dynamodb-first-table", "store-record")
-    mission_validate("dynamodb-first-table")
-
-    assert_status("sqs-first-message", "available")
-    post_json("/missions/sqs-first-message/start")
-    aws_cli("sqs", "create-queue", "--queue-name", "starter-queue", "--attributes", "VisibilityTimeout=0")
-    step_validate("sqs-first-message", "create-work-queue")
-    queue_url = aws_cli_output("sqs", "get-queue-url", "--queue-name", "starter-queue", "--query", "QueueUrl", "--output", "text")
-    aws_cli("sqs", "send-message", "--queue-url", queue_url, "--message-body", "first local queue message")
-    step_validate("sqs-first-message", "enqueue-background-work")
-    mission_validate("sqs-first-message")
-
-    assert_status("sns-fanout", "available")
-    post_json("/missions/sns-fanout/start")
-    aws_cli("sns", "create-topic", "--name", "starter-topic")
-    aws_cli("sqs", "create-queue", "--queue-name", "starter-fanout-queue", "--attributes", "VisibilityTimeout=0")
-    topic_arn = aws_cli_output("sns", "list-topics", "--query", "Topics[?contains(TopicArn,`starter-topic`)].TopicArn", "--output", "text")
-    queue_url = aws_cli_output("sqs", "get-queue-url", "--queue-name", "starter-fanout-queue", "--query", "QueueUrl", "--output", "text")
-    queue_arn = aws_cli_output(
-        "sqs",
-        "get-queue-attributes",
-        "--queue-url",
-        queue_url,
-        "--attribute-names",
-        "QueueArn",
+    route_id = aws_cli_output(
+        "apigatewayv2",
+        "get-routes",
+        "--api-id",
+        api_id,
         "--query",
-        "Attributes.QueueArn",
+        "Items[?RouteKey==`GET /hello`].RouteId",
         "--output",
         "text",
     )
-    aws_cli("sns", "subscribe", "--topic-arn", topic_arn, "--protocol", "sqs", "--notification-endpoint", queue_arn)
-    aws_cli("sns", "publish", "--topic-arn", topic_arn, "--message", "local fanout works")
-    step_validate("sns-fanout", "create-notification-channel")
-    step_validate("sns-fanout", "create-subscriber-endpoint")
-    step_validate("sns-fanout", "wire-the-subscription")
-    mission_validate("sns-fanout")
+    aws_cli(
+        "apigatewayv2",
+        "update-route",
+        "--api-id",
+        api_id,
+        "--route-id",
+        route_id,
+        "--target",
+        f"integrations/{integration_id}",
+    )
+    step_validate("apigateway-http-trigger", "wire-lambda-integration")
+    mission_validate("apigateway-http-trigger")
+
+    # 8. operate-and-recover (Wait, order 9 in course.yml, but 8 here? Let me check order in course.yml)
+    # Actually course.yml says: orientation(0), storage(1), api(2), database(3), async(4), events(5), composition(6), operations(7)
+    # Wait, the ID's in course.yml are modules, not missions.
+    # Mission orders from YAML:
+    # cloud-explorer: 1
+    # s3-first-bucket: 2
+    # sqs-first-message: 3
+    # sns-fanout: 4
+    # dynamodb-first-table: 5
+    # lambda-tiny-function: 6
+    # apigateway-http-trigger: 7
+    # launchdesk-compose-capstone: 8
+    # operate-and-recover: 9
 
     assert_status("operate-and-recover", "available")
     post_json("/missions/operate-and-recover/start")
@@ -272,6 +424,7 @@ def main() -> int:
     step_validate("operate-and-recover", "repair-targeted-state")
     mission_validate("operate-and-recover")
 
+    # 9. launchdesk-compose-capstone
     assert_status("launchdesk-compose-capstone", "available")
     post_json("/missions/launchdesk-compose-capstone/start")
     aws_cli(
@@ -287,7 +440,14 @@ def main() -> int:
         "PAY_PER_REQUEST",
     )
     step_validate("launchdesk-compose-capstone", "create-orders-table")
-    aws_cli("sqs", "create-queue", "--queue-name", "orders-queue", "--attributes", "VisibilityTimeout=0")
+    aws_cli(
+        "sqs",
+        "create-queue",
+        "--queue-name",
+        "orders-queue",
+        "--attributes",
+        "VisibilityTimeout=0",
+    )
     step_validate("launchdesk-compose-capstone", "create-orders-queue")
     create_lambda(
         "orders-function",
@@ -301,10 +461,26 @@ def main() -> int:
         },
     )
     step_validate("launchdesk-compose-capstone", "deploy-orders-function")
-    aws_cli("apigatewayv2", "create-api", "--name", "orders-api", "--protocol-type", "HTTP")
-    orders_api_id = aws_cli_output("apigatewayv2", "get-apis", "--query", "Items[?Name==`orders-api`].ApiId", "--output", "text")
+    aws_cli(
+        "apigatewayv2", "create-api", "--name", "orders-api", "--protocol-type", "HTTP"
+    )
+    orders_api_id = aws_cli_output(
+        "apigatewayv2",
+        "get-apis",
+        "--query",
+        "Items[?Name==`orders-api`].ApiId",
+        "--output",
+        "text",
+    )
     step_validate("launchdesk-compose-capstone", "create-orders-api")
-    aws_cli("apigatewayv2", "create-route", "--api-id", orders_api_id, "--route-key", "POST /orders")
+    aws_cli(
+        "apigatewayv2",
+        "create-route",
+        "--api-id",
+        orders_api_id,
+        "--route-key",
+        "POST /orders",
+    )
     step_validate("launchdesk-compose-capstone", "add-orders-route")
     orders_integration_id = aws_cli_output(
         "apigatewayv2",
@@ -322,22 +498,51 @@ def main() -> int:
         "--output",
         "text",
     )
-    orders_route_id = aws_cli_output("apigatewayv2", "get-routes", "--api-id", orders_api_id, "--query", "Items[?RouteKey==`POST /orders`].RouteId", "--output", "text")
-    aws_cli("apigatewayv2", "update-route", "--api-id", orders_api_id, "--route-id", orders_route_id, "--target", f"integrations/{orders_integration_id}")
+    orders_route_id = aws_cli_output(
+        "apigatewayv2",
+        "get-routes",
+        "--api-id",
+        orders_api_id,
+        "--query",
+        "Items[?RouteKey==`POST /orders`].RouteId",
+        "--output",
+        "text",
+    )
+    aws_cli(
+        "apigatewayv2",
+        "update-route",
+        "--api-id",
+        orders_api_id,
+        "--route-id",
+        orders_route_id,
+        "--target",
+        f"integrations/{orders_integration_id}",
+    )
     step_validate("launchdesk-compose-capstone", "wire-orders-integration")
     capstone = mission_validate("launchdesk-compose-capstone")
-    if not capstone.get("capstoneScore") or not capstone["capstoneScore"].get("localSafetyPassed"):
-        raise AssertionError(f"Capstone score did not include a passing local safety gate: {capstone}")
+    if not capstone.get("capstoneScore") or not capstone["capstoneScore"].get(
+        "localSafetyPassed"
+    ):
+        raise AssertionError(
+            f"Capstone score did not include a passing local safety gate: {capstone}"
+        )
 
     profile = get_json("/profile")["profile"]
     if profile["totalXp"] < 1050:
         raise AssertionError(f"Profile XP did not persist expected awards: {profile}")
 
     course_after = get_json("/course")["course"]
-    if course_after["progress"]["requiredLessonsCompleted"] != course_after["progress"]["requiredLessonsTotal"]:
-        raise AssertionError(f"Course progress did not update: {course_after['progress']}")
+    if (
+        course_after["progress"]["requiredLessonsCompleted"]
+        != course_after["progress"]["requiredLessonsTotal"]
+    ):
+        raise AssertionError(
+            f"Course progress did not update: {course_after['progress']}"
+        )
     if course_after["progress"]["status"] != "completed":
-        raise AssertionError(f"Course did not complete required lessons: {course_after['progress']}")
+        raise AssertionError(
+            f"Course did not complete required lessons: {course_after['progress']}"
+        )
 
     print("PASS: local learner e2e flow completed all required lessons")
     return 0
