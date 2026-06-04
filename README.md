@@ -1,29 +1,39 @@
 # Infra Quest
 
-A local-first, zero-cost, gamified AWS learning lab for beginners.
+**Build a real SaaS backend in your browser, with zero AWS bill.**
 
-## Quick Start
+Infra Quest isn't a tour of AWS services — it's the build log for a real project. You join Orbiton as a new engineer, work with tech lead Priya, and ship a piece of the LaunchDesk SaaS backend, mission by mission. Everything runs locally against Floci, our AWS emulator: no account, no bill, no $400 surprise when you forget to tear down a tutorial.
+
+**What you'll actually do:**
+
+- **Stand up an S3 bucket** for the broken-uploads bug that's been blocking customers, and watch the failures roll in.
+- **Wire an order flow** API Gateway → Lambda → DynamoDB, end to end, the way a real backend does it.
+- **Move a slow PDF job off the request path** by pushing it onto an SQS queue and processing it asynchronously.
+- **Fan out a `lead.created` event** to multiple subscribers with SNS, so every team hears about new leads.
+- **Diagnose a "production is down"** scenario using the same tools a real on-call would reach for.
+
+**Who this is for:**
+
+- **Beginners** learning AWS or serverless for the first time.
+- **Students and career-switchers** who want a portfolio project that looks like a real backend, not a tutorial screenshot.
+- **Workshop hosts and bootcamps** who need a zero-setup lab they can hand to a room of learners.
+
+**Who this is NOT for:**
+
+- **AWS Solutions Architect or Professional certification prep** — Infra Quest teaches you to ship, not to pass an exam.
+- **Anyone who needs to run workloads in real AWS** — this is a local emulator only.
+
+**Quick start:**
 
 ```bash
 docker compose up --build
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Then open [http://localhost:3000](http://localhost:3000) and pick your first mission.
 
 ## What is this?
 
-Infra Quest teaches AWS concepts through guided missions. Every AWS API call runs against **Floci**, a local AWS emulator — no real AWS account, credentials, or cloud resources required.
-
-## Missions
-
-- **Cloud Explorer** — Verify your local lab is working
-- **First Bucket** — Create an S3 bucket and upload a file
-- **Queue the Message** — Create an SQS queue and send a message
-- **Publish and Subscribe** — SNS topic with SQS fanout
-- **Key-Value Store** — DynamoDB table with partition keys
-- **Tiny Function** — Deploy and invoke a Lambda function
-- **HTTP Trigger** — Expose Lambda through API Gateway
-- **LaunchDesk Compose Capstone** — Complete an optional serverless workflow challenge
+Infra Quest teaches AWS by shipping a real backend, mission by mission. Every AWS call runs against **Floci**, a local AWS emulator — no account, no credentials, no cloud resources required. The pitch above tells you what you'll do; the sections below cover the technical details.
 
 ## Tech Stack
 
@@ -116,3 +126,9 @@ make verify
 are non-empty. `make verify` is the full local gate for safety scan,
 authoring validation, backend tests, API lint, web typecheck/build, smoke, and
 browserless learner e2e.
+
+## Troubleshooting
+
+- **Floci image can't be pulled** — if `floci/floci:1.5.13` is unavailable from your network (rate limit, registry hiccup, behind a corporate proxy), set `FLOCI_IMAGE=localstack/localstack:3` in your `.env` and re-run `docker compose up --build`. LocalStack covers the same service APIs Infra Quest uses, so missions continue to work.
+- **Something looks broken, but you're not sure what** — run `make verify`. It runs the local-only safety scan, mission authoring validation, backend tests, API lint, web typecheck and build, smoke tests, and the browserless learner end-to-end flow. If `make verify` passes, your local lab is healthy.
+- **The "Ask me anything" panel is grayed out or returns an error** — the AMA chat needs `AMA_API_KEY` set in your `.env`. Uncomment the `AMA_API_KEY=your-key-here` line from `.env.example`, paste in your key, and restart with `docker compose up --build`.
