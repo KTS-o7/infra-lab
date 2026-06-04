@@ -36,6 +36,10 @@ thought_process: |
   Fix the most immediate data-loss path first: create the bucket boundary, upload
   one known file, then verify it exists. If the listing shows the object, the fix
   is real and can be replicated for production.
+
+  Storing uploads on the app server's local disk is the alternative beginners
+  reach for first rather than reaching for S3 — but that loses every file the
+  moment a container restarts or a new pod replaces the old one.
 debrief: |
   Orbiton's user files are now safe across restarts. This is the same pattern
   production systems use for every durable asset — uploads, exports, reports,

@@ -38,6 +38,10 @@ thought_process: |
   Prove the function works in isolation before wiring it to an API or queue.
   Package the code, deploy the function, invoke it with a known payload, and
   verify the response. Debugging is much easier when there is only one moving part.
+
+  Wiring the function to API Gateway first, rather than testing the function
+  on its own, hides whether a bug is in the function code or in the
+  integration request/response shape. Testing in isolation is the cheaper path.
 debrief: |
   The report job is extracted and invokable on demand. Priya can now port the
   real report logic into this function and wire it to a queue trigger. Lambda

@@ -38,6 +38,10 @@ thought_process: |
   Build inside-out: deploy the function first, then create the API, add the route,
   wire the integration, and finally test the full HTTP path. Debugging is much
   easier when each layer is proven before the next one is added.
+
+  Going outside-in — creating the API first and wiring the function last
+  rather than proving each layer bottom-up first — hides integration bugs
+  until the very end, when you have two unknowns to diagnose at the same time.
 debrief: |
   The mobile team has a working endpoint. GET /hello is live at a stable URL and
   invokes the Lambda function on every request. This API Gateway + Lambda pattern

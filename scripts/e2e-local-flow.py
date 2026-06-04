@@ -151,29 +151,84 @@ def main() -> int:
     if course["progress"]["nextMissionId"] != "cloud-explorer":
         raise AssertionError(f"Unexpected first mission: {course['progress']['nextMissionId']}")
 
+    # Mission order below follows the prerequisite chain declared in
+    # missions/*/mission.yml. PR #6 (de751f4) corrected the chain so
+    # sqs (3) precedes dynamodb (5), and dynamodb precedes lambda (6).
+    # This script must follow the same order; otherwise assertions on
+    # mission.status == "available" will fail on a fresh database.
+
     orientation = post_json("/missions/cloud-explorer/validate")
     if not orientation["passed"] or orientation["status"] != "completed":
         raise AssertionError(f"Orientation did not complete: {orientation}")
 
     assert_status("s3-first-bucket", "available")
     post_json("/missions/s3-first-bucket/start")
-
     aws_cli("s3", "mb", "s3://starter-bucket")
     step_one = post_json("/missions/s3-first-bucket/validate", {"stepId": "create-storage-boundary"})
     if not step_one["passed"]:
         raise AssertionError(f"S3 bucket step failed: {step_one}")
-
     with open("/tmp/infra-quest-hello.txt", "w", encoding="utf-8") as f:
         f.write("Hello from local AWS")
     aws_cli("s3", "cp", "/tmp/infra-quest-hello.txt", "s3://starter-bucket/hello.txt")
-
     step_two = post_json("/missions/s3-first-bucket/validate", {"stepId": "store-welcome-object"})
     if not step_two["passed"]:
         raise AssertionError(f"S3 object step failed: {step_two}")
-
     completed = post_json("/missions/s3-first-bucket/validate")
     if not completed["passed"] or completed["status"] != "completed" or completed["xpAwarded"] <= 0:
         raise AssertionError(f"S3 mission did not complete: {completed}")
+
+    assert_status("sqs-first-message", "available")
+    post_json("/missions/sqs-first-message/start")
+    aws_cli("sqs", "create-queue", "--queue-name", "starter-queue", "--attributes", "VisibilityTimeout=0")
+    step_validate("sqs-first-message", "create-work-queue")
+    queue_url = aws_cli_output("sqs", "get-queue-url", "--queue-name", "starter-queue", "--query", "QueueUrl", "--output", "text")
+    aws_cli("sqs", "send-message", "--queue-url", queue_url, "--message-body", "first local queue message")
+    step_validate("sqs-first-message", "enqueue-background-work")
+    mission_validate("sqs-first-message")
+
+    assert_status("sns-fanout", "available")
+    post_json("/missions/sns-fanout/start")
+    aws_cli("sns", "create-topic", "--name", "starter-topic")
+    aws_cli("sqs", "create-queue", "--queue-name", "starter-fanout-queue", "--attributes", "VisibilityTimeout=0")
+    topic_arn = aws_cli_output("sns", "list-topics", "--query", "Topics[?contains(TopicArn,`starter-topic`)].TopicArn", "--output", "text")
+    queue_url = aws_cli_output("sqs", "get-queue-url", "--queue-name", "starter-fanout-queue", "--query", "QueueUrl", "--output", "text")
+    queue_arn = aws_cli_output(
+        "sqs",
+        "get-queue-attributes",
+        "--queue-url",
+        queue_url,
+        "--attribute-names",
+        "QueueArn",
+        "--query",
+        "Attributes.QueueArn",
+        "--output",
+        "text",
+    )
+    aws_cli("sns", "subscribe", "--topic-arn", topic_arn, "--protocol", "sqs", "--notification-endpoint", queue_arn)
+    aws_cli("sns", "publish", "--topic-arn", topic_arn, "--message", "local fanout works")
+    step_validate("sns-fanout", "create-notification-channel")
+    step_validate("sns-fanout", "create-subscriber-endpoint")
+    step_validate("sns-fanout", "wire-the-subscription")
+    mission_validate("sns-fanout")
+
+    assert_status("dynamodb-first-table", "available")
+    post_json("/missions/dynamodb-first-table/start")
+    aws_cli(
+        "dynamodb",
+        "create-table",
+        "--table-name",
+        "starter-table",
+        "--attribute-definitions",
+        "AttributeName=pk,AttributeType=S",
+        "--key-schema",
+        "AttributeName=pk,KeyType=HASH",
+        "--billing-mode",
+        "PAY_PER_REQUEST",
+    )
+    step_validate("dynamodb-first-table", "create-table")
+    aws_cli("dynamodb", "put-item", "--table-name", "starter-table", "--item", '{"pk":{"S":"learner#1"},"name":{"S":"Local Learner"},"level":{"N":"1"}}')
+    step_validate("dynamodb-first-table", "store-record")
+    mission_validate("dynamodb-first-table")
 
     assert_status("lambda-tiny-function", "available")
     post_json("/missions/lambda-tiny-function/start")
@@ -212,59 +267,6 @@ def main() -> int:
     aws_cli("apigatewayv2", "update-route", "--api-id", api_id, "--route-id", route_id, "--target", f"integrations/{integration_id}")
     step_validate("apigateway-http-trigger", "wire-lambda-integration")
     mission_validate("apigateway-http-trigger")
-
-    assert_status("dynamodb-first-table", "available")
-    post_json("/missions/dynamodb-first-table/start")
-    aws_cli(
-        "dynamodb",
-        "create-table",
-        "--table-name",
-        "starter-table",
-        "--attribute-definitions",
-        "AttributeName=pk,AttributeType=S",
-        "--key-schema",
-        "AttributeName=pk,KeyType=HASH",
-        "--billing-mode",
-        "PAY_PER_REQUEST",
-    )
-    step_validate("dynamodb-first-table", "create-table")
-    aws_cli("dynamodb", "put-item", "--table-name", "starter-table", "--item", '{"pk":{"S":"learner#1"},"name":{"S":"Local Learner"},"level":{"N":"1"}}')
-    step_validate("dynamodb-first-table", "store-record")
-    mission_validate("dynamodb-first-table")
-
-    assert_status("sqs-first-message", "available")
-    post_json("/missions/sqs-first-message/start")
-    aws_cli("sqs", "create-queue", "--queue-name", "starter-queue", "--attributes", "VisibilityTimeout=0")
-    step_validate("sqs-first-message", "create-work-queue")
-    queue_url = aws_cli_output("sqs", "get-queue-url", "--queue-name", "starter-queue", "--query", "QueueUrl", "--output", "text")
-    aws_cli("sqs", "send-message", "--queue-url", queue_url, "--message-body", "first local queue message")
-    step_validate("sqs-first-message", "enqueue-background-work")
-    mission_validate("sqs-first-message")
-
-    assert_status("sns-fanout", "available")
-    post_json("/missions/sns-fanout/start")
-    aws_cli("sns", "create-topic", "--name", "starter-topic")
-    aws_cli("sqs", "create-queue", "--queue-name", "starter-fanout-queue", "--attributes", "VisibilityTimeout=0")
-    topic_arn = aws_cli_output("sns", "list-topics", "--query", "Topics[?contains(TopicArn,`starter-topic`)].TopicArn", "--output", "text")
-    queue_url = aws_cli_output("sqs", "get-queue-url", "--queue-name", "starter-fanout-queue", "--query", "QueueUrl", "--output", "text")
-    queue_arn = aws_cli_output(
-        "sqs",
-        "get-queue-attributes",
-        "--queue-url",
-        queue_url,
-        "--attribute-names",
-        "QueueArn",
-        "--query",
-        "Attributes.QueueArn",
-        "--output",
-        "text",
-    )
-    aws_cli("sns", "subscribe", "--topic-arn", topic_arn, "--protocol", "sqs", "--notification-endpoint", queue_arn)
-    aws_cli("sns", "publish", "--topic-arn", topic_arn, "--message", "local fanout works")
-    step_validate("sns-fanout", "create-notification-channel")
-    step_validate("sns-fanout", "create-subscriber-endpoint")
-    step_validate("sns-fanout", "wire-the-subscription")
-    mission_validate("sns-fanout")
 
     assert_status("operate-and-recover", "available")
     post_json("/missions/operate-and-recover/start")

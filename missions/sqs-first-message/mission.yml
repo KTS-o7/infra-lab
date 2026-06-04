@@ -37,6 +37,11 @@ thought_process: |
   Create the queue first and prove the message round-trip before touching the app
   code. If the queue exists and a message can be sent and received, the handoff
   contract is ready for the real integration.
+
+  Calling the slow work inline from the request handler works for a demo, but
+  it ties user-facing request latency to worker time — and turns a worker
+  failure into a user-facing error. The queue is the tradeoff that decouples
+  the two.
 debrief: |
   Orbiton's onboarding requests are no longer timing out. The queue-based handoff
   pattern is now available for any slow work the app needs to defer — email sends,

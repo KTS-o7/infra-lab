@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL", "")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "test")
