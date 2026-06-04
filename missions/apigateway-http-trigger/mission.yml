@@ -4,8 +4,8 @@ module: api
 submodule: expose-http-entrypoint
 mission_type: lesson
 required: true
-title: HTTP Trigger
-summary: Expose a Lambda function through an HTTP endpoint with API Gateway.
+title: Give the Function an HTTP Address
+summary: Wire a Lambda function to an API Gateway HTTP endpoint so external clients can call Orbiton's backend without invoking Lambda directly.
 difficulty: beginner
 services:
   - apigateway
@@ -15,9 +15,11 @@ estimated_minutes: 25
 prerequisites:
   - lambda-tiny-function
 story: |
-  You want to trigger your Lambda function via an HTTP request.
-  In AWS, this is done with API Gateway, which exposes REST/HTTP APIs.
-  When someone calls your HTTP endpoint, API Gateway invokes your Lambda.
+  Orbiton's mobile app team is waiting on a backend endpoint. Priya writes up the
+  task: "We need GET /hello reachable over HTTP so the app team can start
+  integration testing. Deploy a function, create an API Gateway API, add the
+  route, wire the Lambda, and give me a curl that returns 200. Mobile standup
+  is in two hours. They're blocked."
 learning_objectives:
   - Understand API Gateway HTTP APIs
   - Create and configure routes
@@ -25,13 +27,21 @@ learning_objectives:
   - Test HTTP endpoints locally
 capability: http_api
 motivation: |
-  LaunchDesk needs an HTTP entrypoint so clients can call backend behavior through a stable URL instead of invoking functions directly.
+  The mobile app team cannot call a Lambda function directly — they need an HTTP
+  address. API Gateway is the managed layer that receives requests, matches routes,
+  and invokes your function. Without it, external clients have no stable URL to hit.
 theory: |
-  API Gateway receives HTTP requests, matches routes, and forwards them to an integration such as Lambda. The route and integration together make the endpoint useful.
+  API Gateway receives HTTP requests and matches them to routes. Each route points
+  to an integration — in this case, a Lambda function. The gateway invokes the
+  function and returns its response to the caller.
 thought_process: |
-  Build from the inside out instead of exposing an endpoint before compute exists: deploy the function, create the API boundary, add a route, wire the route to compute, then prove the full HTTP response.
+  Build inside-out: deploy the function first, then create the API, add the route,
+  wire the integration, and finally test the full HTTP path. Debugging is much
+  easier when each layer is proven before the next one is added.
 debrief: |
-  This pattern is a common serverless API shape. LaunchDesk now has a local HTTP backend path that can grow into product workflows.
+  The mobile team has a working endpoint. GET /hello is live at a stable URL and
+  invokes the Lambda function on every request. This API Gateway + Lambda pattern
+  is the backbone of Orbiton's entire serverless backend.
 commands:
   - id: create-function
     label: Create Lambda function

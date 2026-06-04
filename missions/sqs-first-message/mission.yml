@@ -4,8 +4,8 @@ module: async_processing
 submodule: queue-background-work
 mission_type: lesson
 required: true
-title: Queue the Message
-summary: Create an SQS queue and send a message that can be received later.
+title: The App Is Timing Out Under Load
+summary: Create an SQS queue to offload slow background work so user requests stop timing out.
 difficulty: beginner
 services:
   - sqs
@@ -14,22 +14,33 @@ estimated_minutes: 10
 prerequisites:
   - s3-first-bucket
 story: |
-  The platform has work that should happen after a user request returns. Instead
-  of blocking the app, send a message into a queue so a worker can pick it up
-  asynchronously.
+  Priya sends you a P2 alert. "We're seeing 30-second request timeouts during
+  onboarding. The app is generating a welcome email PDF inline while the user
+  waits. That PDF job needs to move out of the request. Set up a queue called
+  starter-queue, send a message, and make sure a worker can receive it. We'll
+  wire the actual job later — I just need the queue proven and ready."
 learning_objectives:
   - Understand SQS queue semantics
   - Create and configure queues
   - Send and receive messages
 capability: async_work
 motivation: |
-  LaunchDesk should not make users wait while slow work runs. A queue lets the app record work quickly and let a worker handle it later.
+  Users are waiting 30 seconds on a PDF job that has nothing to do with their
+  request completing. Every second of wait time increases churn. A queue lets
+  the app accept the request immediately and hand the slow work to a background
+  worker — without the user watching a spinner.
 theory: |
-  A queue stores messages durably between producers and consumers. Producers enqueue work, and consumers receive messages when they are ready to process them.
+  A queue stores messages durably between producers and consumers. The producing
+  app records work quickly and returns. A separate consumer process reads messages
+  and does the slow work independently.
 thought_process: |
-  When work can happen after the request returns, put a small message on a queue instead of doing slow work inline. Verify the queue exists, then verify the expected work message is available.
+  Create the queue first and prove the message round-trip before touching the app
+  code. If the queue exists and a message can be sent and received, the handoff
+  contract is ready for the real integration.
 debrief: |
-  Queue-based handoff is the foundation for async jobs, retries, and worker fleets. LaunchDesk can now separate request handling from background processing.
+  Orbiton's onboarding requests are no longer timing out. The queue-based handoff
+  pattern is now available for any slow work the app needs to defer — email sends,
+  PDF generation, webhooks, report builds. The async boundary is live.
 commands:
   - id: create-queue
     label: Create queue

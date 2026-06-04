@@ -4,8 +4,8 @@ module: composition
 submodule: compose-launchdesk-workflow
 mission_type: module_capstone
 required: false
-title: LaunchDesk Compose Capstone
-summary: Build a complete local LaunchDesk workflow with API Gateway, Lambda, DynamoDB, and SQS.
+title: Ship the Order Flow End-to-End
+summary: Build a complete order processing pipeline — API Gateway receives the order, Lambda stores it in DynamoDB and queues a notification via SQS.
 difficulty: boss
 services:
   - apigateway
@@ -17,23 +17,38 @@ estimated_minutes: 35
 prerequisites:
   - sns-fanout
 story: |
-  You are building a complete local LaunchDesk request processing system.
-  An HTTP POST to your API creates an order.
-  Your Lambda function writes the order to DynamoDB and sends a message to SQS.
-  This combines everything you've learned: API Gateway, Lambda, DynamoDB, and SQS.
+  Priya walks you to the whiteboard. "Big week. We signed three enterprise customers
+  and they want order tracking live before the end of the month. Here's what we
+  need: POST /orders hits API Gateway, a Lambda function writes the order to
+  DynamoDB and queues a notification in SQS. We already have the pieces — you've
+  built each one separately. Now compose them into one working flow. Send a test
+  order and prove both the database write and the queue notification happen.
+  No partial credit — all four services need to be wired and verified."
 learning_objectives:
   - Build complete serverless workflows
   - Integrate multiple AWS services
   - Process orders and send notifications
 capability: composed_platform
 motivation: |
-  LaunchDesk is only useful when storage, compute, APIs, records, and async handoff work together. A composed workflow proves the platform can accept a request and produce durable side effects.
+  Enterprise customers need order tracking. That means a real API receiving orders,
+  durable storage so orders are never lost, and async notifications so downstream
+  systems (billing, fulfillment, analytics) can react without blocking the API.
+  All four services need to cooperate as one flow.
 theory: |
-  Service composition connects specialized cloud capabilities into one product flow. The API receives traffic, Lambda runs the business logic, DynamoDB stores state, and SQS carries downstream work.
+  Production SaaS platforms compose specialized services. The API is the entrypoint.
+  Lambda runs the business logic. DynamoDB stores the durable state. SQS carries the
+  downstream notification. Each service does one thing well; composition is what
+  makes them useful together.
 thought_process: |
-  Build dependencies first instead of starting with the public endpoint: create state and queue boundaries, then compute and entrypoint. Verify each resource exists, then prove the end-to-end behavior by submitting one known order and checking both persistence and queue notification.
+  Start with the inner dependencies — create the DynamoDB table and SQS queue first,
+  then deploy the Lambda, then wire API Gateway last. This way every layer depends
+  on something already proven. Test the end-to-end by sending one known order and
+  checking both the database and the queue.
 debrief: |
-  Production SaaS systems are made of these same boundaries: entrypoints, compute, state, and asynchronous work. This capstone proves LaunchDesk can coordinate multiple local cloud services as one platform.
+  The order flow is live. POST /orders is wired end-to-end: the API receives the
+  request, Lambda processes it, DynamoDB stores the record, and SQS delivers the
+  notification. Orbiton's enterprise customers have what they need. Priya approves
+  the architecture for production.
 commands:
   - id: create-dynamodb-table
     label: Create DynamoDB table

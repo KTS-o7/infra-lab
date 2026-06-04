@@ -4,8 +4,8 @@ module: operations
 submodule: inspect-and-repair-proof
 mission_type: lesson
 required: true
-title: Operate and Recover
-summary: Inspect local runtime health and use proof failures to repair LaunchDesk state.
+title: Production Is Failing and Nobody Knows Why
+summary: Diagnose a failing proof board, isolate the root cause, and repair the broken state without resetting resources that are still healthy.
 difficulty: beginner
 services:
   - local
@@ -14,29 +14,36 @@ estimated_minutes: 15
 prerequisites:
   - sns-fanout
 story: |
-  LaunchDesk has several local cloud capabilities online. Now you need to act like
-  the operator: verify the runtime boundary, inspect the app's proof surface, and
-  recover from missing state without reaching for a real AWS account.
+  It's 11pm. Priya sends an urgent message: "The proof board is red. Something
+  is broken in the storage layer and I don't know if it's the runtime, a missing
+  bucket, or a bad object. The on-call rotation is yours tonight. Before you
+  reset anything, check the runtime health first — last time someone nuked the
+  DynamoDB table when it was just a missing S3 object. Isolate the problem,
+  repair only what's broken, and get proof back to green."
 learning_objectives:
   - Distinguish setup failures from lesson failures
   - Use local diagnostics before changing resources
   - Choose repair before full reset when state is recoverable
 capability: operational_debugging
 motivation: |
-  Building resources is not enough. A production-minded engineer needs to know
-  whether a failure comes from the local runtime, a missing resource, or a wrong
-  value, because each cause needs a different repair path.
+  Orbiton's proof board is red at 11pm. The worst move is a full reset — you could
+  destroy healthy resources that took 30 minutes to build. Before touching anything,
+  you need to know whether the runtime itself is broken, or just one missing object.
+  The diagnosis determines the repair.
 theory: |
-  Operations starts with observable state. Health checks prove dependencies are
-  reachable, proof boards show resource-specific gaps, and reset is reserved for
-  owned local resources when repair is slower than rebuilding.
+  Cloud operations starts with observability. Check runtime health first — if the
+  endpoint is unreachable, all resource checks will fail regardless of state. If
+  the runtime is healthy, inspect specific resources. Only reset what is broken
+  and owned by you.
 thought_process: |
-  Inspect runtime health rather than guessing. If the runtime is healthy, repair
-  the specific missing resource instead of resetting everything; avoid broad
-  cleanup when a targeted command can restore the expected state.
+  Work from the outside in: runtime first, then service, then specific resource.
+  If each layer is healthy, the scope of the problem narrows. Once you know exactly
+  what is missing, repair it with a targeted command rather than a broad reset.
 debrief: |
-  Real cloud teams use the same loop: observe, isolate, repair, and re-validate.
-  LaunchDesk now has an operational workflow for safely recovering local systems.
+  Proof board is green. You found the missing object, repaired it without touching
+  anything else, and verified the fix. This is the same loop production engineers
+  run every time something breaks: observe, isolate, repair, re-validate.
+  Orbiton's on-call runbook now has your name in it.
 commands:
   - id: check-runtime
     label: Check runtime

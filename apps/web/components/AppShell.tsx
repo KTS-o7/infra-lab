@@ -8,9 +8,11 @@ import { Activity, Boxes, Database, Settings, ShieldCheck, TerminalSquare, Troph
 
 interface Props {
   children: React.ReactNode;
+  /** slim: header + footer only, no hero/runtime-stats panel */
+  variant?: "default" | "slim";
 }
 
-export default function AppShell({ children }: Props) {
+export default function AppShell({ children, variant = "default" }: Props) {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
@@ -101,33 +103,34 @@ export default function AppShell({ children }: Props) {
 
       <main id="main-content" className="px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-7xl">
-          <section className="mb-8 grid gap-4 lg:grid-cols-[1fr_360px]">
-            <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/20 backdrop-blur sm:p-6">
-              <div className="mb-5 flex flex-wrap items-center gap-2">
-                <span className="rounded-md border border-lime-300/25 bg-lime-300/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-lime-200">
-                  Local sandbox
-                </span>
-                <span className="rounded-md border border-white/10 bg-black/20 px-2.5 py-1 text-xs text-emerald-100/60">
-                  Floci endpoint
-                </span>
+          {variant === "default" && (
+            <section className="mb-8 grid gap-4 lg:grid-cols-[1fr_360px]">
+              <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/20 backdrop-blur sm:p-6">
+                <div className="mb-5 flex flex-wrap items-center gap-2">
+                  <span className="rounded-md border border-lime-300/25 bg-lime-300/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-lime-200">
+                    Local sandbox
+                  </span>
+                  <span className="rounded-md border border-white/10 bg-black/20 px-2.5 py-1 text-xs text-emerald-100/60">
+                    Floci endpoint
+                  </span>
+                </div>
+                <div className="max-w-3xl">
+                  <h2 className="text-3xl font-semibold leading-tight text-emerald-50 sm:text-5xl">
+                    Practice cloud infrastructure without touching production.
+                  </h2>
+                  <p className="mt-4 max-w-2xl text-sm leading-6 text-emerald-100/66 sm:text-base">
+                    Run AWS-style missions locally, validate real resources, and unlock the next service only when your lab state proves it is working.
+                  </p>
+                </div>
               </div>
-              <div className="max-w-3xl">
-                <h2 className="text-3xl font-semibold leading-tight text-emerald-50 sm:text-5xl">
-                  Practice cloud infrastructure without touching production.
-                </h2>
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-emerald-100/66 sm:text-base">
-                  Run AWS-style missions locally, validate real resources, and unlock the next service only when your lab state proves it is working.
-                </p>
+
+              <div className="grid gap-3 rounded-lg border border-white/10 bg-[#0b1512]/80 p-4 shadow-2xl shadow-black/20 backdrop-blur">
+                <RuntimeStat icon={Activity} label="API" value={loading ? "checking" : status?.api.status ?? "unknown"} active={status?.api.status === "online"} />
+                <RuntimeStat icon={Boxes} label="Floci" value={loading ? "checking" : status?.floci.status ?? "unknown"} active={status?.floci.status === "online"} />
+                <RuntimeStat icon={Database} label="Lab DB" value={loading ? "checking" : status?.database.status ?? "unknown"} active={status?.database.status === "online"} />
               </div>
-            </div>
-
-            <div className="grid gap-3 rounded-lg border border-white/10 bg-[#0b1512]/80 p-4 shadow-2xl shadow-black/20 backdrop-blur">
-              <RuntimeStat icon={Activity} label="API" value={loading ? "checking" : status?.api.status ?? "unknown"} active={status?.api.status === "online"} />
-              <RuntimeStat icon={Boxes} label="Floci" value={loading ? "checking" : status?.floci.status ?? "unknown"} active={status?.floci.status === "online"} />
-              <RuntimeStat icon={Database} label="Lab DB" value={loading ? "checking" : status?.database.status ?? "unknown"} active={status?.database.status === "online"} />
-            </div>
-          </section>
-
+            </section>
+          )}
           <div>{children}</div>
         </div>
       </main>

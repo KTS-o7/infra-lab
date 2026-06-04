@@ -4,8 +4,8 @@ module: orientation
 submodule: prove-local-sandbox
 mission_type: lesson
 required: true
-title: Cloud Explorer
-summary: Explore the local AWS lab environment and verify everything is working.
+title: First Day, First Task
+summary: Verify your local lab is running and confirm you are not connected to the real Orbiton AWS account.
 difficulty: beginner
 services:
   - local
@@ -13,9 +13,10 @@ xp: 50
 estimated_minutes: 5
 prerequisites: []
 story: |
-  You have joined a team that needs a safe copy of its cloud platform for practice.
-  Before building anything, prove the boundary: every AWS-style call must stay inside
-  this local Floci sandbox, never a real AWS account.
+  Priya drops a message in Slack on your first morning: "Before you touch anything,
+  prove your lab is isolated. Last month someone ran a practice script against
+  prod S3 and it cost us $400. Check that every AWS call stays inside Floci —
+  our local sandbox — and not the real account. Show me the identity proof."
 learning_objectives:
   - Understand that this lab uses local infrastructure
   - Verify Floci is running
@@ -23,13 +24,21 @@ learning_objectives:
   - Understand fake AWS credentials
 capability: safe_local_sandbox
 motivation: |
-  Real cloud accounts can cost money and expose production data. LaunchDesk starts in a local sandbox so every mistake is cheap, reversible, and isolated.
+  Orbiton runs real workloads on AWS. A careless CLI command pointed at the wrong
+  endpoint can overwrite production data or run up a bill. Your local Floci sandbox
+  exists so you can practice freely — but only if you can prove calls stay inside it.
 theory: |
-  A local AWS-compatible endpoint accepts AWS-style CLI calls without contacting AWS. Fake credentials and a fixed local endpoint make the boundary explicit.
+  A local AWS-compatible endpoint accepts AWS CLI calls without contacting AWS servers.
+  When you point the CLI at http://localhost:4566 with fake credentials, every call
+  goes to Floci and never leaves your machine.
 thought_process: |
-  Before creating resources, prove where commands go instead of trusting shell defaults. Check identity through the local endpoint, then inspect an empty service namespace so later changes have a known baseline.
+  Before creating any resource, prove where your commands are going. Get an identity
+  response from the local endpoint, then list S3 buckets to confirm the namespace is
+  empty — giving you a clean, known baseline before any real work starts.
 debrief: |
-  Production engineers always confirm environment boundaries before operating. This mission establishes the local-only habit used throughout the LaunchDesk course.
+  Every infrastructure engineer working near production should be able to answer
+  "which account am I in?" in under 10 seconds. You now have that habit. The local
+  sandbox boundary is locked in — everything you build from here stays safe.
 commands:
   - id: check-floci
     label: Check Floci health
