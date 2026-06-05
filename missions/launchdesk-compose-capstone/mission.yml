@@ -62,7 +62,7 @@ commands:
     command: aws --endpoint-url http://localhost:4566 sqs create-queue --queue-name orders-queue --attributes VisibilityTimeout=0
   - id: create-lambda
     label: Create Lambda function
-    command: cd missions/launchdesk-compose-capstone/function && zip -r function.zip index.py && aws --endpoint-url http://localhost:4566 lambda create-function --function-name orders-function --runtime python3.12 --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role --environment Variables={AWS_ENDPOINT_URL=http://floci:4566,AWS_ACCESS_KEY_ID=test,AWS_SECRET_ACCESS_KEY=test,AWS_DEFAULT_REGION=us-east-1}
+    command: cd missions/launchdesk-compose-capstone/function && zip -r function.zip index.py && aws --endpoint-url http://localhost:4566 lambda create-function --function-name orders-function --runtime python3.12 --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role --timeout 30 --environment Variables={AWS_ENDPOINT_URL=http://floci:4566,AWS_ACCESS_KEY_ID=test,AWS_SECRET_ACCESS_KEY=test,AWS_DEFAULT_REGION=us-east-1}
   - id: create-api
     label: Create API Gateway API
     command: aws --endpoint-url http://localhost:4566 apigatewayv2 create-api --name orders-api --protocol-type HTTP
