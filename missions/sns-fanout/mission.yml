@@ -39,6 +39,10 @@ thought_process: |
   Build the topic first, then a subscriber queue, then wire the subscription,
   then publish a test message and verify delivery. Proving the whole pipeline
   end-to-end is the only way to know fanout actually works.
+
+  Hard-coding three separate HTTP calls from the publisher is the naive
+  alternative — adding a fourth consumer means a code change, a redeploy,
+  and a coordination headache, rather than a config-only addition.
 debrief: |
   Billing, analytics, and compliance can now each subscribe independently.
   The signup handler publishes one event and is done. Adding a fourth consumer

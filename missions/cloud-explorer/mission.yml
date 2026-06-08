@@ -35,6 +35,10 @@ thought_process: |
   Before creating any resource, prove where your commands are going. Get an identity
   response from the local endpoint, then list S3 buckets to confirm the namespace is
   empty — giving you a clean, known baseline before any real work starts.
+
+  Skipping this step is how beginners end up running scripts against a real
+  AWS account and waking up to a $400 surprise bill. The boundary check is
+  not optional.
 debrief: |
   Every infrastructure engineer working near production should be able to answer
   "which account am I in?" in under 10 seconds. You now have that habit. The local

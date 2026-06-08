@@ -519,12 +519,16 @@ def get_chat_history(mission_id: str, session: Session = Depends(get_session)):
         .where(ChatMessage.profile_id == "local", ChatMessage.mission_id == mission_id)
         .order_by(ChatMessage.created_at)
     ).all()
-    return {
+    response = {
         "messages": [
             {"role": m.role, "content": m.content, "createdAt": m.created_at.isoformat() + "Z"}
             for m in messages
         ]
     }
+    if not config.AI_AGENT_CMD:
+        response["disabled"] = True
+        response["reason"] = "AMA_API_KEY not configured"
+    return response
 
 
 @router.post("/missions/{mission_id}/chat")

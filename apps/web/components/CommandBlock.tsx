@@ -12,8 +12,9 @@ interface Props {
 
 export default function CommandBlock({ id, label, command }: Props) {
   const [copied, setCopied] = useState(false);
-  // "host" = localhost:4566 (default), "browser" = floci:4566
-  const [target, setTarget] = useState<"host" | "browser">("host");
+  // "browser" = floci:4566 (default; in-container xterm is always available),
+  // "host" = localhost:4566 (escape hatch for learners with their own terminal).
+  const [target, setTarget] = useState<"host" | "browser">("browser");
 
   const hasBothVariants = command.includes("localhost:4566");
   const displayedCommand =

@@ -11,7 +11,7 @@ def _post_workflow(api_name: str, route: str, request_json: dict):
     url = api_url_by_name(api_name, path)
     if not url:
         raise ValueError(f"API {api_name} was not found.")
-    return requests.post(url, json=request_json, timeout=10)
+    return requests.post(url, json=request_json, timeout=45)
 
 
 def workflow_http_writes_dynamodb(api_name: str, route: str, request_json: dict, table_name: str, key: dict) -> dict:
@@ -23,9 +23,9 @@ def workflow_http_writes_dynamodb(api_name: str, route: str, request_json: dict,
         item = get_dynamodb_client().get_item(TableName=table_name, Key=key).get("Item")
         if item:
             return {"id": "http-writes-item", "type": "workflow_http_writes_dynamodb", "passed": True, "message": f"Workflow wrote the expected item to {table_name}."}
-        return {"id": "http-writes-item", "type": "workflow_http_writes_dynamodb", "passed": False, "message": f"Workflow did not write the expected item to {table_name}."}
-    except Exception:
-        return {"id": "http-writes-item", "type": "workflow_http_writes_dynamodb", "passed": False, "message": "Workflow did not write the expected DynamoDB item."}
+        return {"id": "http-writes-item", "type": "workflow_http_writes_dynamodb", "passed": False, "message": f"Workflow did not write the expected item to {table_name}. (Check if the Lambda function is correctly writing to DynamoDB)"}
+    except Exception as e:
+        return {"id": "http-writes-item", "type": "workflow_http_writes_dynamodb", "passed": False, "message": f"Workflow execution failed: {e}"}
 
 
 def workflow_http_sends_sqs(api_name: str, route: str, request_json: dict, queue_name: str, expected_body_contains: str) -> dict:
@@ -40,6 +40,6 @@ def workflow_http_sends_sqs(api_name: str, route: str, request_json: dict, queue
         for message in messages:
             if expected_body_contains in message.get("Body", ""):
                 return {"id": "http-sends-message", "type": "workflow_http_sends_sqs", "passed": True, "message": f"Workflow sent the expected message to {queue_name}."}
-        return {"id": "http-sends-message", "type": "workflow_http_sends_sqs", "passed": False, "message": f"Workflow did not send the expected message to {queue_name}."}
-    except Exception:
-        return {"id": "http-sends-message", "type": "workflow_http_sends_sqs", "passed": False, "message": "Workflow did not send the expected SQS message."}
+        return {"id": "http-sends-message", "type": "workflow_http_sends_sqs", "passed": False, "message": f"Workflow did not send the expected message to {queue_name}. (Check if the Lambda function is correctly sending to SQS)"}
+    except Exception as e:
+        return {"id": "http-sends-message", "type": "workflow_http_sends_sqs", "passed": False, "message": f"Workflow execution failed: {e}"}

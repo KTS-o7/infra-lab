@@ -84,10 +84,10 @@ def main():
 
     if not API_KEY:
         print(
-            "AMA_API_KEY is not set. Add it to your .env file to enable AI chat.",
+            "AMA_DISABLED:AMA_API_KEY is not set. Set it in your .env to enable the chat panel.",
             file=sys.stderr,
         )
-        sys.exit(1)
+        sys.exit(2)
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages.extend(history)

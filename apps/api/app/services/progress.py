@@ -8,7 +8,6 @@ from sqlmodel import select
 
 from app.models import (
     CapstoneScore,
-    ChatMessage,
     CourseCompletion,
     HintUsage,
     LearnMoreUsage,

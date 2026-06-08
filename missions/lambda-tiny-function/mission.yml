@@ -38,6 +38,10 @@ thought_process: |
   Prove the function works in isolation before wiring it to an API or queue.
   Package the code, deploy the function, invoke it with a known payload, and
   verify the response. Debugging is much easier when there is only one moving part.
+
+  Wiring the function to API Gateway first, rather than testing the function
+  on its own, hides whether a bug is in the function code or in the
+  integration request/response shape. Testing in isolation is the cheaper path.
 debrief: |
   The report job is extracted and invokable on demand. Priya can now port the
   real report logic into this function and wire it to a queue trigger. Lambda
@@ -45,7 +49,7 @@ debrief: |
 commands:
   - id: create-function
     label: Create Lambda function
-    command: cd missions/lambda-tiny-function/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role
+    command: cd missions/lambda-tiny-function/function && zip -r function.zip index.mjs && aws --endpoint-url http://localhost:4566 lambda create-function --function-name starter-function --runtime nodejs22.x --handler index.handler --zip-file fileb://function.zip --role arn:aws:iam::000000000000:role/local-lambda-role --timeout 30
   - id: invoke-function
     label: Invoke function
     command: aws --endpoint-url http://localhost:4566 lambda invoke --function-name starter-function --payload '{"name":"Local Learner"}' /tmp/response.json && cat /tmp/response.json

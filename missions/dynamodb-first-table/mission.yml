@@ -37,6 +37,10 @@ thought_process: |
   Define the simplest useful key model before writing code: what uniquely identifies
   a user record? Create the table with that key, write one known record, then read
   it back. If the attributes match, the data model is correct.
+
+  Avoid adding sort keys, GSIs, or streams before you know the access pattern —
+  premature schema decisions are hard to unwind once application code starts
+  depending on them.
 debrief: |
   User records are now durable. The session state loss stops here. Priya can
   begin migrating in-memory data to the table. DynamoDB also handles the

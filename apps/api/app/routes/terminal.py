@@ -8,7 +8,7 @@ import struct
 import subprocess
 import termios
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket
 
 # Configure logging to help diagnose container issues
 logger = logging.getLogger("terminal")

@@ -303,7 +303,7 @@ export interface ChatMessage {
 
 export async function getChatHistory(
   missionId: string,
-): Promise<{ messages: ChatMessage[] }> {
+): Promise<{ messages: ChatMessage[]; disabled?: boolean; reason?: string }> {
   const res = await fetch(`${API_BASE}/missions/${missionId}/chat`);
   if (!res.ok) throw new Error("Failed to fetch chat history");
   return res.json();

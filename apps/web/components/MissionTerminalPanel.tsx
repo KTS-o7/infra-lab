@@ -5,6 +5,7 @@ import {
   Check,
   ClipboardCheck,
   Copy,
+  HelpCircle,
   Loader2,
   Lock,
   Monitor,
@@ -28,7 +29,7 @@ export default function MissionTerminalPanel({
   onCheck,
 }: Props) {
   const [copied, setCopied] = useState(false);
-  const [target, setTarget] = useState<"host" | "browser">("host");
+  const [target, setTarget] = useState<"host" | "browser">("browser");
 
   const rawCommand = command?.command ?? "# No CLI command is attached to this step yet.";
   const hasBothVariants = rawCommand.includes("localhost:4566");
@@ -90,6 +91,16 @@ export default function MissionTerminalPanel({
                 Browser
               </button>
             </div>
+          )}
+          {hasBothVariants && (
+            <button
+              type="button"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-emerald-100/50 transition hover:bg-white/[0.08] hover:text-emerald-100/80"
+              title="Browser = paste this into the terminal below the workbench. Host = you're running this on your own machine outside the lab."
+              aria-label="What do Host and Browser mean?"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+            </button>
           )}
           <button
             onClick={handleCopy}
